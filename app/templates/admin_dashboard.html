@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CRM Dealer Admin</title>
+</head>
+<body>
+
+<h1>CRM Dealer Admin</h1>
+
+<h2>Meeting Points</h2>
+
+<table border="1" cellpadding="10">
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Address</th>
+        <th>Google Maps</th>
+        <th>Default</th>
+        <th>Active</th>
+        <th>Action</th>
+    </tr>
+
+    {% for point in meeting_points %}
+    <tr>
+        <form action="/admin/meeting-points/{{ point.id }}/update" method="post">
+            <td>{{ point.id }}</td>
+
+            <td>
+                <input type="text" name="name" value="{{ point.name }}" required>
+            </td>
+
+            <td>
+                <input type="text" name="address" value="{{ point.address }}" size="50" required>
+            </td>
+
+            <td>
+                <input type="text" name="google_maps_link" value="{{ point.google_maps_link }}" size="50" required>
+                <br>
+                <a href="{{ point.google_maps_link }}" target="_blank">Open Map</a>
+            </td>
+
+            <td>{{ point.is_default }}</td>
+
+            <td>
+                <input type="checkbox" name="is_active" {% if point.is_active %}checked{% endif %}>
+            </td>
+
+            <td>
+                <button type="submit">Save</button>
+        </form>
+
+        <form action="/admin/meeting-points/{{ point.id }}/default" method="post" style="display:inline;">
+            <button type="submit">Set Default</button>
+        </form>
+
+        <form action="/admin/meeting-points/{{ point.id }}/delete" method="post" style="display:inline;">
+            <button type="submit">Delete</button>
+        </form>
+            </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h2>Add Meeting Point</h2>
+
+<input type="text" id="location-search" placeholder="Search location..." size="50">
+
+<button onclick="searchLocation()">Search</button>
+
+<div id="search-results"></div>
+
+<br><br>
+
+<form action="/admin/meeting-points" method="post">
+    <label>Name</label>
+    <br>
+    <input type="text" id="name" name="name" required>
+
+    <br><br>
+
+    <label>Address</label>
+    <br>
+    <input type="text" id="address" name="address" size="80" required>
+
+    <br><br>
+
+    <label>Google Maps Link</label>
+    <br>
+    <input type="text" id="google_maps_link" name="google_maps_link" size="80" required>
+
+    <br><br>
+
+    <label>
+        <input type="checkbox" name="is_default">
+        Set as default
+    </label>
+
+    <br><br>
+
+    <button type="submit">Create Meeting Point</button>
+</form>
+
+<h2>Customers</h2>
+
+<table border="1" cellpadding="10">
+    <tr>
+        <th>ID</th>
+        <th>Full Name</th>
+        <th>Username</th>
+        <th>Language</th>
+        <th>Last Seen</th>
+        <th>Action</th>
+    </tr>
+
+    {% for customer in customers %}
+    <tr>
+        <td>{{ customer.id }}</td>
+        <td>{{ customer.full_name }}</td>
+        <td>{{ customer.username }}</td>
+        <td>{{ customer.language }}</td>
+        <td>{{ customer.last_seen_at }}</td>
+        <td>
+            <a href="/admin/customers/{{ customer.id }}">View History</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<script>
+async function searchLocation() {
+    const query = document.getElementById("location-search").value.trim();
+    const resultsDiv = document.getElementById("search-results");
+
+    resultsDiv.innerHTML = "Searching...";
+
+    if (!query) {
+        resultsDiv.innerHTML = "Enter a location first.";
+        return;
+    }
+
+    const response = await fetch(
+        `/admin/search-location?query=${encodeURIComponent(query)}`
+    );
+
+    const results = await response.json();
+
+    resultsDiv.innerHTML = "";
+
+    if (results.length === 0) {
+        resultsDiv.innerHTML = "No locations found.";
+        return;
+    }
+
+    results.forEach((item) => {
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.innerText = item.address;
+        button.style.display = "block";
+        button.style.margin = "8px 0";
+
+        button.onclick = () => {
+            document.getElementById("name").value = item.name;
+            document.getElementById("address").value = item.address;
+            document.getElementById("google_maps_link").value =
+                item.google_maps_link;
+        };
+
+        resultsDiv.appendChild(button);
+    });
+}
+</script>
+
+</body>
+</html>
