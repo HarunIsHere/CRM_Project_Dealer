@@ -7,6 +7,72 @@
 
 <h1>CRM Dealer Admin</h1>
 
+<h2>Notification Settings</h2>
+
+<form action="/admin/settings/admin-telegram" method="post">
+    <label>Admin Telegram Chat ID</label><br>
+    <input
+        type="text"
+        name="admin_telegram_chat_id"
+        value="{{ admin_telegram_chat_id or '' }}"
+        size="30"
+        required
+    >
+    <button type="submit">Save Notification Receiver</button>
+</form>
+
+<h2>Products</h2>
+
+<table border="1" cellpadding="10">
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Active</th>
+        <th>Action</th>
+    </tr>
+
+    {% for product in products %}
+    <tr>
+        <form action="/admin/products/{{ product.id }}/update" method="post">
+            <td>{{ product.id }}</td>
+            <td>
+                <input type="text" name="name" value="{{ product.name }}" required>
+            </td>
+            <td>
+                <input type="number" step="0.01" name="price" value="{{ product.price }}" required>
+            </td>
+            <td>
+                <input type="checkbox" name="is_active" {% if product.is_active %}checked{% endif %}>
+            </td>
+            <td>
+                <button type="submit">Save</button>
+        </form>
+
+        <form action="/admin/products/{{ product.id }}/delete" method="post" style="display:inline;">
+            <button type="submit">Delete</button>
+        </form>
+            </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h3>Add Product</h3>
+
+<form action="/admin/products" method="post">
+    <label>Product Name</label><br>
+    <input type="text" name="name" required>
+
+    <br><br>
+
+    <label>Price</label><br>
+    <input type="number" step="0.01" name="price" required>
+
+    <br><br>
+
+    <button type="submit">Create Product</button>
+</form>
+
 <h2>Meeting Points</h2>
 
 <table border="1" cellpadding="10">
@@ -24,27 +90,21 @@
     <tr>
         <form action="/admin/meeting-points/{{ point.id }}/update" method="post">
             <td>{{ point.id }}</td>
-
             <td>
                 <input type="text" name="name" value="{{ point.name }}" required>
             </td>
-
             <td>
                 <input type="text" name="address" value="{{ point.address }}" size="50" required>
             </td>
-
             <td>
                 <input type="text" name="google_maps_link" value="{{ point.google_maps_link }}" size="50" required>
                 <br>
                 <a href="{{ point.google_maps_link }}" target="_blank">Open Map</a>
             </td>
-
             <td>{{ point.is_default }}</td>
-
             <td>
                 <input type="checkbox" name="is_active" {% if point.is_active %}checked{% endif %}>
             </td>
-
             <td>
                 <button type="submit">Save</button>
         </form>
@@ -61,7 +121,7 @@
     {% endfor %}
 </table>
 
-<h2>Add Meeting Point</h2>
+<h3>Add Meeting Point</h3>
 
 <input type="text" id="location-search" placeholder="Search location..." size="50">
 
@@ -72,20 +132,17 @@
 <br><br>
 
 <form action="/admin/meeting-points" method="post">
-    <label>Name</label>
-    <br>
+    <label>Name</label><br>
     <input type="text" id="name" name="name" required>
 
     <br><br>
 
-    <label>Address</label>
-    <br>
+    <label>Address</label><br>
     <input type="text" id="address" name="address" size="80" required>
 
     <br><br>
 
-    <label>Google Maps Link</label>
-    <br>
+    <label>Google Maps Link</label><br>
     <input type="text" id="google_maps_link" name="google_maps_link" size="80" required>
 
     <br><br>

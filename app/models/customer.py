@@ -36,6 +36,11 @@ class Customer(Base):
 
     notes = Column(Text, nullable=True)
 
+    conversation_state = Column(
+        String,
+        nullable=True
+    )
+
     is_blocked = Column(
         Boolean,
         default=False

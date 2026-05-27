@@ -11,6 +11,8 @@ from app.core.dependencies import get_db
 from app.models.customer import Customer
 from app.models.meeting_point import MeetingPoint
 from app.models.message import Message
+from app.services.settings_service import get_setting
+from app.services.settings_service import set_setting
 
 router = APIRouter(
     prefix="/admin",
@@ -31,12 +33,19 @@ def admin_dashboard(
         Customer.last_seen_at.desc()
     ).all()
 
+    products = db.query(Product).all()
+
     return templates.TemplateResponse(
         request=request,
         name="admin_dashboard.html",
         context={
             "meeting_points": meeting_points,
-            "customers": customers
+            "customers": customers,
+            "products": products,
+            "admin_telegram_chat_id": get_setting(
+                db,
+                "admin_telegram_chat_id"
+            )
         }
     )
 
@@ -170,6 +179,90 @@ def delete_meeting_point(
 
     if meeting_point:
         db.delete(meeting_point)
+        db.commit()
+
+    return RedirectResponse(
+        url="/admin",
+        status_code=303
+    )
+
+
+@router.post("/settings/admin-telegram")
+def update_admin_telegram(
+    admin_telegram_chat_id: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    set_setting(
+        db,
+        "admin_telegram_chat_id",
+        admin_telegram_chat_id
+    )
+
+    return RedirectResponse(
+        url="/admin",
+        status_code=303
+    )
+
+
+from app.models.product import Product
+
+
+@router.post("/products")
+def create_product(
+    name: str = Form(...),
+    price: float = Form(...),
+    db: Session = Depends(get_db)
+):
+    product = Product(
+        name=name,
+        price=price,
+        is_active=True
+    )
+
+    db.add(product)
+    db.commit()
+
+    return RedirectResponse(
+        url="/admin",
+        status_code=303
+    )
+
+
+@router.post("/products/{product_id}/update")
+def update_product(
+    product_id: int,
+    name: str = Form(...),
+    price: float = Form(...),
+    is_active: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(
+        Product.id == product_id
+    ).first()
+
+    product.name = name
+    product.price = price
+    product.is_active = is_active
+
+    db.commit()
+
+    return RedirectResponse(
+        url="/admin",
+        status_code=303
+    )
+
+
+@router.post("/products/{product_id}/delete")
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(
+        Product.id == product_id
+    ).first()
+
+    if product:
+        db.delete(product)
         db.commit()
 
     return RedirectResponse(

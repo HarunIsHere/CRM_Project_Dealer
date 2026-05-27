@@ -12,6 +12,8 @@ from app.core.database import engine
 from app.models.customer import Customer
 from app.models.message import Message
 from app.models.meeting_point import MeetingPoint
+from app.models.app_setting import AppSetting
+from app.models.product import Product
 
 from app.services.telegram_bot import create_bot_application
 

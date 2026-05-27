@@ -14,6 +14,7 @@ from app.models.message import Message
 
 from app.services.language_service import detect_language
 from app.services.rule_engine import get_rule_based_reply
+from app.services.settings_service import get_setting
 
 
 def save_message(
@@ -39,12 +40,93 @@ def save_message(
     return message
 
 
+def get_unresolved_options_reply() -> str:
+    return (
+        "I did not understand exactly. Please choose:\n\n"
+        "1. Products\n"
+        "2. Location\n"
+        "3. Contact admin"
+    )
+
+
+def get_option_reply(db, customer: Customer, incoming_text: str) -> str | None:
+    clean_text = incoming_text.strip().lower()
+
+    if clean_text in ["1", "products", "product"]:
+        customer.conversation_state = None
+        db.commit()
+        return get_rule_based_reply(
+            db,
+            "products",
+            customer.preferred_language or "en"
+        )
+
+    if clean_text in ["2", "location", "address", "adres"]:
+        customer.conversation_state = None
+        db.commit()
+        return get_rule_based_reply(
+            db,
+            "location",
+            customer.preferred_language or "en"
+        )
+
+    if clean_text in ["3", "admin", "contact admin"]:
+        customer.conversation_state = None
+        db.commit()
+        return "CONTACT_ADMIN"
+
+    if customer.conversation_state != "awaiting_unresolved_option":
+        return None
+
+    customer.conversation_state = "awaiting_unresolved_option"
+    db.commit()
+    return get_unresolved_options_reply()
+
+
+async def forward_unresolved_message(
+    context: ContextTypes.DEFAULT_TYPE,
+    db,
+    customer: Customer,
+    incoming_text: str
+):
+    admin_chat_id = get_setting(
+        db,
+        "admin_telegram_chat_id"
+    )
+
+    if not admin_chat_id:
+        return
+
+    notification_text = (
+        "Unresolved customer message:\n\n"
+        f"Customer: {customer.full_name}\n"
+        f"Telegram ID: {customer.telegram_user_id}\n"
+        f"Message: {incoming_text}"
+    )
+
+    await context.bot.send_message(
+        chat_id=admin_chat_id,
+        text=notification_text
+    )
+
+
 async def start_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
     await update.message.reply_text(
         "CRM Dealer Bot is running."
+    )
+
+
+async def myid_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+    chat_id = update.effective_chat.id
+
+    await update.message.reply_text(
+        f"Your Telegram chat ID is: {chat_id}"
     )
 
 
@@ -91,21 +173,39 @@ async def handle_message(
             language=detected_language
         )
 
-        if detected_language == "unknown":
-            reply_text = (
-                "Please choose a language: English, Deutsch, Türkçe, العربية"
+        reply_language = detected_language
+        if reply_language == "unknown":
+            reply_language = customer.preferred_language or "en"
+
+        reply_text = get_option_reply(
+            db,
+            customer,
+            incoming_text
+        )
+
+        if reply_text == "CONTACT_ADMIN":
+            await forward_unresolved_message(
+                context=context,
+                db=db,
+                customer=customer,
+                incoming_text=incoming_text
             )
-        else:
+
+            reply_text = (
+                "I received your message. I will help you shortly."
+            )
+
+        if reply_text is None:
             reply_text = get_rule_based_reply(
                 db,
                 incoming_text,
-                detected_language
+                reply_language
             )
 
-            if reply_text is None:
-                reply_text = (
-                    "I received your message. I will help you shortly."
-                )
+        if reply_text is None:
+            customer.conversation_state = "awaiting_unresolved_option"
+            db.commit()
+            reply_text = get_unresolved_options_reply()
 
         save_message(
             db=db,
@@ -132,6 +232,13 @@ def create_bot_application():
         CommandHandler(
             "start",
             start_command
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "myid",
+            myid_command
         )
     )
 
