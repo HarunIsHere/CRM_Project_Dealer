@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db
 from app.models.customer import Customer
+from app.models.customer_request import CustomerRequest
 from app.models.meeting_point import MeetingPoint
 from app.models.message import Message
 from app.services.admin_auth_service import COOKIE_NAME
@@ -173,12 +174,19 @@ def customer_detail(
         Message.created_at.asc()
     ).all()
 
+    customer_requests = db.query(CustomerRequest).filter(
+        CustomerRequest.customer_id == customer_id
+    ).order_by(
+        CustomerRequest.created_at.desc()
+    ).all()
+
     return templates.TemplateResponse(
         request=request,
         name="customer_detail.html",
         context={
             "customer": customer,
-            "messages": messages
+            "messages": messages,
+            "customer_requests": customer_requests
         }
     )
 

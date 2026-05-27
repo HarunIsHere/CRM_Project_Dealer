@@ -16,6 +16,8 @@ from app.models.customer import Customer
 from app.models.message import Message
 
 from app.services.language_service import detect_language
+from app.services.quantity_service import extract_quantity
+from app.services.customer_request_service import log_customer_request
 from app.services.rule_engine import get_rule_based_reply
 from app.services.settings_service import get_setting
 
@@ -226,7 +228,30 @@ async def handle_option_selection(
             selected_option
         )
 
+        if selected_option == "1":
+            log_customer_request(
+                db,
+                customer.id,
+                "product_list",
+                "Customer selected product list"
+            )
+
+        if selected_option == "2":
+            log_customer_request(
+                db,
+                customer.id,
+                "location",
+                "Customer selected location"
+            )
+
         if reply_text == "CONTACT_ADMIN":
+            log_customer_request(
+                db,
+                customer.id,
+                "contact_admin",
+                "Customer selected contact admin"
+            )
+
             await forward_unresolved_message(
                 context=context,
                 db=db,
@@ -309,7 +334,31 @@ async def handle_message(
             incoming_text
         )
 
+        if incoming_text.strip().lower() in ["1", "products", "product"]:
+            log_customer_request(
+                db,
+                customer.id,
+                "product_list",
+                incoming_text,
+                extract_quantity(incoming_text)
+            )
+
+        if incoming_text.strip().lower() in ["2", "location", "address", "adres"]:
+            log_customer_request(
+                db,
+                customer.id,
+                "location",
+                incoming_text
+            )
+
         if reply_text == "CONTACT_ADMIN":
+            log_customer_request(
+                db,
+                customer.id,
+                "contact_admin",
+                incoming_text
+            )
+
             await forward_unresolved_message(
                 context=context,
                 db=db,
@@ -327,6 +376,17 @@ async def handle_message(
                 incoming_text,
                 reply_language
             )
+
+            if reply_text is not None and "Available products:" not in reply_text:
+                quantity = extract_quantity(incoming_text)
+                if quantity is not None:
+                    log_customer_request(
+                        db,
+                        customer.id,
+                        "product_specific",
+                        incoming_text,
+                        quantity
+                    )
 
         if reply_text is None:
             customer.conversation_state = "awaiting_unresolved_option"

@@ -63,6 +63,30 @@
     <button type="submit">Send Reply to Customer</button>
 </form>
 
+<h2>Structured Requests</h2>
+
+<table border="1" cellpadding="8">
+    <tr>
+        <th>ID</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Quantity</th>
+        <th>Text</th>
+        <th>Created At</th>
+    </tr>
+
+    {% for request_item in customer_requests %}
+    <tr>
+        <td>{{ request_item.id }}</td>
+        <td>{{ request_item.request_type }}</td>
+        <td>{{ request_item.status }}</td>
+        <td>{{ request_item.quantity or "" }}</td>
+        <td>{{ request_item.request_text }}</td>
+        <td>{{ request_item.created_at }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
 <h2>Conversation History</h2>
 
 <table border="1" cellpadding="8">

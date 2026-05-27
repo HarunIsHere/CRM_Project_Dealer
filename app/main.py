@@ -10,6 +10,7 @@ from app.core.database import Base
 from app.core.database import engine
 
 from app.models.customer import Customer
+from app.models.customer_request import CustomerRequest
 from app.models.message import Message
 from app.models.meeting_point import MeetingPoint
 from app.models.app_setting import AppSetting
