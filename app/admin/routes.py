@@ -521,3 +521,40 @@ def send_customer_reply(
         url=f"/admin/customers/{customer_id}",
         status_code=303
     )
+
+
+@router.post("/customer-requests/{request_id}/status")
+def update_customer_request_status(
+    request: Request,
+    request_id: int,
+    status: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    customer_request = db.query(CustomerRequest).filter(
+        CustomerRequest.id == request_id
+    ).first()
+
+    if not customer_request:
+        return RedirectResponse(
+            url="/admin",
+            status_code=303
+        )
+
+    allowed_statuses = [
+        "new",
+        "in_progress",
+        "done"
+    ]
+
+    if status in allowed_statuses:
+        customer_request.status = status
+        db.commit()
+
+    return RedirectResponse(
+        url=f"/admin/customers/{customer_request.customer_id}",
+        status_code=303
+    )

@@ -73,6 +73,7 @@
         <th>Quantity</th>
         <th>Text</th>
         <th>Created At</th>
+        <th>Action</th>
     </tr>
 
     {% for request_item in customer_requests %}
@@ -83,6 +84,34 @@
         <td>{{ request_item.quantity or "" }}</td>
         <td>{{ request_item.request_text }}</td>
         <td>{{ request_item.created_at }}</td>
+        <td>
+            <form
+                action="/admin/customer-requests/{{ request_item.id }}/status"
+                method="post"
+            >
+                <select name="status">
+                    <option
+                        value="new"
+                        {% if request_item.status == "new" %}selected{% endif %}
+                    >
+                        new
+                    </option>
+                    <option
+                        value="in_progress"
+                        {% if request_item.status == "in_progress" %}selected{% endif %}
+                    >
+                        in_progress
+                    </option>
+                    <option
+                        value="done"
+                        {% if request_item.status == "done" %}selected{% endif %}
+                    >
+                        done
+                    </option>
+                </select>
+                <button type="submit">Save</button>
+            </form>
+        </td>
     </tr>
     {% endfor %}
 </table>
@@ -96,6 +125,7 @@
         <th>Message</th>
         <th>Language</th>
         <th>Created At</th>
+        <th>Action</th>
     </tr>
 
     {% for message in messages %}
