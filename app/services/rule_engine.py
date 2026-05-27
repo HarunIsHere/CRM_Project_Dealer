@@ -4,6 +4,8 @@ from rapidfuzz import fuzz, process
 
 from app.models.product import Product
 from app.services.meeting_point_service import format_meeting_point_reply
+from app.services.working_hours_service import get_closed_hours_reply
+from app.services.working_hours_service import is_within_working_hours
 
 
 LOCATION_KEYWORDS = [
@@ -69,6 +71,9 @@ def get_rule_based_reply(db, text: str, language: str) -> str | None:
     clean_text = normalize_text(text)
 
     if is_close_match(clean_text, LOCATION_KEYWORDS):
+        if not is_within_working_hours(db):
+            return get_closed_hours_reply(db, language)
+
         return format_meeting_point_reply(db, language)
 
     product_reply = get_product_reply_if_matched(
@@ -130,6 +135,9 @@ def get_product_reply_if_matched(db, text: str, language: str) -> str | None:
             return None
 
         best_match = word_match
+
+    if not is_within_working_hours(db):
+        return get_closed_hours_reply(db, language)
 
     matched_product = products[best_match[2]]
     return format_single_product_reply(matched_product, language)

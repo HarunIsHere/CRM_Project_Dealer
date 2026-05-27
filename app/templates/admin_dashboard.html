@@ -21,6 +21,63 @@
     <button type="submit">Save Notification Receiver</button>
 </form>
 
+<h2>Working Hours</h2>
+
+<form action="/admin/settings/working-hours" method="post">
+    <label>
+        <input
+            type="checkbox"
+            name="working_hours_enabled"
+            value="on"
+            {% if working_hours_enabled == "on" %}checked{% endif %}
+        >
+        Enable working-hours restrictions
+    </label>
+
+    <br><br>
+
+    <label>Timezone</label><br>
+    <input
+        type="text"
+        name="working_hours_timezone"
+        value="{{ working_hours_timezone }}"
+        required
+    >
+
+    <br><br>
+
+    <label>Start Time</label><br>
+    <input
+        type="time"
+        name="working_hours_start"
+        value="{{ working_hours_start }}"
+        required
+    >
+
+    <br><br>
+
+    <label>End Time</label><br>
+    <input
+        type="time"
+        name="working_hours_end"
+        value="{{ working_hours_end }}"
+        required
+    >
+
+    <br><br>
+
+    <label>Closed Message</label><br>
+    <textarea
+        name="working_hours_closed_message"
+        rows="3"
+        cols="80"
+    >{{ working_hours_closed_message }}</textarea>
+
+    <br><br>
+
+    <button type="submit">Save Working Hours</button>
+</form>
+
 <h2>Products</h2>
 
 <table border="1" cellpadding="10">

@@ -45,7 +45,27 @@ def admin_dashboard(
             "admin_telegram_chat_id": get_setting(
                 db,
                 "admin_telegram_chat_id"
-            )
+            ),
+            "working_hours_enabled": get_setting(
+                db,
+                "working_hours_enabled"
+            ),
+            "working_hours_timezone": get_setting(
+                db,
+                "working_hours_timezone"
+            ) or "Europe/Berlin",
+            "working_hours_start": get_setting(
+                db,
+                "working_hours_start"
+            ) or "10:00",
+            "working_hours_end": get_setting(
+                db,
+                "working_hours_end"
+            ) or "22:00",
+            "working_hours_closed_message": get_setting(
+                db,
+                "working_hours_closed_message"
+            ) or ""
         }
     )
 
@@ -264,6 +284,47 @@ def delete_product(
     if product:
         db.delete(product)
         db.commit()
+
+    return RedirectResponse(
+        url="/admin",
+        status_code=303
+    )
+
+
+@router.post("/settings/working-hours")
+def update_working_hours(
+    working_hours_enabled: str = Form("off"),
+    working_hours_timezone: str = Form(...),
+    working_hours_start: str = Form(...),
+    working_hours_end: str = Form(...),
+    working_hours_closed_message: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    set_setting(
+        db,
+        "working_hours_enabled",
+        working_hours_enabled
+    )
+    set_setting(
+        db,
+        "working_hours_timezone",
+        working_hours_timezone
+    )
+    set_setting(
+        db,
+        "working_hours_start",
+        working_hours_start
+    )
+    set_setting(
+        db,
+        "working_hours_end",
+        working_hours_end
+    )
+    set_setting(
+        db,
+        "working_hours_closed_message",
+        working_hours_closed_message
+    )
 
     return RedirectResponse(
         url="/admin",
