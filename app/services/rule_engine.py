@@ -90,6 +90,50 @@ def get_rule_based_reply(db, text: str, language: str) -> str | None:
     return None
 
 
+def get_matching_product(db, text: str) -> Product | None:
+    clean_text = normalize_text(text)
+
+    products = db.query(Product).filter(
+        Product.is_active.is_(True)
+    ).all()
+
+    if not products:
+        return None
+
+    product_names = [normalize_text(product.name) for product in products]
+
+    best_match = process.extractOne(
+        clean_text,
+        product_names,
+        scorer=fuzz.partial_ratio,
+    )
+
+    if best_match is None:
+        return None
+
+    if best_match[1] < 75:
+        words = [
+            word
+            for word in clean_text.split()
+            if len(word) >= 4
+        ]
+
+        for word in words:
+            candidate = process.extractOne(
+                word,
+                product_names,
+                scorer=fuzz.partial_ratio,
+            )
+
+            if candidate is not None and candidate[1] >= 75:
+                best_match = candidate
+                break
+        else:
+            return None
+
+    return products[best_match[2]]
+
+
 def get_product_reply_if_matched(db, text: str, language: str) -> str | None:
     products = db.query(Product).filter(
         Product.is_active.is_(True)

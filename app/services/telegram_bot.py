@@ -18,6 +18,7 @@ from app.models.message import Message
 from app.services.language_service import detect_language
 from app.services.quantity_service import extract_quantity
 from app.services.customer_request_service import log_customer_request
+from app.services.rule_engine import get_matching_product
 from app.services.rule_engine import get_rule_based_reply
 from app.services.settings_service import get_setting
 
@@ -109,6 +110,37 @@ def get_option_reply(db, customer: Customer, incoming_text: str) -> str | None:
     customer.conversation_state = "awaiting_unresolved_option"
     db.commit()
     return get_unresolved_options_reply()
+
+
+async def forward_product_request(
+    context: ContextTypes.DEFAULT_TYPE,
+    db,
+    customer: Customer,
+    incoming_text: str,
+    product_name: str,
+    quantity: int | None
+):
+    admin_chat_id = get_setting(
+        db,
+        "admin_telegram_chat_id"
+    )
+
+    if not admin_chat_id:
+        return
+
+    notification_text = (
+        "Product request:\n\n"
+        f"Customer: {customer.full_name}\n"
+        f"Telegram ID: {customer.telegram_user_id}\n"
+        f"Product: {product_name}\n"
+        f"Quantity: {quantity or 'Not specified'}\n"
+        f"Message: {incoming_text}"
+    )
+
+    await context.bot.send_message(
+        chat_id=admin_chat_id,
+        text=notification_text
+    )
 
 
 async def forward_unresolved_message(
@@ -359,11 +391,15 @@ async def handle_message(
                 incoming_text
             )
 
+            forward_text = incoming_text
+            if incoming_text.strip().lower() in ["3", "admin", "contact admin"]:
+                forward_text = "Customer selected: Contact admin"
+
             await forward_unresolved_message(
                 context=context,
                 db=db,
                 customer=customer,
-                incoming_text=incoming_text
+                incoming_text=forward_text
             )
 
             reply_text = (
@@ -378,14 +414,28 @@ async def handle_message(
             )
 
             if reply_text is not None and "Available products:" not in reply_text:
+                matched_product = get_matching_product(
+                    db,
+                    incoming_text
+                )
                 quantity = extract_quantity(incoming_text)
-                if quantity is not None:
+
+                if matched_product is not None:
                     log_customer_request(
                         db,
                         customer.id,
                         "product_specific",
                         incoming_text,
                         quantity
+                    )
+
+                    await forward_product_request(
+                        context=context,
+                        db=db,
+                        customer=customer,
+                        incoming_text=incoming_text,
+                        product_name=matched_product.name,
+                        quantity=quantity
                     )
 
         if reply_text is None:
