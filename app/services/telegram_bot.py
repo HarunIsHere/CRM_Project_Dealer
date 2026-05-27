@@ -1,6 +1,9 @@
+from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardMarkup
 from telegram import Update
 
 from telegram.ext import Application
+from telegram.ext import CallbackQueryHandler
 from telegram.ext import CommandHandler
 from telegram.ext import ContextTypes
 from telegram.ext import MessageHandler
@@ -42,10 +45,33 @@ def save_message(
 
 def get_unresolved_options_reply() -> str:
     return (
-        "I did not understand exactly. Please choose:\n\n"
-        "1. Products\n"
-        "2. Location\n"
-        "3. Contact admin"
+        "I did not understand exactly. "
+        "Please choose by pressing a button or typing the number:"
+    )
+
+
+def get_unresolved_options_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "1. Products",
+                    callback_data="option_products"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "2. Location",
+                    callback_data="option_location"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "3. Contact admin",
+                    callback_data="option_admin"
+                )
+            ],
+        ]
     )
 
 
@@ -130,6 +156,104 @@ async def myid_command(
     )
 
 
+def get_customer(db, telegram_user):
+    customer = db.query(Customer).filter(
+        Customer.telegram_user_id == str(
+            telegram_user.id
+        )
+    ).first()
+
+    if customer:
+        return customer
+
+    customer = Customer(
+        telegram_user_id=str(
+            telegram_user.id
+        ),
+        username=telegram_user.username,
+        full_name=telegram_user.full_name,
+        language="unknown",
+        preferred_language="en"
+    )
+
+    db.add(customer)
+    db.commit()
+    db.refresh(customer)
+
+    return customer
+
+
+async def handle_option_selection(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+    query = update.callback_query
+    await query.answer()
+
+    db = SessionLocal()
+
+    try:
+        telegram_user = query.from_user
+        customer = get_customer(
+            db,
+            telegram_user
+        )
+
+        option_map = {
+            "option_products": "1",
+            "option_location": "2",
+            "option_admin": "3",
+        }
+
+        selected_option = option_map.get(
+            query.data
+        )
+
+        if selected_option is None:
+            return
+
+        save_message(
+            db=db,
+            customer_id=customer.id,
+            direction="incoming",
+            content=selected_option,
+            language=customer.preferred_language
+        )
+
+        reply_text = get_option_reply(
+            db,
+            customer,
+            selected_option
+        )
+
+        if reply_text == "CONTACT_ADMIN":
+            await forward_unresolved_message(
+                context=context,
+                db=db,
+                customer=customer,
+                incoming_text="Customer selected: Contact admin"
+            )
+
+            reply_text = (
+                "I received your message. I will help you shortly."
+            )
+
+        save_message(
+            db=db,
+            customer_id=customer.id,
+            direction="outgoing",
+            content=reply_text,
+            language=customer.preferred_language
+        )
+
+        await query.message.reply_text(
+            reply_text
+        )
+
+    finally:
+        db.close()
+
+
 async def handle_message(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
@@ -177,6 +301,8 @@ async def handle_message(
         if reply_language == "unknown":
             reply_language = customer.preferred_language or "en"
 
+        reply_markup = None
+
         reply_text = get_option_reply(
             db,
             customer,
@@ -206,6 +332,10 @@ async def handle_message(
             customer.conversation_state = "awaiting_unresolved_option"
             db.commit()
             reply_text = get_unresolved_options_reply()
+            reply_markup = get_unresolved_options_keyboard()
+
+        if reply_text == get_unresolved_options_reply():
+            reply_markup = get_unresolved_options_keyboard()
 
         save_message(
             db=db,
@@ -216,7 +346,8 @@ async def handle_message(
         )
 
         await update.message.reply_text(
-            reply_text
+            reply_text,
+            reply_markup=reply_markup
         )
 
     finally:
@@ -239,6 +370,12 @@ def create_bot_application():
         CommandHandler(
             "myid",
             myid_command
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            handle_option_selection
         )
     )
 

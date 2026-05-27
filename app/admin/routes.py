@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Form
 from fastapi import Request
+from fastapi import Response
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -11,6 +12,10 @@ from app.core.dependencies import get_db
 from app.models.customer import Customer
 from app.models.meeting_point import MeetingPoint
 from app.models.message import Message
+from app.services.admin_auth_service import COOKIE_NAME
+from app.services.admin_auth_service import authenticate_admin
+from app.services.admin_auth_service import create_admin_token
+from app.services.admin_auth_service import verify_admin_token
 from app.services.settings_service import get_setting
 from app.services.settings_service import set_setting
 
@@ -22,11 +27,88 @@ router = APIRouter(
 templates = Jinja2Templates(directory="app/templates")
 
 
+def require_admin(request: Request):
+    token = request.cookies.get(COOKIE_NAME)
+
+    if verify_admin_token(token):
+        return None
+
+    return RedirectResponse(
+        url="/admin/login",
+        status_code=303
+    )
+
+
+@router.get("/login")
+def admin_login_page(request: Request):
+    if verify_admin_token(request.cookies.get(COOKIE_NAME)):
+        return RedirectResponse(
+            url="/admin",
+            status_code=303
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_login.html",
+        context={
+            "error": None
+        }
+    )
+
+
+@router.post("/login")
+def admin_login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    if not authenticate_admin(username, password):
+        return templates.TemplateResponse(
+            request=request,
+            name="admin_login.html",
+            context={
+                "error": "Invalid username or password."
+            },
+            status_code=401
+        )
+
+    token = create_admin_token()
+
+    response = RedirectResponse(
+        url="/admin",
+        status_code=303
+    )
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        max_age=43200
+    )
+
+    return response
+
+
+@router.post("/logout")
+def admin_logout():
+    response = RedirectResponse(
+        url="/admin/login",
+        status_code=303
+    )
+    response.delete_cookie(COOKIE_NAME)
+
+    return response
+
+
 @router.get("/")
 def admin_dashboard(
     request: Request,
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     meeting_points = db.query(MeetingPoint).all()
 
     customers = db.query(Customer).order_by(
@@ -76,6 +158,10 @@ def customer_detail(
     request: Request,
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     customer = db.query(Customer).filter(
         Customer.id == customer_id
     ).first()
@@ -98,12 +184,17 @@ def customer_detail(
 
 @router.post("/meeting-points")
 def create_meeting_point(
+    request: Request,
     name: str = Form(...),
     address: str = Form(...),
     google_maps_link: str = Form(...),
     is_default: bool = Form(False),
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     if is_default:
         db.query(MeetingPoint).update(
             {"is_default": False}
@@ -128,9 +219,14 @@ def create_meeting_point(
 
 @router.post("/meeting-points/{meeting_point_id}/default")
 def set_default_meeting_point(
+    request: Request,
     meeting_point_id: int,
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     db.query(MeetingPoint).update(
         {"is_default": False}
     )
@@ -152,6 +248,7 @@ def set_default_meeting_point(
 
 @router.post("/meeting-points/{meeting_point_id}/update")
 def update_meeting_point(
+    request: Request,
     meeting_point_id: int,
     name: str = Form(...),
     address: str = Form(...),
@@ -159,6 +256,10 @@ def update_meeting_point(
     is_active: bool = Form(False),
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     meeting_point = db.query(MeetingPoint).filter(
         MeetingPoint.id == meeting_point_id
     ).first()
@@ -182,7 +283,14 @@ from app.services.geocoding import search_locations
 
 
 @router.get("/search-location")
-def search_location(query: str):
+def search_location(
+    request: Request,
+    query: str
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     results = search_locations(query)
 
     return JSONResponse(results)
@@ -190,9 +298,14 @@ def search_location(query: str):
 
 @router.post("/meeting-points/{meeting_point_id}/delete")
 def delete_meeting_point(
+    request: Request,
     meeting_point_id: int,
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     meeting_point = db.query(MeetingPoint).filter(
         MeetingPoint.id == meeting_point_id
     ).first()
@@ -209,9 +322,14 @@ def delete_meeting_point(
 
 @router.post("/settings/admin-telegram")
 def update_admin_telegram(
+    request: Request,
     admin_telegram_chat_id: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     set_setting(
         db,
         "admin_telegram_chat_id",
@@ -229,10 +347,15 @@ from app.models.product import Product
 
 @router.post("/products")
 def create_product(
+    request: Request,
     name: str = Form(...),
     price: float = Form(...),
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     product = Product(
         name=name,
         price=price,
@@ -250,12 +373,17 @@ def create_product(
 
 @router.post("/products/{product_id}/update")
 def update_product(
+    request: Request,
     product_id: int,
     name: str = Form(...),
     price: float = Form(...),
     is_active: bool = Form(False),
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     product = db.query(Product).filter(
         Product.id == product_id
     ).first()
@@ -274,9 +402,14 @@ def update_product(
 
 @router.post("/products/{product_id}/delete")
 def delete_product(
+    request: Request,
     product_id: int,
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     product = db.query(Product).filter(
         Product.id == product_id
     ).first()
@@ -293,6 +426,7 @@ def delete_product(
 
 @router.post("/settings/working-hours")
 def update_working_hours(
+    request: Request,
     working_hours_enabled: str = Form("off"),
     working_hours_timezone: str = Form(...),
     working_hours_start: str = Form(...),
@@ -300,6 +434,10 @@ def update_working_hours(
     working_hours_closed_message: str = Form(""),
     db: Session = Depends(get_db)
 ):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
     set_setting(
         db,
         "working_hours_enabled",
