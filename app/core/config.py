@@ -8,9 +8,9 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str | None = None
 
-    admin_username: str = "admin"
-    admin_password: str = "admin123"
-    admin_jwt_secret: str = "change-this-admin-secret"
+    admin_username: str
+    admin_password: str
+    admin_jwt_secret: str
 
     class Config:
         env_file = ".env"

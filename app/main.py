@@ -15,6 +15,7 @@ from app.models.meeting_point import MeetingPoint
 from app.models.app_setting import AppSetting
 from app.models.product import Product
 
+from app.services.startup_checks import validate_production_settings
 from app.services.telegram_bot import create_bot_application
 
 
@@ -37,6 +38,8 @@ async def lifespan(app: FastAPI):
 
     await telegram_app.shutdown()
 
+
+validate_production_settings()
 
 Base.metadata.create_all(bind=engine)
 
