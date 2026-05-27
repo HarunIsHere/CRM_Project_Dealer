@@ -48,6 +48,21 @@
     </tr>
 </table>
 
+<h2>Send Reply</h2>
+
+<form action="/admin/customers/{{ customer.id }}/reply" method="post">
+    <textarea
+        name="reply_text"
+        rows="4"
+        cols="80"
+        required
+    ></textarea>
+
+    <br><br>
+
+    <button type="submit">Send Reply to Customer</button>
+</form>
+
 <h2>Conversation History</h2>
 
 <table border="1" cellpadding="8">

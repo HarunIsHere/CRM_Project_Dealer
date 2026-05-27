@@ -16,6 +16,7 @@ from app.services.admin_auth_service import COOKIE_NAME
 from app.services.admin_auth_service import authenticate_admin
 from app.services.admin_auth_service import create_admin_token
 from app.services.admin_auth_service import verify_admin_token
+from app.services.admin_reply_service import send_admin_reply_to_customer
 from app.services.settings_service import get_setting
 from app.services.settings_service import set_setting
 
@@ -466,5 +467,49 @@ def update_working_hours(
 
     return RedirectResponse(
         url="/admin",
+        status_code=303
+    )
+
+
+@router.post("/customers/{customer_id}/reply")
+def send_customer_reply(
+    request: Request,
+    customer_id: int,
+    reply_text: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    customer = db.query(Customer).filter(
+        Customer.id == customer_id
+    ).first()
+
+    if not customer:
+        return RedirectResponse(
+            url="/admin",
+            status_code=303
+        )
+
+    send_admin_reply_to_customer(
+        customer.telegram_user_id,
+        reply_text
+    )
+
+    save_reply = Message(
+        customer_id=customer.id,
+        direction="outgoing",
+        platform="telegram",
+        content=reply_text,
+        language=customer.preferred_language,
+        message_type="admin_reply"
+    )
+
+    db.add(save_reply)
+    db.commit()
+
+    return RedirectResponse(
+        url=f"/admin/customers/{customer_id}",
         status_code=303
     )
