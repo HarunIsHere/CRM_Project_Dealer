@@ -29,3 +29,15 @@ async def send_telegram_message(
         chat_id=telegram_user_id,
         text=message_text
     )
+
+
+def send_location_changed_to_customer(
+    telegram_user_id: str,
+    message_text: str
+):
+    asyncio.run(
+        send_telegram_message(
+            telegram_user_id,
+            message_text
+        )
+    )

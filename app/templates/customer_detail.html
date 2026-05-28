@@ -48,7 +48,7 @@
     </tr>
 </table>
 
-<h2>Send Reply</h2>
+<h2 id="send-reply">Send Reply</h2>
 
 <form action="/admin/customers/{{ customer.id }}/reply" method="post">
     <textarea
@@ -70,6 +70,7 @@
         <th>ID</th>
         <th>Type</th>
         <th>Status</th>
+        <th>Item</th>
         <th>Quantity</th>
         <th>Text</th>
         <th>Created At</th>
@@ -81,6 +82,7 @@
         <td>{{ request_item.id }}</td>
         <td>{{ request_item.request_type }}</td>
         <td>{{ request_item.status }}</td>
+        <td>{{ request_item.item_name or "" }}</td>
         <td>{{ request_item.quantity or "" }}</td>
         <td>{{ request_item.request_text }}</td>
         <td>{{ request_item.created_at }}</td>

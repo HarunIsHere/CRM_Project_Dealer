@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>CRM Dealer Admin</title>
+    <meta http-equiv="refresh" content="10">
 </head>
 <body>
 
@@ -10,6 +11,91 @@
 <form action="/admin/logout" method="post">
     <button type="submit">Logout</button>
 </form>
+
+<h2>
+    Open Requests
+    <form action="/admin/customer-requests/all/done" method="post" style="display:inline;">
+        <button type="submit">All Done</button>
+    </form>
+</h2>
+
+<table border="1" cellpadding="10">
+    <tr>
+        <th>Customer</th>
+        <th>Type</th>
+        <th>Item</th>
+        <th>Quantity</th>
+        <th>Request Count</th>
+        <th>Status</th>
+        <th>Latest Text</th>
+        <th>Latest Created At</th>
+        <th>Action</th>
+        <th>Done</th>
+    </tr>
+
+    {% for request_item in open_requests %}
+    {% set customer = customer_map.get(request_item.customer_id) %}
+    <tr>
+        <td>
+            {% if customer %}
+                {{ customer.full_name or customer.username or customer.telegram_user_id }}
+            {% else %}
+                Unknown
+            {% endif %}
+        </td>
+        <td>{{ request_item.request_type }}</td>
+        <td>{{ request_item.item_name or "" }}</td>
+        <td>
+            {% if request_item.request_type == "product_specific" %}
+                {{ request_item.quantity or "" }}
+            {% else %}
+                {{ request_item.request_count }}
+            {% endif %}
+        </td>
+        <td>{{ request_item.request_count }}</td>
+        <td>{{ request_item.status }}</td>
+        <td>{{ request_item.latest_text }}</td>
+        <td>{{ request_item.latest_created_at }}</td>
+        <td>
+            {% if customer %}
+                <form action="/admin/customers/{{ customer.id }}" method="get" style="display:inline;">
+                    <button type="submit">Open Customer</button>
+                </form>
+
+                {% if request_item.request_type in ["contact_admin", "product_specific", "location"] %}
+                    <form
+                        action="/admin/customers/{{ customer.id }}#send-reply"
+                        method="get"
+                        style="display:inline;"
+                    >
+                        <button type="submit">Answer</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </td>
+        <td>
+            <form action="/admin/customer-requests/group/done" method="post">
+                <input
+                    type="hidden"
+                    name="customer_id"
+                    value="{{ request_item.customer_id }}"
+                >
+                <input
+                    type="hidden"
+                    name="request_type"
+                    value="{{ request_item.request_type }}"
+                >
+                <input
+                    type="hidden"
+                    name="item_name"
+                    value="{{ request_item.item_name or '' }}"
+                >
+                <button type="submit">Done</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
 
 <h2>Notification Settings</h2>
 
@@ -170,9 +256,11 @@
                 <button type="submit">Save</button>
         </form>
 
+        {% if point.is_active %}
         <form action="/admin/meeting-points/{{ point.id }}/default" method="post" style="display:inline;">
             <button type="submit">Set Default</button>
         </form>
+        {% endif %}
 
         <form action="/admin/meeting-points/{{ point.id }}/delete" method="post" style="display:inline;">
             <button type="submit">Delete</button>

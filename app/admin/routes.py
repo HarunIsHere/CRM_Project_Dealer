@@ -18,6 +18,7 @@ from app.services.admin_auth_service import authenticate_admin
 from app.services.admin_auth_service import create_admin_token
 from app.services.admin_auth_service import verify_admin_token
 from app.services.admin_reply_service import send_admin_reply_to_customer
+from app.services.admin_reply_service import send_location_changed_to_customer
 from app.services.settings_service import get_setting
 from app.services.settings_service import set_setting
 
@@ -39,6 +40,45 @@ def require_admin(request: Request):
         url="/admin/login",
         status_code=303
     )
+
+
+def format_location_changed_message(meeting_point: MeetingPoint) -> str:
+    return (
+        "Location changed (became available), please come to the new location:\n\n"
+        f"{meeting_point.name}\n"
+        f"{meeting_point.address}\n"
+        f"{meeting_point.google_maps_link}"
+    )
+
+
+def notify_customers_about_location_change(
+    db: Session,
+    meeting_point: MeetingPoint
+):
+    location_requests = db.query(CustomerRequest).filter(
+        CustomerRequest.request_type == "location",
+        CustomerRequest.status != "done"
+    ).all()
+
+    notified_customer_ids = set()
+
+    for location_request in location_requests:
+        if location_request.customer_id in notified_customer_ids:
+            continue
+
+        customer = db.query(Customer).filter(
+            Customer.id == location_request.customer_id
+        ).first()
+
+        if not customer:
+            continue
+
+        send_location_changed_to_customer(
+            customer.telegram_user_id,
+            format_location_changed_message(meeting_point)
+        )
+
+        notified_customer_ids.add(customer.id)
 
 
 @router.get("/login")
@@ -119,6 +159,47 @@ def admin_dashboard(
 
     products = db.query(Product).all()
 
+    open_request_rows = db.query(CustomerRequest).filter(
+        CustomerRequest.status != "done",
+        CustomerRequest.request_type != "product_list"
+    ).order_by(
+        CustomerRequest.created_at.desc()
+    ).all()
+
+    customer_map = {
+        customer.id: customer
+        for customer in customers
+    }
+
+    open_request_groups = {}
+
+    for request_row in open_request_rows:
+        group_key = (
+            request_row.customer_id,
+            request_row.request_type,
+            request_row.item_name or ""
+        )
+
+        if group_key not in open_request_groups:
+            open_request_groups[group_key] = {
+                "customer_id": request_row.customer_id,
+                "request_type": request_row.request_type,
+                "item_name": request_row.item_name,
+                "quantity": 0,
+                "request_count": 0,
+                "status": request_row.status,
+                "latest_text": request_row.request_text,
+                "latest_created_at": request_row.created_at,
+            }
+
+        group = open_request_groups[group_key]
+        group["request_count"] += 1
+
+        if request_row.quantity:
+            group["quantity"] += request_row.quantity
+
+    open_requests = list(open_request_groups.values())
+
     return templates.TemplateResponse(
         request=request,
         name="admin_dashboard.html",
@@ -126,6 +207,8 @@ def admin_dashboard(
             "meeting_points": meeting_points,
             "customers": customers,
             "products": products,
+            "open_requests": open_requests,
+            "customer_map": customer_map,
             "admin_telegram_chat_id": get_setting(
                 db,
                 "admin_telegram_chat_id"
@@ -220,6 +303,12 @@ def create_meeting_point(
     db.add(meeting_point)
     db.commit()
 
+    if is_default:
+        notify_customers_about_location_change(
+            db,
+            meeting_point
+        )
+
     return RedirectResponse(
         url="/admin",
         status_code=303
@@ -249,6 +338,11 @@ def set_default_meeting_point(
 
     db.commit()
 
+    notify_customers_about_location_change(
+        db,
+        meeting_point
+    )
+
     return RedirectResponse(
         url="/admin",
         status_code=303
@@ -273,12 +367,21 @@ def update_meeting_point(
         MeetingPoint.id == meeting_point_id
     ).first()
 
+    was_default = meeting_point.is_default
+    was_active = meeting_point.is_active
+
     meeting_point.name = name
     meeting_point.address = address
     meeting_point.google_maps_link = google_maps_link
     meeting_point.is_active = is_active
 
+    if was_default and was_active and not is_active:
+        meeting_point.is_default = False
+
     db.commit()
+
+    if was_default and was_active and not is_active:
+        notify_customers_location_unavailable(db)
 
     return RedirectResponse(
         url="/admin",
@@ -556,5 +659,103 @@ def update_customer_request_status(
 
     return RedirectResponse(
         url=f"/admin/customers/{customer_request.customer_id}",
+        status_code=303
+    )
+
+
+@router.post("/customer-requests/group/done")
+def mark_customer_request_group_done(
+    request: Request,
+    customer_id: int = Form(...),
+    request_type: str = Form(...),
+    item_name: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    query = db.query(CustomerRequest).filter(
+        CustomerRequest.customer_id == customer_id,
+        CustomerRequest.request_type == request_type,
+        CustomerRequest.status != "done"
+    )
+
+    if item_name:
+        query = query.filter(
+            CustomerRequest.item_name == item_name
+        )
+    else:
+        query = query.filter(
+            CustomerRequest.item_name.is_(None)
+        )
+
+    query.update(
+        {"status": "done"},
+        synchronize_session=False
+    )
+
+    db.commit()
+
+    return RedirectResponse(
+        url="/admin",
+        status_code=303
+    )
+
+
+def format_location_unavailable_message() -> str:
+    return (
+        "Sorry, dealer is not at the location anymore. "
+        "We will inform you shortly when a new location is available."
+    )
+
+
+def notify_customers_location_unavailable(db: Session):
+    location_requests = db.query(CustomerRequest).filter(
+        CustomerRequest.request_type == "location",
+        CustomerRequest.status != "done"
+    ).all()
+
+    notified_customer_ids = set()
+
+    for location_request in location_requests:
+        if location_request.customer_id in notified_customer_ids:
+            continue
+
+        customer = db.query(Customer).filter(
+            Customer.id == location_request.customer_id
+        ).first()
+
+        if not customer:
+            continue
+
+        send_location_changed_to_customer(
+            customer.telegram_user_id,
+            format_location_unavailable_message()
+        )
+
+        notified_customer_ids.add(customer.id)
+
+
+@router.post("/customer-requests/all/done")
+def mark_all_customer_requests_done(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    db.query(CustomerRequest).filter(
+        CustomerRequest.status != "done"
+    ).update(
+        {"status": "done"},
+        synchronize_session=False
+    )
+
+    db.commit()
+
+    return RedirectResponse(
+        url="/admin",
         status_code=303
     )

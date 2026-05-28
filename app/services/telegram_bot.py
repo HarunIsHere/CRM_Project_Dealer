@@ -16,6 +16,7 @@ from app.models.customer import Customer
 from app.models.message import Message
 
 from app.services.language_service import detect_language
+from app.services.meeting_point_service import get_default_meeting_point
 from app.services.quantity_service import extract_quantity
 from app.services.customer_request_service import log_customer_request
 from app.services.rule_engine import get_matching_product
@@ -78,6 +79,20 @@ def get_unresolved_options_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+
+def is_location_request(text: str) -> bool:
+    clean_text = text.strip().lower()
+    return clean_text in [
+        "2",
+        "location",
+        "address",
+        "adres",
+        "konum",
+        "where",
+        "meet",
+        "meeting point",
+    ]
+
 def get_option_reply(db, customer: Customer, incoming_text: str) -> str | None:
     clean_text = incoming_text.strip().lower()
 
@@ -134,6 +149,34 @@ async def forward_product_request(
         f"Telegram ID: {customer.telegram_user_id}\n"
         f"Product: {product_name}\n"
         f"Quantity: {quantity or 'Not specified'}\n"
+        f"Message: {incoming_text}"
+    )
+
+    await context.bot.send_message(
+        chat_id=admin_chat_id,
+        text=notification_text
+    )
+
+
+async def forward_location_needed(
+    context: ContextTypes.DEFAULT_TYPE,
+    db,
+    customer: Customer,
+    incoming_text: str
+):
+    admin_chat_id = get_setting(
+        db,
+        "admin_telegram_chat_id"
+    )
+
+    if not admin_chat_id:
+        return
+
+    notification_text = (
+        "Location needed:\n\n"
+        f"Customer: {customer.full_name}\n"
+        f"Telegram ID: {customer.telegram_user_id}\n"
+        "Customer asked for location, but no active default location is available.\n"
         f"Message: {incoming_text}"
     )
 
@@ -383,6 +426,14 @@ async def handle_message(
                 incoming_text
             )
 
+            if get_default_meeting_point(db) is None:
+                await forward_location_needed(
+                    context=context,
+                    db=db,
+                    customer=customer,
+                    incoming_text=incoming_text
+                )
+
         if reply_text == "CONTACT_ADMIN":
             log_customer_request(
                 db,
@@ -413,6 +464,18 @@ async def handle_message(
                 reply_language
             )
 
+            if (
+                reply_text is not None
+                and is_location_request(incoming_text)
+                and get_default_meeting_point(db) is None
+            ):
+                await forward_location_needed(
+                    context=context,
+                    db=db,
+                    customer=customer,
+                    incoming_text=incoming_text
+                )
+
             if reply_text is not None and "Available products:" not in reply_text:
                 matched_product = get_matching_product(
                     db,
@@ -426,7 +489,8 @@ async def handle_message(
                         customer.id,
                         "product_specific",
                         incoming_text,
-                        quantity
+                        quantity,
+                        matched_product.name
                     )
 
                     await forward_product_request(

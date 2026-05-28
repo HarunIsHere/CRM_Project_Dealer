@@ -12,7 +12,26 @@ def format_meeting_point_reply(db, language: str) -> str:
     meeting_point = get_default_meeting_point(db)
 
     if not meeting_point:
-        return "No active meeting point is configured."
+        replies = {
+            "en": (
+                "Currently no location is available. "
+                "We will inform you shortly when it is available."
+            ),
+            "de": (
+                "Aktuell ist kein Standort verfügbar. "
+                "Wir informieren Sie, sobald ein Standort verfügbar ist."
+            ),
+            "tr": (
+                "Şu anda uygun bir konum yok. "
+                "Uygun olduğunda sizi bilgilendireceğiz."
+            ),
+            "ar": (
+                "لا يوجد موقع متاح حاليا. "
+                "سنبلغك عندما يصبح متاحا."
+            ),
+        }
+
+        return replies.get(language, replies["en"])
 
     replies = {
         "en": (

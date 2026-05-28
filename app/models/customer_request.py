@@ -16,6 +16,7 @@ class CustomerRequest(Base):
     customer_id = Column(Integer, nullable=False)
     request_type = Column(String, nullable=False)
     request_text = Column(Text, nullable=True)
+    item_name = Column(String, nullable=True)
     quantity = Column(Integer, nullable=True)
     status = Column(String, nullable=False, default="new")
 
