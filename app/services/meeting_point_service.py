@@ -29,6 +29,10 @@ def format_meeting_point_reply(db, language: str) -> str:
                 "لا يوجد موقع متاح حاليا. "
                 "سنبلغك عندما يصبح متاحا."
             ),
+            "ru": (
+                "Сейчас нет доступной локации. "
+                "Мы сообщим вам, когда она появится."
+            ),
         }
 
         return replies.get(language, replies["en"])
@@ -54,6 +58,12 @@ def format_meeting_point_reply(db, language: str) -> str:
         ),
         "ar": (
             f"يمكننا اللقاء هنا:\n\n"
+            f"{meeting_point.name}\n"
+            f"{meeting_point.address}\n"
+            f"{meeting_point.google_maps_link}"
+        ),
+        "ru": (
+            f"Мы можем встретиться здесь:\n\n"
             f"{meeting_point.name}\n"
             f"{meeting_point.address}\n"
             f"{meeting_point.google_maps_link}"

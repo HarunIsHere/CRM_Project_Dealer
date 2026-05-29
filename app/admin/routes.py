@@ -20,6 +20,9 @@ from app.services.admin_auth_service import verify_admin_token
 from app.services.admin_reply_service import send_admin_reply_to_customer
 from app.services.admin_reply_service import send_location_changed_to_customer
 from app.services.settings_service import get_setting
+from app.services.product_alias_service import get_alias_text_for_product
+from app.services.product_alias_service import replace_manual_aliases
+from app.services.product_alias_service import sync_auto_aliases
 from app.services.settings_service import set_setting
 
 router = APIRouter(
@@ -159,6 +162,14 @@ def admin_dashboard(
 
     products = db.query(Product).all()
 
+    product_alias_map = {
+        product.id: get_alias_text_for_product(
+            db,
+            product.id
+        )
+        for product in products
+    }
+
     open_request_rows = db.query(CustomerRequest).filter(
         CustomerRequest.status != "done",
         CustomerRequest.request_type != "product_list"
@@ -207,6 +218,7 @@ def admin_dashboard(
             "meeting_points": meeting_points,
             "customers": customers,
             "products": products,
+            "product_alias_map": product_alias_map,
             "open_requests": open_requests,
             "customer_map": customer_map,
             "admin_telegram_chat_id": get_setting(
@@ -232,7 +244,11 @@ def admin_dashboard(
             "working_hours_closed_message": get_setting(
                 db,
                 "working_hours_closed_message"
-            ) or ""
+            ) or "",
+            "admin_view_language": get_setting(
+                db,
+                "admin_view_language"
+            ) or "en"
         }
     )
 
@@ -254,7 +270,7 @@ def customer_detail(
     messages = db.query(Message).filter(
         Message.customer_id == customer_id
     ).order_by(
-        Message.created_at.asc()
+        Message.created_at.desc()
     ).all()
 
     customer_requests = db.query(CustomerRequest).filter(
@@ -455,6 +471,7 @@ def update_admin_telegram(
 
 
 from app.models.product import Product
+from app.models.product_alias import ProductAlias
 
 
 @router.post("/products")
@@ -476,6 +493,12 @@ def create_product(
 
     db.add(product)
     db.commit()
+    db.refresh(product)
+
+    sync_auto_aliases(
+        db,
+        product
+    )
 
     return RedirectResponse(
         url="/admin",
@@ -489,6 +512,7 @@ def update_product(
     product_id: int,
     name: str = Form(...),
     price: float = Form(...),
+    aliases: str = Form(""),
     is_active: bool = Form(False),
     db: Session = Depends(get_db)
 ):
@@ -505,6 +529,18 @@ def update_product(
     product.is_active = is_active
 
     db.commit()
+
+    if aliases.strip():
+        replace_manual_aliases(
+            db,
+            product.id,
+            aliases
+        )
+    else:
+        sync_auto_aliases(
+            db,
+            product
+        )
 
     return RedirectResponse(
         url="/admin",
@@ -758,4 +794,95 @@ def mark_all_customer_requests_done(
     return RedirectResponse(
         url="/admin",
         status_code=303
+    )
+
+
+@router.post("/settings/admin-language")
+def update_admin_language(
+    request: Request,
+    admin_view_language: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    if admin_view_language not in ["en", "de", "tr", "ar", "ru"]:
+        admin_view_language = "en"
+
+    set_setting(
+        db,
+        "admin_view_language",
+        admin_view_language
+    )
+
+    return RedirectResponse(
+        url="/admin",
+        status_code=303
+    )
+
+
+def get_open_request_context(db: Session):
+    customers = db.query(Customer).order_by(
+        Customer.last_seen_at.desc()
+    ).all()
+
+    open_request_rows = db.query(CustomerRequest).filter(
+        CustomerRequest.status != "done",
+        CustomerRequest.request_type != "product_list"
+    ).order_by(
+        CustomerRequest.created_at.desc()
+    ).all()
+
+    customer_map = {
+        customer.id: customer
+        for customer in customers
+    }
+
+    open_request_groups = {}
+
+    for request_row in open_request_rows:
+        group_key = (
+            request_row.customer_id,
+            request_row.request_type,
+            request_row.item_name or ""
+        )
+
+        if group_key not in open_request_groups:
+            open_request_groups[group_key] = {
+                "customer_id": request_row.customer_id,
+                "request_type": request_row.request_type,
+                "item_name": request_row.item_name,
+                "quantity": 0,
+                "request_count": 0,
+                "status": request_row.status,
+                "latest_text": request_row.request_text,
+                "latest_created_at": request_row.created_at,
+            }
+
+        group = open_request_groups[group_key]
+        group["request_count"] += 1
+
+        if request_row.quantity:
+            group["quantity"] += request_row.quantity
+
+    return {
+        "open_requests": list(open_request_groups.values()),
+        "customer_map": customer_map,
+    }
+
+
+@router.get("/open-requests")
+def open_requests_partial(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    return templates.TemplateResponse(
+        request=request,
+        name="open_requests_table.html",
+        context=get_open_request_context(db)
     )

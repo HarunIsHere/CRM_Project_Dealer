@@ -15,6 +15,7 @@ from app.models.message import Message
 from app.models.meeting_point import MeetingPoint
 from app.models.app_setting import AppSetting
 from app.models.product import Product
+from app.models.product_alias import ProductAlias
 
 from app.services.startup_checks import validate_production_settings
 from app.services.telegram_bot import create_bot_application
@@ -45,7 +46,7 @@ validate_production_settings()
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="CRM Project Dealer",
+    title="CRM Delivery",
     lifespan=lifespan
 )
 
@@ -58,5 +59,5 @@ app.include_router(admin_router)
 def root():
     return {
         "status": "running",
-        "app": "CRM Project Dealer"
+        "app": "CRM Delivery"
     }

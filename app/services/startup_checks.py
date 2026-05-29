@@ -17,6 +17,12 @@ def validate_production_settings():
     if len(settings.admin_jwt_secret) < 32:
         raise RuntimeError("ADMIN_JWT_SECRET must be at least 32 characters")
 
+    if not settings.admin_setup_code:
+        raise RuntimeError("ADMIN_SETUP_CODE is required")
+
+    if len(settings.admin_setup_code) < 8:
+        raise RuntimeError("ADMIN_SETUP_CODE must be at least 8 characters")
+
     weak_values = {
         "admin",
         "admin123",

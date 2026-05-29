@@ -3,6 +3,7 @@ import unicodedata
 from rapidfuzz import fuzz, process
 
 from app.models.product import Product
+from app.models.product_alias import ProductAlias
 from app.services.meeting_point_service import format_meeting_point_reply
 from app.services.working_hours_service import get_closed_hours_reply
 from app.services.working_hours_service import is_within_working_hours
@@ -15,28 +16,57 @@ LOCATION_KEYWORDS = [
     "meet",
     "meeting point",
     "place",
+    "center",
+    "centre",
+    "spot",
+    "standort",
+    "adresse",
+    "wo",
+    "treffen",
+    "treffpunkt",
+    "platz",
+    "ort",
+    "lokation",
     "nerede",
     "konum",
     "adres",
+    "mekan",
+    "lokasyon",
     "buluş",
     "buluşma",
-    "wo",
-    "adresse",
-    "treffen",
+    "buluşma noktası",
     "مكان",
+    "موقع",
     "عنوان",
+    "اين",
+    "وين",
+    "مركز",
+    "لقاء",
+    "место",
+    "локация",
+    "адрес",
+    "где",
+    "встреча",
+    "точка встречи",
 ]
 
 GREETING_KEYWORDS = [
     "hello",
     "hi",
     "hey",
-    "merhaba",
-    "selam",
+    "good morning",
+    "good evening",
     "hallo",
     "guten tag",
+    "guten morgen",
+    "guten abend",
+    "merhaba",
+    "selam",
     "مرحبا",
     "السلام",
+    "привет",
+    "здравствуйте",
+    "добрый день",
 ]
 
 PRODUCT_KEYWORDS = [
@@ -48,22 +78,38 @@ PRODUCT_KEYWORDS = [
     "list",
     "buy",
     "available",
+    "order",
+    "produkt",
+    "produkte",
+    "preis",
+    "preise",
+    "liste",
+    "menü",
+    "kaufen",
+    "bestellen",
     "ürün",
+    "urun",
     "ürünler",
+    "urunler",
     "fiyat",
     "fiyatlar",
     "liste",
     "menü",
-    "kaufen",
-    "preis",
-    "preise",
-    "produkt",
-    "produkte",
+    "sipariş",
     "قائمة",
     "سعر",
     "أسعار",
     "منتج",
     "منتجات",
+    "طلب",
+    "товар",
+    "товары",
+    "цена",
+    "цены",
+    "список",
+    "меню",
+    "купить",
+    "заказать",
 ]
 
 
@@ -92,6 +138,47 @@ def get_rule_based_reply(db, text: str, language: str) -> str | None:
 
 def get_matching_product(db, text: str) -> Product | None:
     clean_text = normalize_text(text)
+
+    aliases = db.query(ProductAlias).all()
+
+    alias_values = [
+        normalize_text(alias.alias)
+        for alias in aliases
+    ]
+
+    if alias_values:
+        best_alias = process.extractOne(
+            clean_text,
+            alias_values,
+            scorer=fuzz.partial_ratio,
+        )
+
+        if best_alias is not None and best_alias[1] >= 75:
+            matched_alias = aliases[best_alias[2]]
+            return db.query(Product).filter(
+                Product.id == matched_alias.product_id,
+                Product.is_active.is_(True)
+            ).first()
+
+        words = [
+            word
+            for word in clean_text.split()
+            if len(word) >= 3
+        ]
+
+        for word in words:
+            candidate = process.extractOne(
+                word,
+                alias_values,
+                scorer=fuzz.partial_ratio,
+            )
+
+            if candidate is not None and candidate[1] >= 75:
+                matched_alias = aliases[candidate[2]]
+                return db.query(Product).filter(
+                    Product.id == matched_alias.product_id,
+                    Product.is_active.is_(True)
+                ).first()
 
     products = db.query(Product).filter(
         Product.is_active.is_(True)
@@ -142,48 +229,20 @@ def get_product_reply_if_matched(db, text: str, language: str) -> str | None:
     if not products:
         return None
 
-    product_names = [normalize_text(product.name) for product in products]
-
     if is_close_match(text, PRODUCT_KEYWORDS):
         return format_product_list_reply(products, language)
 
-    best_match = process.extractOne(
-        text,
-        product_names,
-        scorer=fuzz.partial_ratio,
+    matched_product = get_matching_product(
+        db,
+        text
     )
 
-    if best_match is None:
+    if matched_product is None:
         return None
-
-    if best_match[1] < 75:
-        words = [
-            word
-            for word in text.split()
-            if len(word) >= 4
-        ]
-
-        word_match = None
-        for word in words:
-            candidate = process.extractOne(
-                word,
-                product_names,
-                scorer=fuzz.partial_ratio,
-            )
-
-            if candidate is not None and candidate[1] >= 75:
-                word_match = candidate
-                break
-
-        if word_match is None:
-            return None
-
-        best_match = word_match
 
     if not is_within_working_hours(db):
         return get_closed_hours_reply(db, language)
 
-    matched_product = products[best_match[2]]
     return format_single_product_reply(matched_product, language)
 
 
@@ -228,6 +287,7 @@ def format_product_list_reply(products: list[Product], language: str) -> str:
         "de": "Verfügbare Produkte:",
         "tr": "Mevcut ürünler:",
         "ar": "المنتجات المتوفرة:",
+        "ru": "Доступные товары:",
     }
 
     return headers.get(language, headers["en"]) + "\n" + "\n".join(lines)
@@ -239,6 +299,7 @@ def format_single_product_reply(product: Product, language: str) -> str:
         "de": "{name}: {price:g}",
         "tr": "{name}: {price:g}",
         "ar": "{name}: {price:g}",
+        "ru": "{name}: {price:g}",
     }
 
     template = templates.get(language, templates["en"])
@@ -254,6 +315,7 @@ def get_greeting_reply(language: str) -> str:
         "de": "Hallo. Wie kann ich helfen?",
         "tr": "Merhaba. Nasıl yardımcı olabilirim?",
         "ar": "مرحبا. كيف يمكنني مساعدتك؟",
+        "ru": "Здравствуйте. Чем могу помочь?",
     }
 
     return replies.get(language, replies["en"])

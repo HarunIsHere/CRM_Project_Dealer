@@ -1,6 +1,6 @@
-# CRM Project Dealer
+# CRM Delivery
 
-Telegram-first CRM automation system for customer message handling, product requests, meeting-point/location replies, admin notifications, working-hours restrictions, and admin-side request tracking.
+Telegram-first CRM automation system for customer message handling, product requests, meeting-point/location replies, admin notifications, working-hours restrictions, admin-side request tracking, and admin-to-customer replies through Telegram.
 
 Public admin URL:
 
@@ -14,7 +14,7 @@ https://github.com/HarunIsHere/CRM_Project_Dealer.git
 
 ## Current status
 
-The system is currently deployed from a local Mac using FastAPI, Telegram polling, and Cloudflare Tunnel.
+The system is currently deployed from a local Mac using FastAPI, Telegram polling, SQLite, and Cloudflare Tunnel.
 
 Public path:
 
@@ -22,15 +22,44 @@ Public path:
 
 The app and tunnel are started automatically on macOS login through LaunchAgents.
 
+## Telegram bot
+
+Current bot display name:
+
+    Delivery Bot
+
+Current bot username:
+
+    @SpecialDeliveryBerlinBot
+
+Direct bot link:
+
+    https://t.me/SpecialDeliveryBerlinBot
+
+The FastAPI app uses the Telegram bot token from `.env`. The Telegram username itself is not used by the code.
+
+If the bot token changes, update:
+
+    TELEGRAM_BOT_TOKEN=
+
+Then restart the app service.
+
 ## Main features
 
 - Telegram customer message intake
 - Rule-based replies
-- Fuzzy product and keyword matching with RapidFuzz
+- Multilingual intent recognition
+- English, German, Turkish, Arabic, and Russian support
+- Language selection buttons on unresolved messages
 - Product list replies
 - Specific product request detection
+- Product aliases for better matching
+- Automatic product alias generation
+- Manual product alias editing from admin dashboard
 - Quantity extraction from customer messages
 - Product request notifications to admin
+- Admin reply button inside Telegram notifications
+- Admin can reply to customers directly through the bot
 - Meeting-point/location replies with Google Maps links
 - Location availability and change notification logic
 - Working-hours restrictions
@@ -39,18 +68,20 @@ The app and tunnel are started automatically on macOS login through LaunchAgents
 - Admin dashboard protected by JWT-cookie login
 - Product add/update/delete from admin dashboard
 - Meeting point add/update/delete/default management
-- Admin reply panel for replying directly to Telegram customers
+- Admin reply panel on customer detail page
 - Structured customer request logging
 - Open Requests dashboard table
+- AJAX refresh for Open Requests only
 - Request status management: new, in_progress, done
 - Grouped open requests with summed quantities/request counts
 - Done button per grouped request
 - All Done button for clearing all open requests
 - Customer conversation history
 - Telegram inline buttons for unresolved messages:
-  - 1. Products
-  - 2. Location
-  - 3. Contact admin
+  - Products
+  - Location
+  - Contact admin
+  - Language choices
 
 ## Tech stack
 
@@ -61,6 +92,7 @@ The app and tunnel are started automatically on macOS login through LaunchAgents
 - Jinja2 templates
 - python-telegram-bot
 - RapidFuzz
+- Lingua language detection
 - Cloudflare Tunnel
 - macOS LaunchAgents
 
@@ -160,8 +192,9 @@ Required in `.env` and not committed:
     ADMIN_USERNAME=
     ADMIN_PASSWORD=
     ADMIN_JWT_SECRET=
+    ADMIN_SETUP_CODE=
 
-The app refuses to start if admin credentials or JWT secret are missing or weak.
+The app refuses to start if admin credentials, JWT secret, or admin setup code are missing or weak.
 
 ## Admin authentication
 
@@ -173,6 +206,32 @@ Authentication uses a JWT stored in an HTTP-only cookie.
 
 The admin dashboard is protected. Admin routes check authentication before allowing access.
 
+## Telegram admin setup
+
+The admin notification receiver can be set directly from Telegram.
+
+Command:
+
+    /setadmin <ADMIN_SETUP_CODE>
+
+Example:
+
+    /setadmin Selchower
+
+When successful, the bot replies:
+
+    You are now set as the admin notification receiver.
+
+This saves the sender's Telegram chat ID into:
+
+    admin_telegram_chat_id
+
+The admin does not need to manually find or copy the Telegram chat ID.
+
+Security rule:
+
+- `/setadmin` only works if the provided setup code matches `ADMIN_SETUP_CODE` from `.env`.
+
 ## Admin dashboard
 
 Admin dashboard URL:
@@ -182,13 +241,16 @@ Admin dashboard URL:
 Dashboard sections include:
 
 - Open Requests
+- Admin Language
 - Notification Settings
 - Working Hours
 - Products
 - Meeting Points
 - Customers
 
-The Open Requests table auto-refreshes every 10 seconds so new requests become visible without manual browser refresh.
+The Open Requests table auto-refreshes through AJAX every 10 seconds.
+
+Only the Open Requests table refreshes. The full page does not reload. This prevents product/meeting-point forms from losing typed input while admin is editing.
 
 ## Open Requests logic
 
@@ -260,6 +322,43 @@ Admin can update request status manually from the customer page.
 
 When a grouped request is marked done from Open Requests, all matching raw structured request rows are also marked done.
 
+## Conversation history logic
+
+Customer conversation history is shown on the customer detail page.
+
+Newest messages are shown at the top.
+
+The conversation history includes:
+
+- incoming customer messages
+- outgoing bot replies
+- outgoing admin replies
+
+Admin replies sent through the web dashboard or Telegram bot are saved into customer history.
+
+## Admin reply through Telegram
+
+Admin notifications include a button:
+
+    Reply to customer
+
+Flow:
+
+1. Customer sends a product/location/contact/admin/unresolved message.
+2. Admin receives a Telegram notification.
+3. Admin clicks Reply to customer.
+4. Bot asks admin to type the reply.
+5. Admin types the reply in the bot chat.
+6. Bot sends that reply to the customer.
+7. Bot saves the reply into the customer's conversation history.
+8. Bot confirms to admin:
+
+    Reply sent to customer.
+
+Only the saved admin notification receiver can use the Telegram reply button.
+
+If another Telegram user presses the admin reply button, the bot rejects the action.
+
 ## Product list request logic
 
 When the customer asks for product list, for example:
@@ -267,6 +366,10 @@ When the customer asks for product list, for example:
     products
     product
     ürünler
+    urunler
+    produkte
+    товар
+    منتجات
     1
 
 The bot sends the active product list.
@@ -281,17 +384,20 @@ When the customer asks for a specific product, for example:
 
     I want 3 gullu
     2 güllü gönder
-    gullu lazim
+    gullu istiyorum
+    güllü istiyom
+    GÜLLÜ İSTİYOM
 
 The system:
 
-1. Detects the product using fuzzy matching.
+1. Detects the product using product aliases and fuzzy matching.
 2. Extracts quantity if present.
 3. Sends the product price to the customer.
 4. Logs a structured request as product_specific.
 5. Stores the matched product name in item_name.
-6. Stores the extracted quantity.
+6. Stores the extracted quantity if available.
 7. Sends a Product request notification to admin.
+8. Adds a Reply to customer button to the admin notification.
 
 Admin notification example:
 
@@ -318,6 +424,40 @@ Customer sends:
 
 Open Requests shows one Güllü Dogan row with quantity 7.
 
+## Product aliases
+
+The app uses product aliases to recognize products more reliably.
+
+Product aliases are stored in:
+
+    product_aliases
+
+When a product is created or updated, the system can automatically generate basic aliases from the product name.
+
+Example product:
+
+    Güllü Dogan
+
+Auto aliases include:
+
+    güllü dogan
+    gullu dogan
+    güllü
+    gullu
+    dogan
+
+Admin can also edit aliases manually in the Products table on the admin dashboard.
+
+Manual aliases should be comma-separated.
+
+Example:
+
+    gullu, güllü, غولو, гюллю
+
+Product matching checks aliases first, then product names.
+
+This allows the bot to recognize product requests even when the customer uses spelling variations, missing Turkish characters, uppercase/lowercase variants, or manually configured transliterations.
+
 ## Product basket / cumulative total logic
 
 Planned/next-stage logic:
@@ -339,12 +479,12 @@ Bot:
 
 Customer:
 
-    I want 1 saglam
+    I want 1 kavunlu
 
 Bot:
 
     Güllü Dogan: 2 x 350 = 700
-    Saglam Aron: 1 x 1000 = 1000
+    Kavunlu Aron: 1 x 1000 = 1000
     Total: 1700
 
     Do you need anything else?
@@ -358,7 +498,11 @@ When a customer asks for location, for example:
     location
     address
     adres
-    where
+    konum
+    mekan
+    standort
+    adresse
+    location
     2
 
 The system checks if an active default meeting point exists.
@@ -469,25 +613,88 @@ The system:
 
 1. Logs a structured request as contact_admin.
 2. Sends an admin notification.
-3. Replies to the customer:
+3. Adds a Reply to customer button to the admin notification.
+4. Replies to the customer in the active/preferred language.
+
+English reply:
 
     I received your message. I will help you shortly.
 
 Open Requests groups contact_admin requests by customer.
 
-Admin can click Answer to open the customer page directly at the reply box.
+Admin can click Answer in the dashboard or Reply to customer in Telegram.
 
 ## Unresolved message logic
 
-If the system cannot understand a customer message, it replies with inline Telegram buttons:
+If the system cannot understand a customer message, it replies with action buttons and language buttons.
 
-    I did not understand exactly. Please choose by pressing a button or typing the number:
+The unresolved message is sent in the best available language.
 
-    1. Products
-    2. Location
-    3. Contact admin
+If the language is unknown, the fallback is English.
 
-The customer can either press a button or type the number.
+The message includes:
+
+- Products
+- Location
+- Contact admin
+- English
+- Deutsch
+- Türkçe
+- العربية
+- Русский
+
+When customer clicks a language:
+
+1. The selected language is saved as preferred_language.
+2. The unresolved message is repeated in that language.
+3. The same action buttons and language buttons are shown again.
+
+Important rule:
+
+Unresolved messages must always include action buttons and language buttons.
+
+## Menu option architecture
+
+Menu options are centralized.
+
+Typed numbers and inline buttons use the same menu source.
+
+Current options:
+
+- 1 = Products
+- 2 = Location
+- 3 = Contact admin
+
+This avoids future bugs when adding menu options 4, 5, etc.
+
+Future menu options should be added in the central menu definition so both typed input and button input work automatically.
+
+## Language logic
+
+Supported languages:
+
+- English
+- German
+- Turkish
+- Arabic
+- Russian
+
+The app uses a combination of:
+
+- explicit multilingual keyword dictionaries
+- Lingua language detection
+- stored customer preferred_language
+- language buttons
+
+Preferred language rules:
+
+- Do not permanently overwrite preferred_language from weak automatic detection.
+- Only update preferred_language when:
+  - customer explicitly clicks a language button, or
+  - message contains strong language-specific keywords.
+- If a message is random/unknown, reply in English with action + language buttons.
+
+This avoids false detection of random Latin text as German or another language.
 
 ## Working hours logic
 
@@ -519,20 +726,6 @@ Open Requests contains Answer buttons for:
 
 The Answer button opens the customer page at the reply form.
 
-## Telegram inline buttons
-
-Unresolved customer messages show three inline buttons:
-
-- 1. Products
-- 2. Location
-- 3. Contact admin
-
-Typed alternatives still work:
-
-- 1 = products
-- 2 = location
-- 3 = contact admin
-
 ## Database models
 
 Important models:
@@ -541,6 +734,7 @@ Important models:
 - Message
 - MeetingPoint
 - Product
+- ProductAlias
 - AppSetting
 - CustomerRequest
 
@@ -562,17 +756,33 @@ Important request_type values:
 - location
 - contact_admin
 
+ProductAlias fields:
+
+- id
+- product_id
+- alias
+
 ## Common commands
 
 Check Git status:
 
     git status
 
-Compile important files:
+Compile important Python files:
 
     python3 -m py_compile app/admin/routes.py
-    python3 -m py_compile app/services/telegram_bot.py
+    python3 -m py_compile app/core/config.py
+    python3 -m py_compile app/main.py
+    python3 -m py_compile app/models/product_alias.py
+    python3 -m py_compile app/services/admin_reply_service.py
+    python3 -m py_compile app/services/customer_request_service.py
+    python3 -m py_compile app/services/language_service.py
+    python3 -m py_compile app/services/meeting_point_service.py
+    python3 -m py_compile app/services/product_alias_service.py
     python3 -m py_compile app/services/rule_engine.py
+    python3 -m py_compile app/services/telegram_bot.py
+
+Do not run `py_compile` on HTML templates.
 
 Restart app service:
 
@@ -589,6 +799,10 @@ Expected result:
 
     200
 
+Check latest app errors:
+
+    tail -120 /tmp/crm-dealer-app.err.log
+
 ## Deployment notes
 
 This deployment currently depends on the Mac being online.
@@ -601,11 +815,13 @@ Production-grade next step would be moving the app and database to a cloud serve
 
 - `.env` must not be committed
 - Telegram bot token must remain secret
+- Admin setup code must remain secret
 - Admin JWT secret must remain secret
 - Admin password must remain secret
 - Cloudflare tunnel credential JSON must remain secret
 - Admin dashboard is protected by JWT-cookie authentication
-- App refuses to start if admin credentials or JWT secret are missing or weak
+- App refuses to start if admin credentials, JWT secret, or setup code are missing or weak
+- If a Telegram bot token is exposed, revoke/regenerate it in BotFather and update `.env`
 
 ## Known next milestones
 
