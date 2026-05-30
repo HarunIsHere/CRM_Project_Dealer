@@ -122,6 +122,9 @@ def get_rule_based_reply(db, text: str, language: str) -> str | None:
 
         return format_meeting_point_reply(db, language)
 
+    if is_close_match(clean_text, GREETING_KEYWORDS):
+        return get_greeting_reply(language)
+
     product_reply = get_product_reply_if_matched(
         db,
         clean_text,
@@ -130,14 +133,14 @@ def get_rule_based_reply(db, text: str, language: str) -> str | None:
     if product_reply is not None:
         return product_reply
 
-    if is_close_match(clean_text, GREETING_KEYWORDS):
-        return get_greeting_reply(language)
-
     return None
 
 
 def get_matching_product(db, text: str) -> Product | None:
     clean_text = normalize_text(text)
+
+    if is_close_match(clean_text, GREETING_KEYWORDS):
+        return None
 
     aliases = db.query(ProductAlias).all()
 

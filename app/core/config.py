@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     admin_jwt_secret: str
     admin_setup_code: str
 
+    superadmin_username: str | None = None
+    superadmin_password: str | None = None
+    superadmin_bot_setup_code: str | None = None
+
     class Config:
         env_file = ".env"
 

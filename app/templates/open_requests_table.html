@@ -33,15 +33,23 @@
         </td>
         <td>{{ request_item.request_count }}</td>
         <td>{{ request_item.status }}</td>
-        <td>{{ request_item.latest_text }}</td>
+        <td>
+            {{ request_item.latest_text }}
+            {% if request_item.google_maps_link %}
+                <br>
+                <a href="{{ request_item.google_maps_link }}" target="_blank">
+                    Open Map
+                </a>
+            {% endif %}
+        </td>
         <td>{{ request_item.latest_created_at }}</td>
         <td>
             {% if customer %}
                 <a href="/admin/customers/{{ customer.id }}">
-                    <button type="button">Open Customer</button>
+                    <button type="button" class="request-action-button">Open Customer</button>
                 </a>
                 <a href="/admin/customers/{{ customer.id }}#send-reply">
-                    <button type="button">Answer</button>
+                    <button type="button" class="request-action-button">Answer</button>
                 </a>
             {% endif %}
         </td>

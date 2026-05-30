@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.api.customers import router as customers_router
 from app.api.meeting_points import router as meeting_points_router
@@ -49,6 +50,8 @@ app = FastAPI(
     title="CRM Delivery",
     lifespan=lifespan
 )
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(customers_router)
 app.include_router(meeting_points_router)

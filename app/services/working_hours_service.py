@@ -26,19 +26,59 @@ def is_within_working_hours(db) -> bool:
 
 
 def get_closed_hours_reply(db, language: str) -> str:
+    message_mode = (
+        get_setting(db, "working_hours_message_mode")
+        or "custom"
+    )
+
     custom_message = get_setting(db, "working_hours_closed_message")
 
-    if custom_message:
+    if message_mode == "custom" and custom_message:
         return custom_message
 
-    replies = {
-        "en": "We are currently closed. Please message us during working hours.",
-        "de": "Wir haben derzeit geschlossen. Bitte schreiben Sie während der Arbeitszeiten.",
-        "tr": "Şu anda kapalıyız. Lütfen çalışma saatleri içinde yazın.",
-        "ar": "نحن مغلقون حاليا. يرجى مراسلتنا خلال ساعات العمل.",
+    return get_auto_closed_hours_reply(db, language)
+
+
+def get_auto_closed_hours_reply(db, language: str) -> str:
+    timezone_name = get_setting(db, "working_hours_timezone") or "Europe/Berlin"
+    start_value = get_setting(db, "working_hours_start") or "10:00"
+    end_value = get_setting(db, "working_hours_end") or "22:00"
+
+    local_replies = {
+        "en": (
+            "We are currently closed. "
+            f"Our working hours are {start_value} - {end_value} "
+            f"({timezone_name})."
+        ),
+        "de": (
+            "Wir haben derzeit geschlossen. "
+            f"Unsere Arbeitszeiten sind {start_value} - {end_value} "
+            f"({timezone_name})."
+        ),
+        "tr": (
+            "Şu anda kapalıyız. "
+            f"Çalışma saatlerimiz {start_value} - {end_value} "
+            f"({timezone_name})."
+        ),
+        "ar": (
+            "نحن مغلقون حاليا. "
+            f"ساعات العمل لدينا هي {start_value} - {end_value} "
+            f"({timezone_name})."
+        ),
+        "ru": (
+            "Сейчас мы закрыты. "
+            f"Наши рабочие часы: {start_value} - {end_value} "
+            f"({timezone_name})."
+        ),
     }
 
-    return replies.get(language, replies["en"])
+    english_reply = local_replies["en"]
+    local_reply = local_replies.get(language, english_reply)
+
+    if language == "en":
+        return english_reply
+
+    return f"{local_reply}\n\n{english_reply}"
 
 
 def parse_time(value: str) -> time:

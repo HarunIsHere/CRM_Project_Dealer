@@ -1,114 +1,538 @@
 # CRM Delivery
 
-Telegram-first CRM automation system for customer message handling, product requests, meeting-point/location replies, admin notifications, working-hours restrictions, admin-side request tracking, and admin-to-customer replies through Telegram.
+Telegram-first CRM and delivery coordination system for customer message handling, product requests, delivery/location requests, admin notifications, working-hours control, admin-side request tracking, and admin-to-customer replies.
 
 Public admin URL:
 
-https://crm.ayartuerk.me/admin/
+    https://crm.ayartuerk.me/admin/
 
-The root domain https://ayartuerk.me is not used for this app because it already serves another website. The CRM runs separately through the subdomain crm.ayartuerk.me.
+Open Requests URL:
 
-## Repository
+    https://crm.ayartuerk.me/admin/openrequests/
 
-https://github.com/HarunIsHere/CRM_Project_Dealer.git
-
-## Current status
-
-The system is currently deployed from a local Mac using FastAPI, Telegram polling, SQLite, and Cloudflare Tunnel.
-
-Public path:
-
-    crm.ayartuerk.me -> Cloudflare Tunnel -> 127.0.0.1:8001 -> FastAPI app
-
-The app and tunnel are started automatically on macOS login through LaunchAgents.
-
-## Telegram bot
-
-Current bot display name:
+Bot:
 
     Delivery Bot
-
-Current bot username:
-
     @SpecialDeliveryBerlinBot
 
 Direct bot link:
 
     https://t.me/SpecialDeliveryBerlinBot
 
-The FastAPI app uses the Telegram bot token from `.env`. The Telegram username itself is not used by the code.
+## Current status
 
-If the bot token changes, update:
+The system is currently deployed from a local Mac using:
 
-    TELEGRAM_BOT_TOKEN=
+- FastAPI
+- SQLite
+- SQLAlchemy
+- Jinja2 templates
+- python-telegram-bot
+- Cloudflare Tunnel
+- macOS LaunchAgents
 
-Then restart the app service.
+Public path:
+
+    crm.ayartuerk.me -> Cloudflare Tunnel -> 127.0.0.1:8001 -> FastAPI app
+
+The app and tunnel start automatically on macOS login through LaunchAgents.
 
 ## Main features
 
 - Telegram customer message intake
 - Rule-based replies
-- Multilingual intent recognition
-- English, German, Turkish, Arabic, and Russian support
+- Multilingual support
+- Supported languages:
+  - English
+  - German
+  - Turkish
+  - Arabic
+  - Russian
 - Language selection buttons on unresolved messages
 - Product list replies
 - Specific product request detection
-- Product aliases for better matching
+- Product aliases
 - Automatic product alias generation
 - Manual product alias editing from admin dashboard
 - Quantity extraction from customer messages
 - Product request notifications to admin
-- Admin reply button inside Telegram notifications
-- Admin can reply to customers directly through the bot
-- Meeting-point/location replies with Google Maps links
-- Location availability and change notification logic
-- Working-hours restrictions
-- Admin Telegram notifications for unresolved messages
-- Admin Telegram notifications when location is needed
-- Admin dashboard protected by JWT-cookie login
-- Product add/update/delete from admin dashboard
-- Meeting point add/update/delete/default management
-- Admin reply panel on customer detail page
-- Structured customer request logging
-- Open Requests dashboard table
-- AJAX refresh for Open Requests only
-- Request status management: new, in_progress, done
-- Grouped open requests with summed quantities/request counts
-- Done button per grouped request
-- All Done button for clearing all open requests
+- Admin reply button in Telegram notifications
+- Admin can reply to customers directly through Telegram bot
+- Admin can reply to customers from web dashboard
 - Customer conversation history
-- Telegram inline buttons for unresolved messages:
-  - Products
-  - Location
+- Structured customer requests
+- Open Requests page with AJAX table refresh
+- Working-hours restrictions
+- Auto working-hours message mode
+- Custom free-text closed-hours message mode
+- Closed-hours buttons:
+  - Product List
   - Contact admin
-  - Language choices
+- Meeting point/location management
+- Customer can choose active meeting point
+- Default meeting point shown as Preferred
+- If only one active meeting point exists, it is sent directly
+- Customer can type address
+- Address search offers up to 7 selectable location results
+- Customer can share Telegram location
+- Admin receives clickable Google Maps link
+- Delivery ETA buttons for admin:
+  - 15 min
+  - 30 min
+  - 45 min
+  - 1h
+  - 1h 15 min
+  - 1h 30 min
+  - No delivery
+  - Free text reply
+- Admin ETA button feedback:
+  - clicked buttons marked
+  - latest clicked option marked
+- Admin dashboard login
+- Change password page
+- Forgot password flow with 5-digit Telegram reset code
+- Superadmin web login
+- Superadmin Telegram takeover command
+- Responsive admin UI for desktop and mobile
+- Shared admin CSS styling
 
-## Tech stack
+## Admin URLs
 
-- Python
-- FastAPI
-- SQLAlchemy
-- SQLite
-- Jinja2 templates
-- python-telegram-bot
-- RapidFuzz
-- Lingua language detection
-- Cloudflare Tunnel
-- macOS LaunchAgents
+Admin login:
+
+    https://crm.ayartuerk.me/admin/login
+
+Admin dashboard:
+
+    https://crm.ayartuerk.me/admin/
+
+Open Requests:
+
+    https://crm.ayartuerk.me/admin/openrequests/
+
+Change password:
+
+    https://crm.ayartuerk.me/admin/change-password
+
+Forgot password:
+
+    https://crm.ayartuerk.me/admin/forgot-password
+
+Reset password:
+
+    https://crm.ayartuerk.me/admin/reset-password
+
+Customer detail pages:
+
+    https://crm.ayartuerk.me/admin/customers/<customer_id>
+
+## Telegram admin setup
+
+Normal admin setup command:
+
+    /setadmin <ADMIN_SETUP_CODE>
+
+Example:
+
+    /setadmin Selchower
+
+This saves the sender's Telegram chat ID as the active admin notification receiver.
+
+Superadmin takeover command:
+
+    /setsuperadmin <SUPERADMIN_BOT_SETUP_CODE>
+
+This allows the superadmin to take over the active admin Telegram receiver.
+
+## Environment variables
+
+Required in `.env`:
+
+    TELEGRAM_BOT_TOKEN=
+    ADMIN_USERNAME=
+    ADMIN_PASSWORD=
+    ADMIN_JWT_SECRET=
+    ADMIN_SETUP_CODE=
+    SUPERADMIN_USERNAME=
+    SUPERADMIN_PASSWORD=
+    SUPERADMIN_BOT_SETUP_CODE=
+
+Do not commit `.env`.
+
+## Authentication
+
+Admin login supports:
+
+1. Normal admin credentials:
+
+       ADMIN_USERNAME + current admin password
+
+2. Superadmin credentials:
+
+       SUPERADMIN_USERNAME + SUPERADMIN_PASSWORD
+
+Admin password can be changed from the web dashboard.
+
+Changed admin password is stored as a database setting:
+
+    admin_password_override
+
+If no override exists, the app uses `ADMIN_PASSWORD` from `.env`.
+
+## Forgot password flow
+
+Login page includes:
+
+    I forgot my password
+
+Flow:
+
+1. Admin clicks forgot-password link.
+2. System generates a random 5-digit code.
+3. Code is sent to active Admin Telegram Chat ID.
+4. Admin enters code and new password.
+5. If valid, `admin_password_override` is updated.
+6. Admin can log in with the new password.
+
+Reset codes expire after 10 minutes.
+
+## Working hours
+
+Admin can enable/disable working-hours restrictions.
+
+Settings:
+
+- timezone
+- start time
+- end time
+- message mode
+- custom closed message
+
+Message modes:
+
+### Auto mode
+
+Uses configured working hours and replies in:
+
+- customer language
+- English
+
+Example:
+
+    Şu anda kapalıyız. Çalışma saatlerimiz 13:00 - 23:00 (Europe/Berlin).
+
+    We are currently closed. Our working hours are 13:00 - 23:00 (Europe/Berlin).
+
+### Custom mode
+
+Sends the custom free-text message exactly as written.
+
+Useful for vacation, special closure, temporary unavailability, etc.
+
+Outside working hours:
+
+Allowed:
+
+- Product List
+- Contact admin
+
+Blocked:
+
+- product-specific orders
+- delivery location
+- meeting point choice
+- typed address
+- customer shared location
+
+Closed-hours replies include buttons:
+
+- Product List
+- Contact admin
+
+## Product logic
+
+Product list requests are allowed even outside working hours.
+
+Product list requests are no longer stored in Structured Requests.
+
+Specific product requests are detected through:
+
+- product names
+- product aliases
+- automatic aliases
+- manual aliases
+- spelling variants
+- fuzzy matching
+
+Product request notification example:
+
+    Product request:
+
+    Customer: Harun
+    Telegram ID: 8874326241
+    Product: Güllü Dogan
+    Quantity: 2
+    Message: 2 güllü
+
+## Product aliases
+
+Product aliases are stored in:
+
+    product_aliases
+
+Automatic aliases are generated from product names.
+
+Example product:
+
+    Güllü Dogan
+
+Generated aliases include:
+
+    güllü dogan
+    gullu dogan
+    güllü
+    gullu
+    dogan
+
+Admin can edit aliases manually in the product section.
+
+Manual aliases are comma-separated.
+
+## Location and delivery logic
+
+There are two different location concepts:
+
+1. Business/meeting points configured by admin
+2. Customer delivery location shared/selected by customer
+
+### Business meeting points
+
+Admin manages meeting points from the dashboard.
+
+Each meeting point has:
+
+- name
+- address
+- Google Maps link
+- active/inactive status
+- default/preferred status
+
+Customer location option shows active locations.
+
+If there is more than one active location:
+
+- customer receives buttons
+- default location is marked Preferred
+
+If there is only one active location:
+
+- customer receives it directly
+
+### Customer delivery location
+
+Customer can send delivery location in two ways:
+
+1. Share Telegram location directly
+2. Use Type address flow
+
+Typed address flow:
+
+1. Customer chooses Type address.
+2. Bot asks customer to type address.
+3. System searches locations.
+4. Bot shows up to 7 address choices.
+5. Customer selects one.
+6. Admin receives clickable Google Maps location.
+7. Open Requests and Structured Requests show the map link.
+
+Admin receives delivery ETA buttons.
+
+When admin clicks an ETA button, customer receives an automatic message.
+
+Example:
+
+    Delivery will be done to your location in 30 min.
+
+No delivery example:
+
+    Sorry, delivery is not possible for this location.
+
+## Open Requests
+
+Open Requests moved to a separate page:
+
+    /admin/openrequests/
+
+Main admin dashboard has an Open Requests button.
+
+Open Requests page uses AJAX refresh.
+
+It does not reload the whole page.
+
+Partial AJAX endpoint:
+
+    /admin/open-requests
+
+Open Requests table is generated from grouped customer requests.
+
+Open Requests contains active operational items only.
+
+Grouped request logic:
+
+- grouped by customer
+- grouped by request type
+- grouped by item/product/location where applicable
+- done requests are hidden
+- quantities are summed when available
+- request counts are shown
+
+Open Requests actions:
+
+- Open Customer
+- Answer
+- Done
+- All Done
+
+Open Customer and Answer buttons have equal visual width.
+
+## Structured Requests
+
+Customer detail page contains raw request history.
+
+Structured Requests include:
+
+- ID
+- Type
+- Status
+- Item
+- Quantity
+- Text
+- Created At
+- Action
+
+Location-related rows include clickable Open Map links.
+
+Request statuses:
+
+- new
+- in_progress
+- done
+
+## Conversation history
+
+Customer detail page includes conversation history.
+
+Newest messages are shown first.
+
+Stored message types include:
+
+- customer text
+- bot reply
+- admin reply
+- typed address location
+- Telegram shared location
+- delivery ETA message
+
+## Admin reply through Telegram
+
+Admin notification buttons include:
+
+    Reply to customer
+
+Flow:
+
+1. Admin clicks Reply to customer.
+2. Bot asks admin to type the reply.
+3. Admin sends text in bot chat.
+4. Bot forwards it to the customer.
+5. Reply is saved in conversation history.
+
+Only the active admin Telegram receiver can use this.
+
+## Admin UI
+
+Admin web pages use shared CSS:
+
+    app/static/admin.css
+
+Static files are mounted under:
+
+    /static
+
+Styled pages:
+
+- login
+- admin dashboard
+- open requests
+- customer detail
+- change password
+- forgot password
+- reset password
+
+The UI supports desktop and mobile.
+
+Tables scroll horizontally on small screens.
+
+## Important files
+
+App entrypoint:
+
+    app/main.py
+
+Admin routes:
+
+    app/admin/routes.py
+
+Telegram bot:
+
+    app/services/telegram_bot.py
+
+Admin auth:
+
+    app/services/admin_auth_service.py
+
+Working hours:
+
+    app/services/working_hours_service.py
+
+Meeting points:
+
+    app/services/meeting_point_service.py
+
+Products/rules:
+
+    app/services/rule_engine.py
+    app/services/product_alias_service.py
+
+Customer requests:
+
+    app/models/customer_request.py
+    app/services/customer_request_service.py
+
+Templates:
+
+    app/templates/admin_dashboard.html
+    app/templates/open_requests_page.html
+    app/templates/open_requests_table.html
+    app/templates/customer_detail.html
+    app/templates/admin_login.html
+    app/templates/change_password.html
+    app/templates/forgot_password.html
+    app/templates/reset_password.html
+
+CSS:
+
+    app/static/admin.css
 
 ## Local app
 
-The FastAPI app runs locally on:
+Local URL:
 
     http://127.0.0.1:8001
 
 Manual start:
 
     ~/bin/run_crm_app.sh
-
-Project startup script:
-
-    scripts/run_crm_app.sh
 
 Direct Uvicorn command:
 
@@ -132,13 +556,7 @@ Manual start:
 
     ~/bin/run_crm_tunnel.sh
 
-Project startup script:
-
-    scripts/run_crm_tunnel.sh
-
-## macOS auto-start
-
-The app and tunnel run through LaunchAgents.
+## macOS LaunchAgents
 
 App LaunchAgent:
 
@@ -148,25 +566,27 @@ Tunnel LaunchAgent:
 
     ~/Library/LaunchAgents/com.harun.crm-dealer-tunnel.plist
 
-Check status:
+Check app:
 
     launchctl print gui/$(id -u)/com.harun.crm-dealer-app | grep state
+
+Check tunnel:
+
     launchctl print gui/$(id -u)/com.harun.crm-dealer-tunnel | grep state
-
-Expected:
-
-    state = running
-    state = running
 
 Restart app:
 
     launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.harun.crm-dealer-app.plist 2>/dev/null || true
     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.harun.crm-dealer-app.plist
+    sleep 5
+    launchctl print gui/$(id -u)/com.harun.crm-dealer-app | grep state
 
 Restart tunnel:
 
     launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.harun.crm-dealer-tunnel.plist 2>/dev/null || true
     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.harun.crm-dealer-tunnel.plist
+    sleep 5
+    launchctl print gui/$(id -u)/com.harun.crm-dealer-tunnel | grep state
 
 ## Logs
 
@@ -180,660 +600,83 @@ Tunnel logs:
     /tmp/crm-dealer-tunnel.out.log
     /tmp/crm-dealer-tunnel.err.log
 
-Check latest app errors:
+Check latest errors:
 
     tail -120 /tmp/crm-dealer-app.err.log
 
-## Environment variables
-
-Required in `.env` and not committed:
-
-    TELEGRAM_BOT_TOKEN=
-    ADMIN_USERNAME=
-    ADMIN_PASSWORD=
-    ADMIN_JWT_SECRET=
-    ADMIN_SETUP_CODE=
-
-The app refuses to start if admin credentials, JWT secret, or admin setup code are missing or weak.
-
-## Admin authentication
-
-Admin login:
-
-    https://crm.ayartuerk.me/admin/login
-
-Authentication uses a JWT stored in an HTTP-only cookie.
-
-The admin dashboard is protected. Admin routes check authentication before allowing access.
-
-## Telegram admin setup
-
-The admin notification receiver can be set directly from Telegram.
-
-Command:
-
-    /setadmin <ADMIN_SETUP_CODE>
-
-Example:
-
-    /setadmin Selchower
-
-When successful, the bot replies:
-
-    You are now set as the admin notification receiver.
-
-This saves the sender's Telegram chat ID into:
-
-    admin_telegram_chat_id
-
-The admin does not need to manually find or copy the Telegram chat ID.
-
-Security rule:
-
-- `/setadmin` only works if the provided setup code matches `ADMIN_SETUP_CODE` from `.env`.
-
-## Admin dashboard
-
-Admin dashboard URL:
-
-    https://crm.ayartuerk.me/admin/
-
-Dashboard sections include:
-
-- Open Requests
-- Admin Language
-- Notification Settings
-- Working Hours
-- Products
-- Meeting Points
-- Customers
-
-The Open Requests table auto-refreshes through AJAX every 10 seconds.
-
-Only the Open Requests table refreshes. The full page does not reload. This prevents product/meeting-point forms from losing typed input while admin is editing.
-
-## Open Requests logic
-
-Open Requests is a grouped operational table for unresolved or active customer needs.
-
-It is not the raw request history. Raw history remains visible in each customer's Structured Requests table.
-
-Open Requests grouping rules:
-
-- product_list is hidden from Open Requests
-- product_specific is grouped by customer + product name
-- location is grouped by customer
-- contact_admin is grouped by customer
-- done requests are hidden from Open Requests
-
-For product_specific:
-
-- same customer + same product appears once
-- quantities are summed
-- latest text and latest timestamp are shown
-- Answer button is available
-- Done button marks all matching open product rows as done
-
-For location:
-
-- same customer appears once
-- request count is summed
-- Answer button is available
-- Done button marks all matching open location rows as done
-- once marked done, customer no longer receives future location-change notifications for that request group
-
-For contact_admin:
-
-- same customer appears once
-- request count is summed
-- Answer button is available
-- Done button marks all matching open contact_admin rows as done
-
-The All Done button next to the Open Requests headline marks all open customer requests as done and clears the table.
-
-## Customer Structured Requests logic
-
-Each customer page contains a Structured Requests table.
-
-Customer detail page:
-
-    /admin/customers/<customer_id>
-
-Structured Requests stores raw request rows and keeps historical visibility.
-
-Tracked fields include:
-
-- ID
-- Type
-- Item
-- Status
-- Quantity
-- Text
-- Created At
-- Action/status update
-
-Request statuses:
-
-- new
-- in_progress
-- done
-
-Admin can update request status manually from the customer page.
-
-When a grouped request is marked done from Open Requests, all matching raw structured request rows are also marked done.
-
-## Conversation history logic
-
-Customer conversation history is shown on the customer detail page.
-
-Newest messages are shown at the top.
-
-The conversation history includes:
-
-- incoming customer messages
-- outgoing bot replies
-- outgoing admin replies
-
-Admin replies sent through the web dashboard or Telegram bot are saved into customer history.
-
-## Admin reply through Telegram
-
-Admin notifications include a button:
-
-    Reply to customer
-
-Flow:
-
-1. Customer sends a product/location/contact/admin/unresolved message.
-2. Admin receives a Telegram notification.
-3. Admin clicks Reply to customer.
-4. Bot asks admin to type the reply.
-5. Admin types the reply in the bot chat.
-6. Bot sends that reply to the customer.
-7. Bot saves the reply into the customer's conversation history.
-8. Bot confirms to admin:
-
-    Reply sent to customer.
-
-Only the saved admin notification receiver can use the Telegram reply button.
-
-If another Telegram user presses the admin reply button, the bot rejects the action.
-
-## Product list request logic
-
-When the customer asks for product list, for example:
-
-    products
-    product
-    ürünler
-    urunler
-    produkte
-    товар
-    منتجات
-    1
-
-The bot sends the active product list.
-
-Product list requests are logged in the customer's Structured Requests table as product_list.
-
-Product list requests do not appear in Open Requests because they usually do not require admin action.
-
-## Specific product request logic
-
-When the customer asks for a specific product, for example:
-
-    I want 3 gullu
-    2 güllü gönder
-    gullu istiyorum
-    güllü istiyom
-    GÜLLÜ İSTİYOM
-
-The system:
-
-1. Detects the product using product aliases and fuzzy matching.
-2. Extracts quantity if present.
-3. Sends the product price to the customer.
-4. Logs a structured request as product_specific.
-5. Stores the matched product name in item_name.
-6. Stores the extracted quantity if available.
-7. Sends a Product request notification to admin.
-8. Adds a Reply to customer button to the admin notification.
-
-Admin notification example:
-
-    Product request:
-
-    Customer: Aron
-    Telegram ID: 8180717054
-    Product: Güllü Dogan
-    Quantity: 3
-    Message: 3 güllü gönder
-
-Open Requests behavior:
-
-- repeated requests for the same customer + same product are grouped
-- quantity is summed
-- one row stays visible until admin marks it done
-
-Example:
-
-Customer sends:
-
-    I want 2 güllü
-    I want 5 güllü
-
-Open Requests shows one Güllü Dogan row with quantity 7.
-
-## Product aliases
-
-The app uses product aliases to recognize products more reliably.
-
-Product aliases are stored in:
-
-    product_aliases
-
-When a product is created or updated, the system can automatically generate basic aliases from the product name.
-
-Example product:
-
-    Güllü Dogan
-
-Auto aliases include:
-
-    güllü dogan
-    gullu dogan
-    güllü
-    gullu
-    dogan
-
-Admin can also edit aliases manually in the Products table on the admin dashboard.
-
-Manual aliases should be comma-separated.
-
-Example:
-
-    gullu, güllü, غولو, гюллю
-
-Product matching checks aliases first, then product names.
-
-This allows the bot to recognize product requests even when the customer uses spelling variations, missing Turkish characters, uppercase/lowercase variants, or manually configured transliterations.
-
-## Product basket / cumulative total logic
-
-Planned/next-stage logic:
-
-When a customer requests multiple products in the same message or consecutive product messages, the bot should maintain an open basket-like request summary.
-
-Expected future behavior:
-
-Customer:
-
-    I want 2 güllü
-
-Bot:
-
-    Güllü Dogan: 2 x 350 = 700
-    Total: 700
-
-    Do you need anything else?
-
-Customer:
-
-    I want 1 kavunlu
-
-Bot:
-
-    Güllü Dogan: 2 x 350 = 700
-    Kavunlu Aron: 1 x 1000 = 1000
-    Total: 1700
-
-    Do you need anything else?
-
-This logic is planned and should be implemented as a cumulative customer request/basket layer on top of product_specific structured requests.
-
-## Location request logic
-
-When a customer asks for location, for example:
-
-    location
-    address
-    adres
-    konum
-    mekan
-    standort
-    adresse
-    location
-    2
-
-The system checks if an active default meeting point exists.
-
-### Case A - active default location exists
-
-The bot sends the current default location:
-
-    We can meet here:
-
-    <meeting point name>
-    <address>
-    <Google Maps link>
-
-The system logs an open location request for the customer.
-
-This request remains open until admin marks it done.
-
-While the request is open, the customer can receive automatic location-change notifications.
-
-### Case B - admin changes default location
-
-If admin sets a different active meeting point as default, the system sends this to customers with open location requests:
-
-    Location changed (became available), please come to the new location:
-
-    <new meeting point name>
-    <new address>
-    <new Google Maps link>
-
-Only customers with open location requests receive this.
-
-Customers whose location request was marked done do not receive future location-change messages.
-
-### Case C - admin disables the current/default active location
-
-If the default active meeting point is made inactive, the system sends this to customers with open location requests:
-
-    Sorry, dealer is not at the location anymore. We will inform you shortly when a new location is available.
-
-The location request remains open.
-
-This allows the customer to receive the new location later when admin activates/sets a new default location.
-
-### Case D - customer asks location but no active default location exists
-
-The customer receives:
-
-    Currently no location is available. We will inform you shortly when it is available.
-
-Admin receives:
-
-    Location needed:
-
-    Customer: <customer>
-    Telegram ID: <telegram id>
-    Customer asked for location, but no active default location is available.
-    Message: <customer message>
-
-The system logs an open location request.
-
-### Case E - admin later activates/sets a default location
-
-When admin later creates/activates/sets a default meeting point, the system sends the new location to customers with open location requests:
-
-    Location changed (became available), please come to the new location:
-
-    <new meeting point name>
-    <new address>
-    <Google Maps link>
-
-The request remains open until admin marks it done manually.
-
-### Case F - admin marks location request done
-
-Once location request is marked done:
-
-- it disappears from Open Requests
-- raw row remains in Structured Requests as done
-- customer no longer receives future location-change notifications for that request group
-
-## Meeting point admin rules
-
-Meeting points can be:
-
-- active
-- inactive
-- default
-
-Only active meeting points should be selectable as default.
-
-If a meeting point is inactive, the Set Default button should not be shown in its row.
-
-If the current default location is made inactive:
-
-- it is unmarked as default
-- customers with open location requests receive the location unavailable message
-
-## Contact admin logic
-
-If the customer chooses Contact admin by button or by typing:
-
-    3
-    admin
-    contact admin
-
-The system:
-
-1. Logs a structured request as contact_admin.
-2. Sends an admin notification.
-3. Adds a Reply to customer button to the admin notification.
-4. Replies to the customer in the active/preferred language.
-
-English reply:
-
-    I received your message. I will help you shortly.
-
-Open Requests groups contact_admin requests by customer.
-
-Admin can click Answer in the dashboard or Reply to customer in Telegram.
-
-## Unresolved message logic
-
-If the system cannot understand a customer message, it replies with action buttons and language buttons.
-
-The unresolved message is sent in the best available language.
-
-If the language is unknown, the fallback is English.
-
-The message includes:
-
-- Products
-- Location
-- Contact admin
-- English
-- Deutsch
-- Türkçe
-- العربية
-- Русский
-
-When customer clicks a language:
-
-1. The selected language is saved as preferred_language.
-2. The unresolved message is repeated in that language.
-3. The same action buttons and language buttons are shown again.
-
-Important rule:
-
-Unresolved messages must always include action buttons and language buttons.
-
-## Menu option architecture
-
-Menu options are centralized.
-
-Typed numbers and inline buttons use the same menu source.
-
-Current options:
-
-- 1 = Products
-- 2 = Location
-- 3 = Contact admin
-
-This avoids future bugs when adding menu options 4, 5, etc.
-
-Future menu options should be added in the central menu definition so both typed input and button input work automatically.
-
-## Language logic
-
-Supported languages:
-
-- English
-- German
-- Turkish
-- Arabic
-- Russian
-
-The app uses a combination of:
-
-- explicit multilingual keyword dictionaries
-- Lingua language detection
-- stored customer preferred_language
-- language buttons
-
-Preferred language rules:
-
-- Do not permanently overwrite preferred_language from weak automatic detection.
-- Only update preferred_language when:
-  - customer explicitly clicks a language button, or
-  - message contains strong language-specific keywords.
-- If a message is random/unknown, reply in English with action + language buttons.
-
-This avoids false detection of random Latin text as German or another language.
-
-## Working hours logic
-
-Working hours can be configured from the admin dashboard.
-
-Settings include:
-
-- enabled/disabled
-- timezone
-- start time
-- end time
-- closed message
-
-When enabled, product-specific and location requests can be restricted outside working hours.
-
-If the customer asks for product/location outside working hours, the bot replies with the configured closed-hours message.
-
-## Admin reply panel
-
-Admin can reply directly to a customer from the customer detail page.
-
-The reply is sent through Telegram and saved into Conversation History as an outgoing admin reply.
-
-Open Requests contains Answer buttons for:
-
-- product_specific
-- location
-- contact_admin
-
-The Answer button opens the customer page at the reply form.
-
-## Database models
-
-Important models:
-
-- Customer
-- Message
-- MeetingPoint
-- Product
-- ProductAlias
-- AppSetting
-- CustomerRequest
-
-CustomerRequest fields:
-
-- id
-- customer_id
-- request_type
-- request_text
-- item_name
-- quantity
-- status
-- created_at
-
-Important request_type values:
-
-- product_list
-- product_specific
-- location
-- contact_admin
-
-ProductAlias fields:
-
-- id
-- product_id
-- alias
-
-## Common commands
-
-Check Git status:
-
-    git status
-
-Compile important Python files:
-
-    python3 -m py_compile app/admin/routes.py
-    python3 -m py_compile app/core/config.py
-    python3 -m py_compile app/main.py
-    python3 -m py_compile app/models/product_alias.py
-    python3 -m py_compile app/services/admin_reply_service.py
-    python3 -m py_compile app/services/customer_request_service.py
-    python3 -m py_compile app/services/language_service.py
-    python3 -m py_compile app/services/meeting_point_service.py
-    python3 -m py_compile app/services/product_alias_service.py
-    python3 -m py_compile app/services/rule_engine.py
-    python3 -m py_compile app/services/telegram_bot.py
+## Compile checks
 
 Do not run `py_compile` on HTML templates.
 
-Restart app service:
+Useful compile command:
 
-    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.harun.crm-dealer-app.plist 2>/dev/null || true
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.harun.crm-dealer-app.plist
-    sleep 5
-    launchctl print gui/$(id -u)/com.harun.crm-dealer-app | grep state
+    python3 -m py_compile \
+    app/core/config.py \
+    app/main.py \
+    app/admin/routes.py \
+    app/models/customer_request.py \
+    app/models/product_alias.py \
+    app/services/admin_auth_service.py \
+    app/services/customer_request_service.py \
+    app/services/language_service.py \
+    app/services/meeting_point_service.py \
+    app/services/product_alias_service.py \
+    app/services/rule_engine.py \
+    app/services/startup_checks.py \
+    app/services/telegram_bot.py \
+    app/services/working_hours_service.py
 
-Check public status:
+## Public status check
 
     curl -L -s -o /dev/null -w "%{http_code}\n" https://crm.ayartuerk.me/admin/
 
-Expected result:
+Expected when reachable:
 
     200
 
-Check latest app errors:
-
-    tail -120 /tmp/crm-dealer-app.err.log
-
-## Deployment notes
-
-This deployment currently depends on the Mac being online.
-
-If the Mac is off, asleep, or disconnected, the public CRM URL will not work.
-
-Production-grade next step would be moving the app and database to a cloud server or managed platform.
-
 ## Security notes
 
-- `.env` must not be committed
-- Telegram bot token must remain secret
-- Admin setup code must remain secret
-- Admin JWT secret must remain secret
-- Admin password must remain secret
-- Cloudflare tunnel credential JSON must remain secret
-- Admin dashboard is protected by JWT-cookie authentication
-- App refuses to start if admin credentials, JWT secret, or setup code are missing or weak
-- If a Telegram bot token is exposed, revoke/regenerate it in BotFather and update `.env`
+Do not commit:
+
+- `.env`
+- Telegram bot token
+- admin password
+- superadmin password
+- admin setup code
+- superadmin bot setup code
+- JWT secret
+- Cloudflare tunnel credential JSON
+
+If Telegram bot token is exposed:
+
+1. Open BotFather.
+2. Revoke/regenerate token.
+3. Update `.env`.
+4. Restart app.
+
+## Deployment limitation
+
+Current deployment depends on the Mac being online.
+
+If the Mac is off, asleep, disconnected, or Cloudflare Tunnel is stopped, the public CRM URL will not work.
+
+Production-grade next step:
+
+- move app to a cloud server
+- move SQLite to managed PostgreSQL
+- use real migrations with Alembic
+- configure secure secret management
+- enable proper backups
 
 ## Known next milestones
 
-Recommended next milestones:
-
-1. Product basket/cumulative total logic
-2. Cleaner admin UI styling
-3. Request filters on dashboard
-4. Better customer language preference handling
-5. Database migration system with Alembic
-6. Cloud production deployment
-7. Analytics dashboard
-8. Multi-admin roles
-9. WhatsApp/Instagram integration
+1. Product basket / cumulative cart total
+2. Cleaner product ordering flow
+3. Admin dashboard filters
+4. Better analytics dashboard
+5. Alembic migration system
+6. PostgreSQL deployment
+7. Multi-admin roles
+8. WhatsApp integration
+9. Instagram integration
 10. Voice message transcription

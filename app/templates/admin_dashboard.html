@@ -3,103 +3,26 @@
 <head>
     <title>CRM Delivery Admin</title>
     
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/admin.css">
 </head>
 <body>
 
 <h1>CRM Delivery Admin</h1>
 
-<form action="/admin/logout" method="post">
-    <button type="submit">Logout</button>
-</form>
-
-<h2>
-    Open Requests
-    <form action="/admin/customer-requests/all/done" method="post" style="display:inline;">
-        <button type="submit">All Done</button>
+<div class="page-actions">
+    <form action="/admin/logout" method="post">
+        <button type="submit">Logout</button>
     </form>
-</h2>
 
-<div id="open-requests-container">
+    <a href="/admin/change-password">
+        <button type="button">Change Password</button>
+    </a>
 
-<table border="1" cellpadding="10">
-    <tr>
-        <th>Customer</th>
-        <th>Type</th>
-        <th>Item</th>
-        <th>Quantity</th>
-        <th>Request Count</th>
-        <th>Status</th>
-        <th>Latest Text</th>
-        <th>Latest Created At</th>
-        <th>Action</th>
-        <th>Done</th>
-    </tr>
-
-    {% for request_item in open_requests %}
-    {% set customer = customer_map.get(request_item.customer_id) %}
-    <tr>
-        <td>
-            {% if customer %}
-                {{ customer.full_name or customer.username or customer.telegram_user_id }}
-            {% else %}
-                Unknown
-            {% endif %}
-        </td>
-        <td>{{ request_item.request_type }}</td>
-        <td>{{ request_item.item_name or "" }}</td>
-        <td>
-            {% if request_item.request_type == "product_specific" %}
-                {{ request_item.quantity or "" }}
-            {% else %}
-                {{ request_item.request_count }}
-            {% endif %}
-        </td>
-        <td>{{ request_item.request_count }}</td>
-        <td>{{ request_item.status }}</td>
-        <td>{{ request_item.latest_text }}</td>
-        <td>{{ request_item.latest_created_at }}</td>
-        <td>
-            {% if customer %}
-                <form action="/admin/customers/{{ customer.id }}" method="get" style="display:inline;">
-                    <button type="submit">Open Customer</button>
-                </form>
-
-                {% if request_item.request_type in ["contact_admin", "product_specific", "location"] %}
-                    <form
-                        action="/admin/customers/{{ customer.id }}#send-reply"
-                        method="get"
-                        style="display:inline;"
-                    >
-                        <button type="submit">Answer</button>
-                    </form>
-                {% endif %}
-            {% endif %}
-        </td>
-        <td>
-            <form action="/admin/customer-requests/group/done" method="post">
-                <input
-                    type="hidden"
-                    name="customer_id"
-                    value="{{ request_item.customer_id }}"
-                >
-                <input
-                    type="hidden"
-                    name="request_type"
-                    value="{{ request_item.request_type }}"
-                >
-                <input
-                    type="hidden"
-                    name="item_name"
-                    value="{{ request_item.item_name or '' }}"
-                >
-                <button type="submit">Done</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+    <a href="/admin/openrequests/">
+        <button type="button">Open Requests</button>
+    </a>
 </div>
-
 
 <h2>Admin Language</h2>
 
@@ -185,12 +108,44 @@
 
     <br><br>
 
-    <label>Closed Message</label><br>
+    <label>Closed-hours message mode</label><br>
+
+    <label>
+        <input
+            type="radio"
+            name="working_hours_message_mode"
+            value="auto"
+            {% if working_hours_message_mode == "auto" %}checked{% endif %}
+        >
+        Auto message from selected working hours
+    </label>
+
+    <br>
+
+    <label>
+        <input
+            type="radio"
+            name="working_hours_message_mode"
+            value="custom"
+            {% if working_hours_message_mode != "auto" %}checked{% endif %}
+        >
+        Custom free-text message
+    </label>
+
+    <br><br>
+
+    <label>Custom Closed Message</label><br>
     <textarea
         name="working_hours_closed_message"
         rows="3"
         cols="80"
     >{{ working_hours_closed_message }}</textarea>
+
+    <p>
+        Auto mode ignores the custom text and replies using the selected
+        working hours in the customer's language plus English.
+        Custom mode sends the free-text message exactly as written.
+    </p>
 
     <br><br>
 
@@ -415,27 +370,7 @@ async function searchLocation() {
 </script>
 
 
-<script>
-    async function refreshOpenRequests() {
-        const activeElement = document.activeElement;
-        const isEditing = activeElement && (
-            activeElement.tagName === "INPUT" ||
-            activeElement.tagName === "TEXTAREA" ||
-            activeElement.tagName === "SELECT"
-        );
 
-        if (isEditing) {
-            return;
-        }
-
-        const response = await fetch("/admin/open-requests");
-        const html = await response.text();
-
-        document.getElementById("open-requests-container").innerHTML = html;
-    }
-
-    setInterval(refreshOpenRequests, 10000);
-</script>
 
 </body>
 </html>

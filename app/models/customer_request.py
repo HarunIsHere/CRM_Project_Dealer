@@ -18,6 +18,10 @@ class CustomerRequest(Base):
     request_text = Column(Text, nullable=True)
     item_name = Column(String, nullable=True)
     quantity = Column(Integer, nullable=True)
+    location_label = Column(Text, nullable=True)
+    latitude = Column(String, nullable=True)
+    longitude = Column(String, nullable=True)
+    google_maps_link = Column(Text, nullable=True)
     status = Column(String, nullable=False, default="new")
 
     created_at = Column(

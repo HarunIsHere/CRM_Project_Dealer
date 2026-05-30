@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.dependencies import get_db
 from app.models.customer import Customer
 from app.models.customer_request import CustomerRequest
@@ -117,7 +118,7 @@ def admin_login(
             status_code=401
         )
 
-    token = create_admin_token()
+    token = create_admin_token(username)
 
     response = RedirectResponse(
         url="/admin",
@@ -170,47 +171,6 @@ def admin_dashboard(
         for product in products
     }
 
-    open_request_rows = db.query(CustomerRequest).filter(
-        CustomerRequest.status != "done",
-        CustomerRequest.request_type != "product_list"
-    ).order_by(
-        CustomerRequest.created_at.desc()
-    ).all()
-
-    customer_map = {
-        customer.id: customer
-        for customer in customers
-    }
-
-    open_request_groups = {}
-
-    for request_row in open_request_rows:
-        group_key = (
-            request_row.customer_id,
-            request_row.request_type,
-            request_row.item_name or ""
-        )
-
-        if group_key not in open_request_groups:
-            open_request_groups[group_key] = {
-                "customer_id": request_row.customer_id,
-                "request_type": request_row.request_type,
-                "item_name": request_row.item_name,
-                "quantity": 0,
-                "request_count": 0,
-                "status": request_row.status,
-                "latest_text": request_row.request_text,
-                "latest_created_at": request_row.created_at,
-            }
-
-        group = open_request_groups[group_key]
-        group["request_count"] += 1
-
-        if request_row.quantity:
-            group["quantity"] += request_row.quantity
-
-    open_requests = list(open_request_groups.values())
-
     return templates.TemplateResponse(
         request=request,
         name="admin_dashboard.html",
@@ -219,8 +179,6 @@ def admin_dashboard(
             "customers": customers,
             "products": products,
             "product_alias_map": product_alias_map,
-            "open_requests": open_requests,
-            "customer_map": customer_map,
             "admin_telegram_chat_id": get_setting(
                 db,
                 "admin_telegram_chat_id"
@@ -245,6 +203,10 @@ def admin_dashboard(
                 db,
                 "working_hours_closed_message"
             ) or "",
+            "working_hours_message_mode": get_setting(
+                db,
+                "working_hours_message_mode"
+            ) or "custom",
             "admin_view_language": get_setting(
                 db,
                 "admin_view_language"
@@ -579,6 +541,7 @@ def update_working_hours(
     working_hours_timezone: str = Form(...),
     working_hours_start: str = Form(...),
     working_hours_end: str = Form(...),
+    working_hours_message_mode: str = Form("custom"),
     working_hours_closed_message: str = Form(""),
     db: Session = Depends(get_db)
 ):
@@ -606,6 +569,12 @@ def update_working_hours(
         "working_hours_end",
         working_hours_end
     )
+    set_setting(
+        db,
+        "working_hours_message_mode",
+        working_hours_message_mode
+    )
+
     set_setting(
         db,
         "working_hours_closed_message",
@@ -858,6 +827,7 @@ def get_open_request_context(db: Session):
                 "status": request_row.status,
                 "latest_text": request_row.request_text,
                 "latest_created_at": request_row.created_at,
+                "google_maps_link": request_row.google_maps_link,
             }
 
         group = open_request_groups[group_key]
@@ -870,6 +840,23 @@ def get_open_request_context(db: Session):
         "open_requests": list(open_request_groups.values()),
         "customer_map": customer_map,
     }
+
+
+
+@router.get("/openrequests/")
+def open_requests_page(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    return templates.TemplateResponse(
+        request=request,
+        name="open_requests_page.html",
+        context=get_open_request_context(db)
+    )
 
 
 @router.get("/open-requests")
@@ -885,4 +872,263 @@ def open_requests_partial(
         request=request,
         name="open_requests_table.html",
         context=get_open_request_context(db)
+    )
+
+
+@router.get("/change-password")
+def change_password_page(
+    request: Request
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    return templates.TemplateResponse(
+        request=request,
+        name="change_password.html",
+        context={
+            "error": None,
+            "success": None
+        }
+    )
+
+
+@router.post("/change-password")
+def change_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    auth_redirect = require_admin(request)
+    if auth_redirect:
+        return auth_redirect
+
+    if not authenticate_admin(
+        settings.admin_username,
+        current_password
+    ):
+        return templates.TemplateResponse(
+            request=request,
+            name="change_password.html",
+            context={
+                "error": "Current password is incorrect.",
+                "success": None
+            },
+            status_code=400
+        )
+
+    if new_password != confirm_password:
+        return templates.TemplateResponse(
+            request=request,
+            name="change_password.html",
+            context={
+                "error": "New passwords do not match.",
+                "success": None
+            },
+            status_code=400
+        )
+
+    if len(new_password) < 8:
+        return templates.TemplateResponse(
+            request=request,
+            name="change_password.html",
+            context={
+                "error": "New password must be at least 8 characters.",
+                "success": None
+            },
+            status_code=400
+        )
+
+    set_setting(
+        db,
+        "admin_password_override",
+        new_password
+    )
+
+    response = templates.TemplateResponse(
+        request=request,
+        name="change_password.html",
+        context={
+            "error": None,
+            "success": "Password changed successfully."
+        }
+    )
+
+    return response
+
+
+@router.get("/forgot-password")
+def forgot_password_page(
+    request: Request
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="forgot_password.html",
+        context={
+            "error": None,
+            "success": None
+        }
+    )
+
+
+@router.post("/forgot-password")
+def send_forgot_password_code(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    import random
+    import time
+
+    admin_chat_id = get_setting(
+        db,
+        "admin_telegram_chat_id"
+    )
+
+    if not admin_chat_id:
+        return templates.TemplateResponse(
+            request=request,
+            name="forgot_password.html",
+            context={
+                "error": "No admin Telegram Chat ID is configured.",
+                "success": None
+            },
+            status_code=400
+        )
+
+    reset_code = str(
+        random.randint(10000, 99999)
+    )
+
+    set_setting(
+        db,
+        "admin_password_reset_code",
+        reset_code
+    )
+
+    set_setting(
+        db,
+        "admin_password_reset_expires_at",
+        str(int(time.time()) + 600)
+    )
+
+    send_admin_reply_to_customer(
+        admin_chat_id,
+        f"Admin password reset code: {reset_code}\n\nThis code expires in 10 minutes."
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="reset_password.html",
+        context={
+            "error": None
+        }
+    )
+
+
+@router.get("/reset-password")
+def reset_password_page(
+    request: Request
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="reset_password.html",
+        context={
+            "error": None
+        }
+    )
+
+
+@router.post("/reset-password")
+def reset_password(
+    request: Request,
+    reset_code: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    import time
+
+    saved_code = get_setting(
+        db,
+        "admin_password_reset_code"
+    )
+
+    expires_at = get_setting(
+        db,
+        "admin_password_reset_expires_at"
+    )
+
+    if not saved_code or not expires_at:
+        return templates.TemplateResponse(
+            request=request,
+            name="reset_password.html",
+            context={
+                "error": "No active reset code. Please request a new code."
+            },
+            status_code=400
+        )
+
+    if int(expires_at) < int(time.time()):
+        return templates.TemplateResponse(
+            request=request,
+            name="reset_password.html",
+            context={
+                "error": "Reset code expired. Please request a new code."
+            },
+            status_code=400
+        )
+
+    if reset_code != saved_code:
+        return templates.TemplateResponse(
+            request=request,
+            name="reset_password.html",
+            context={
+                "error": "Invalid reset code."
+            },
+            status_code=400
+        )
+
+    if new_password != confirm_password:
+        return templates.TemplateResponse(
+            request=request,
+            name="reset_password.html",
+            context={
+                "error": "New passwords do not match."
+            },
+            status_code=400
+        )
+
+    if len(new_password) < 8:
+        return templates.TemplateResponse(
+            request=request,
+            name="reset_password.html",
+            context={
+                "error": "New password must be at least 8 characters."
+            },
+            status_code=400
+        )
+
+    set_setting(
+        db,
+        "admin_password_override",
+        new_password
+    )
+
+    set_setting(
+        db,
+        "admin_password_reset_code",
+        ""
+    )
+
+    set_setting(
+        db,
+        "admin_password_reset_expires_at",
+        ""
+    )
+
+    return RedirectResponse(
+        url="/admin/login",
+        status_code=303
     )

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Open Requests</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+
+<h1>Open Requests</h1>
+
+<div class="page-actions">
+    <a href="/admin">
+        <button type="button">Back to Admin Dashboard</button>
+    </a>
+
+    <form action="/admin/customer-requests/all/done" method="post">
+        <button type="submit">All Done</button>
+    </form>
+</div>
+
+<div id="open-requests-container">
+    {% include "open_requests_table.html" %}
+</div>
+
+<script>
+    async function refreshOpenRequests() {
+        const response = await fetch("/admin/open-requests");
+        const html = await response.text();
+
+        document.getElementById("open-requests-container").innerHTML = html;
+    }
+
+    setInterval(refreshOpenRequests, 10000);
+</script>
+
+</body>
+</html>
