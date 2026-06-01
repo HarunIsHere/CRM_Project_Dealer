@@ -34,6 +34,48 @@ router = APIRouter(
 templates = Jinja2Templates(directory="app/templates")
 
 
+def get_admin_texts(language: str) -> dict:
+    texts = {
+        "en": {
+            "meeting_point_help": (
+                "If only one location is active, the customer receives that location directly. "
+                "If multiple locations are active, the customer can choose from all active locations; "
+                "the preferred location/s is marked as preferred."
+            )
+        },
+        "de": {
+            "meeting_point_help": (
+                "Wenn nur ein Standort aktiv ist, erhält der Kunde diesen Standort direkt. "
+                "Wenn mehrere Standorte aktiv sind, kann der Kunde aus allen aktiven Standorten wählen; "
+                "der/die bevorzugte(n) Standort(e) werden als bevorzugt markiert."
+            )
+        },
+        "tr": {
+            "meeting_point_help": (
+                "Sadece bir konum aktifse müşteri o konumu direkt alır. "
+                "Birden fazla konum aktifse müşteri tüm aktif konumlar arasından seçim yapar; "
+                "tercih edilen konum/lar tercih edilen olarak işaretlenir."
+            )
+        },
+        "ar": {
+            "meeting_point_help": (
+                "إذا كان هناك موقع نشط واحد فقط، يتلقى العميل هذا الموقع مباشرة. "
+                "إذا كانت هناك عدة مواقع نشطة، يمكن للعميل الاختيار من جميع المواقع النشطة؛ "
+                "ويتم تمييز الموقع/المواقع المفضلة كمفضلة."
+            )
+        },
+        "ru": {
+            "meeting_point_help": (
+                "Если активна только одна локация, клиент получает её напрямую. "
+                "Если активно несколько локаций, клиент выбирает одну из всех активных локаций; "
+                "предпочтительная локация/локации помечаются как предпочтительные."
+            )
+        },
+    }
+
+    return texts.get(language, texts["en"])
+
+
 def require_admin(request: Request):
     token = request.cookies.get(COOKIE_NAME)
 
@@ -171,11 +213,19 @@ def admin_dashboard(
         for product in products
     }
 
+    admin_view_language = get_setting(
+        db,
+        "admin_view_language"
+    ) or "en"
+
+    admin_texts = get_admin_texts(admin_view_language)
+
     return templates.TemplateResponse(
         request=request,
         name="admin_dashboard.html",
         context={
             "meeting_points": meeting_points,
+            "admin_texts": admin_texts,
             "customers": customers,
             "products": products,
             "product_alias_map": product_alias_map,
@@ -207,10 +257,7 @@ def admin_dashboard(
                 db,
                 "working_hours_message_mode"
             ) or "custom",
-            "admin_view_language": get_setting(
-                db,
-                "admin_view_language"
-            ) or "en"
+            "admin_view_language": admin_view_language
         }
     )
 
@@ -265,11 +312,6 @@ def create_meeting_point(
     if auth_redirect:
         return auth_redirect
 
-    if is_default:
-        db.query(MeetingPoint).update(
-            {"is_default": False}
-        )
-
     meeting_point = MeetingPoint(
         name=name,
         address=address,
@@ -302,10 +344,6 @@ def set_default_meeting_point(
     auth_redirect = require_admin(request)
     if auth_redirect:
         return auth_redirect
-
-    db.query(MeetingPoint).update(
-        {"is_default": False}
-    )
 
     meeting_point = db.query(MeetingPoint).filter(
         MeetingPoint.id == meeting_point_id

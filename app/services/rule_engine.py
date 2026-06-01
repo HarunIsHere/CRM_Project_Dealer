@@ -156,7 +156,7 @@ def get_matching_product(db, text: str) -> Product | None:
             scorer=fuzz.partial_ratio,
         )
 
-        if best_alias is not None and best_alias[1] >= 75:
+        if best_alias is not None and best_alias[1] >= 90:
             matched_alias = aliases[best_alias[2]]
             return db.query(Product).filter(
                 Product.id == matched_alias.product_id,
@@ -176,7 +176,7 @@ def get_matching_product(db, text: str) -> Product | None:
                 scorer=fuzz.partial_ratio,
             )
 
-            if candidate is not None and candidate[1] >= 75:
+            if candidate is not None and candidate[1] >= 90:
                 matched_alias = aliases[candidate[2]]
                 return db.query(Product).filter(
                     Product.id == matched_alias.product_id,
@@ -201,7 +201,7 @@ def get_matching_product(db, text: str) -> Product | None:
     if best_match is None:
         return None
 
-    if best_match[1] < 75:
+    if best_match[1] < 90:
         words = [
             word
             for word in clean_text.split()
@@ -215,7 +215,7 @@ def get_matching_product(db, text: str) -> Product | None:
                 scorer=fuzz.partial_ratio,
             )
 
-            if candidate is not None and candidate[1] >= 75:
+            if candidate is not None and candidate[1] >= 90:
                 best_match = candidate
                 break
         else:

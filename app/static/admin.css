@@ -249,3 +249,250 @@ p[style*="color:green"],
     width: 135px;
     text-align: center;
 }
+
+/* Compact admin UI adjustment */
+body {
+    font-size: 13px;
+    padding: 18px;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 14px;
+}
+
+h2 {
+    font-size: 17px;
+    margin: 22px 0 10px;
+}
+
+h3 {
+    font-size: 15px;
+}
+
+button {
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 8px;
+    margin: 2px 3px 2px 0;
+}
+
+input,
+select,
+textarea {
+    font-size: 13px;
+    padding: 7px 9px;
+    border-radius: 8px;
+}
+
+th,
+td {
+    padding: 7px 8px;
+}
+
+body > table,
+#open-requests-container,
+form:not([style*="display:inline"]) {
+    padding: 12px;
+    margin-bottom: 14px;
+}
+
+.request-action-button {
+    width: 110px;
+}
+
+@media (max-width: 760px) {
+    body {
+        font-size: 13px;
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 21px;
+    }
+
+    h2 {
+        font-size: 16px;
+    }
+
+    button {
+        font-size: 13px;
+        padding: 7px 9px;
+    }
+
+    th,
+    td {
+        padding: 6px 7px;
+    }
+}
+
+hr {
+    max-width: 1200px;
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 14px 0 18px;
+}
+
+.admin-header {
+    max-width: 1200px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.admin-header h1 {
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-actions form {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+}
+
+@media (max-width: 760px) {
+    .admin-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .header-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .header-actions a,
+    .header-actions form {
+        width: 100%;
+    }
+
+    .header-actions button {
+        width: 100%;
+    }
+}
+
+.admin-header {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.header-actions form {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.header-actions a {
+    display: inline-block;
+}
+
+hr + hr {
+    margin-top: -10px;
+}
+
+@media (max-width: 760px) {
+    .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+}
+
+.all-done-header-form {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 6px 0 0 0 !important;
+}
+
+.all-done-header-form button {
+    width: 90px;
+}
+#open-requests-container table th:nth-child(9),
+#open-requests-container table td:nth-child(9) {
+    width: 125px;
+    min-width: 125px;
+    max-width: 125px;
+    padding: 7px 8px;
+}
+
+#open-requests-container table td:nth-child(9) form {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 0 5px 0 !important;
+}
+
+#open-requests-container table td:nth-child(9) button,
+.request-action-button {
+    width: 110px;
+    margin: 0 0 5px 0 !important;
+}
+
+.all-done-header-form {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.all-done-header-form button {
+    width: 90px;
+}
+
+.open-requests-table-actions {
+    max-width: 1200px;
+    display: flex;
+    justify-content: flex-end;
+    margin: 0 0 8px 0;
+}
+
+.open-requests-table-actions form {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.open-requests-table-actions button {
+    width: 90px;
+}
+
+.admin-info-text {
+    max-width: 1200px;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #1e3a8a;
+    margin: 10px 0 18px;
+}

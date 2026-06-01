@@ -119,3 +119,12 @@ def detect_language_by_keywords(text: str) -> str:
                 return language
 
     return "unknown"
+
+
+def detect_supported_language_for_preference(text: str) -> str:
+    detected_language = detect_language(text)
+
+    if detected_language != "unknown":
+        return detected_language
+
+    return "unknown"

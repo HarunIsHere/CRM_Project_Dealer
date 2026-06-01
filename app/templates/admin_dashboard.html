@@ -8,21 +8,33 @@
 </head>
 <body>
 
-<h1>CRM Delivery Admin</h1>
+<div class="admin-header">
+    <h1>CRM Delivery Admin</h1>
+
+    <div class="header-actions">
+        <form action="/admin/logout" method="post">
+            <button type="submit">Logout</button>
+        </form>
+
+        <a href="/admin/change-password">
+            <button type="button">Change Password</button>
+        </a>
+    </div>
+</div>
+
+<hr>
+
+<hr>
 
 <div class="page-actions">
-    <form action="/admin/logout" method="post">
-        <button type="submit">Logout</button>
-    </form>
-
-    <a href="/admin/change-password">
-        <button type="button">Change Password</button>
-    </a>
-
     <a href="/admin/openrequests/">
         <button type="button">Open Requests</button>
     </a>
 </div>
+
+<hr>
+
+<hr>
 
 <h2>Admin Language</h2>
 
@@ -49,6 +61,8 @@
     <button type="submit">Save Language</button>
 </form>
 
+<hr>
+
 <h2>Notification Settings</h2>
 
 <form action="/admin/settings/admin-telegram" method="post">
@@ -62,6 +76,8 @@
     >
     <button type="submit">Save Notification Receiver</button>
 </form>
+
+<hr>
 
 <h2>Working Hours</h2>
 
@@ -152,6 +168,8 @@
     <button type="submit">Save Working Hours</button>
 </form>
 
+<hr>
+
 <h2>Products</h2>
 
 <table border="1" cellpadding="10">
@@ -212,6 +230,8 @@
     <button type="submit">Create Product</button>
 </form>
 
+<hr>
+
 <h2>Meeting Points</h2>
 
 <table border="1" cellpadding="10">
@@ -220,7 +240,7 @@
         <th>Name</th>
         <th>Address</th>
         <th>Google Maps</th>
-        <th>Default</th>
+        <th>Preferred</th>
         <th>Active</th>
         <th>Action</th>
     </tr>
@@ -250,7 +270,7 @@
 
         {% if point.is_active %}
         <form action="/admin/meeting-points/{{ point.id }}/default" method="post" style="display:inline;">
-            <button type="submit">Set Default</button>
+            <button type="submit">Set Preferred</button>
         </form>
         {% endif %}
 
@@ -261,6 +281,10 @@
     </tr>
     {% endfor %}
 </table>
+
+<p class="admin-info-text">
+    {{ admin_texts.meeting_point_help }}
+</p>
 
 <h3>Add Meeting Point</h3>
 
@@ -290,13 +314,15 @@
 
     <label>
         <input type="checkbox" name="is_default">
-        Set as default
+        Set as preferred
     </label>
 
     <br><br>
 
     <button type="submit">Create Meeting Point</button>
 </form>
+
+<hr>
 
 <h2>Customers</h2>
 

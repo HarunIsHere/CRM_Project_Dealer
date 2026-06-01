@@ -70,7 +70,7 @@ The app and tunnel start automatically on macOS login through LaunchAgents.
   - Contact admin
 - Meeting point/location management
 - Customer can choose active meeting point
-- Default meeting point shown as Preferred
+- Preferred meeting point shown as Preferred
 - If only one active meeting point exists, it is sent directly
 - Customer can type address
 - Address search offers up to 7 selectable location results
@@ -138,11 +138,31 @@ Example:
 
 This saves the sender's Telegram chat ID as the active admin notification receiver.
 
+After successful setup, the bot sends clickable buttons for:
+
+- Open Admin Web Panel
+- Open Requests
+
 Superadmin takeover command:
 
     /setsuperadmin <SUPERADMIN_BOT_SETUP_CODE>
 
 This allows the superadmin to take over the active admin Telegram receiver.
+
+After successful superadmin takeover, the bot also sends clickable admin web buttons.
+
+Admin web shortcut command:
+
+    /w
+
+Only the active admin Telegram receiver can use this command.
+
+When admin sends `/w`, the bot replies with clickable buttons for:
+
+- Open Admin Web Panel
+- Open Requests
+
+If a non-admin customer sends `/w`, the bot refuses access.
 
 ## Environment variables
 
@@ -264,6 +284,12 @@ Specific product requests are detected through:
 - spelling variants
 - fuzzy matching
 
+Current product fuzzy-match cutoff:
+
+    90
+
+This was increased from 75 to reduce false product matches from unrelated address/location text.
+
 Product request notification example:
 
     Product request:
@@ -315,14 +341,14 @@ Each meeting point has:
 - address
 - Google Maps link
 - active/inactive status
-- default/preferred status
+- preferred status
 
 Customer location option shows active locations.
 
 If there is more than one active location:
 
 - customer receives buttons
-- default location is marked Preferred
+- preferred location is marked Preferred
 
 If there is only one active location:
 

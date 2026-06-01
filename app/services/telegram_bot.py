@@ -19,6 +19,7 @@ from app.models.message import Message
 from app.models.meeting_point import MeetingPoint
 
 from app.services.language_service import detect_language
+from app.services.language_service import detect_supported_language_for_preference
 from app.services.language_service import detect_language_by_keywords
 from app.services.meeting_point_service import get_default_meeting_point
 from app.services.quantity_service import extract_quantity
@@ -510,6 +511,49 @@ def is_location_request(text: str) -> bool:
     )
 
 
+
+def looks_like_address(text: str) -> bool:
+    clean_text = text.strip().lower()
+
+    address_keywords = [
+        "straße",
+        "strasse",
+        "street",
+        "st.",
+        "avenue",
+        "ave",
+        "road",
+        "rd",
+        "platz",
+        "allee",
+        "cadde",
+        "caddesi",
+        "sokak",
+        "mahallesi",
+        "mahalle",
+        "bulvar",
+        "no:",
+        "no ",
+        "apt",
+        "apartment",
+        "berlin",
+        "istanbul",
+        "köln",
+        "munich",
+        "hamburg",
+    ]
+
+    if any(character.isdigit() for character in clean_text):
+        return True
+
+    if "," in clean_text:
+        return True
+
+    return any(
+        keyword in clean_text
+        for keyword in address_keywords
+    )
+
 def get_option_reply(db, customer: Customer, incoming_text: str) -> str | None:
     option = get_menu_option_by_text(incoming_text)
 
@@ -738,7 +782,7 @@ async def forward_location_needed(
         "Location needed:\n\n"
         f"Customer: {customer.full_name}\n"
         f"Telegram ID: {customer.telegram_user_id}\n"
-        "Customer asked for location, but no active default location is available.\n"
+        "Customer asked for location, but no active preferred location is available.\n"
         f"Message: {incoming_text}"
     )
 
@@ -797,6 +841,53 @@ async def myid_command(
     )
 
 
+
+def get_admin_web_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "Open Admin Web Panel",
+                    url="https://crm.ayartuerk.me/admin/"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "Open Requests",
+                    url="https://crm.ayartuerk.me/admin/openrequests/"
+                )
+            ],
+        ]
+    )
+
+
+async def web_admin_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+    db = SessionLocal()
+
+    try:
+        admin_chat_id = get_setting(
+            db,
+            "admin_telegram_chat_id"
+        )
+
+        if str(update.effective_chat.id) != str(admin_chat_id):
+            await update.message.reply_text(
+                "You are not allowed to access the admin web link."
+            )
+            return
+
+        await update.message.reply_text(
+            "Admin web panel:",
+            reply_markup=get_admin_web_keyboard()
+        )
+
+    finally:
+        db.close()
+
+
 async def setadmin_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
@@ -823,7 +914,8 @@ async def setadmin_command(
         )
 
         await update.message.reply_text(
-            "You are now set as the admin notification receiver."
+            "You are now set as the admin notification receiver.",
+            reply_markup=get_admin_web_keyboard()
         )
 
     finally:
@@ -860,7 +952,8 @@ async def setsuperadmin_command(
         )
 
         await update.message.reply_text(
-            "Superadmin takeover complete. You are now the admin notification receiver."
+            "Superadmin takeover complete. You are now the admin notification receiver.",
+            reply_markup=get_admin_web_keyboard()
         )
 
     finally:
@@ -1561,8 +1654,10 @@ async def handle_message(
             incoming_text
         )
 
-        strong_language = detect_language_by_keywords(
-            incoming_text.lower().strip()
+        preferred_language_from_message = (
+            detect_supported_language_for_preference(
+                incoming_text
+            )
         )
 
         customer = db.query(Customer).filter(
@@ -1580,8 +1675,8 @@ async def handle_message(
                 full_name=telegram_user.full_name,
                 language=detected_language,
                 preferred_language=(
-                    strong_language
-                    if strong_language != "unknown"
+                    preferred_language_from_message
+                    if preferred_language_from_message != "unknown"
                     else "en"
                 )
             )
@@ -1590,9 +1685,9 @@ async def handle_message(
             db.commit()
             db.refresh(customer)
 
-        if strong_language != "unknown":
-            customer.language = strong_language
-            customer.preferred_language = strong_language
+        if preferred_language_from_message != "unknown":
+            customer.language = preferred_language_from_message
+            customer.preferred_language = preferred_language_from_message
             db.commit()
 
         admin_chat_id = get_setting(
@@ -1647,6 +1742,13 @@ async def handle_message(
             language=detected_language
         )
 
+        if (
+            customer.conversation_state == "awaiting_typed_address"
+            and not looks_like_address(incoming_text)
+        ):
+            customer.conversation_state = None
+            db.commit()
+
         if customer.conversation_state == "awaiting_typed_address":
             results = search_locations(incoming_text)[:7]
 
@@ -1687,9 +1789,7 @@ async def handle_message(
             )
             return
 
-        reply_language = detected_language
-        if reply_language == "unknown":
-            reply_language = "en"
+        reply_language = customer.preferred_language or "en"
 
         reply_markup = None
 
@@ -1770,6 +1870,43 @@ async def handle_message(
             reply_text = get_contact_admin_received_reply(
                 customer.preferred_language or "en"
             )
+
+        if (
+            reply_text is None
+            and looks_like_address(incoming_text)
+        ):
+            customer.conversation_state = "awaiting_typed_address"
+            db.commit()
+
+            results = search_locations(incoming_text)[:7]
+
+            if results:
+                set_setting(
+                    db,
+                    f"address_search_results_{customer.id}",
+                    json.dumps(results)
+                )
+
+                reply_text = (
+                    "Please choose the correct location from the list."
+                )
+
+                save_message(
+                    db=db,
+                    customer_id=customer.id,
+                    direction="outgoing",
+                    content=reply_text,
+                    language=customer.preferred_language
+                )
+
+                await update.message.reply_text(
+                    reply_text,
+                    reply_markup=get_address_choices_keyboard(results)
+                )
+                return
+
+            customer.conversation_state = None
+            db.commit()
 
         if (
             reply_text is None
@@ -1875,6 +2012,13 @@ def create_bot_application():
         CommandHandler(
             "myid",
             myid_command
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "w",
+            web_admin_command
         )
     )
 
