@@ -512,11 +512,59 @@ def is_location_request(text: str) -> bool:
 
 
 
+
+def get_address_not_found_reply(language: str = "en") -> str:
+    replies = {
+        "en": (
+            "I could not find this address. Please try again with a more specific "
+            "address, hotel name, city, or country, or contact admin to describe "
+            "your location."
+        ),
+        "de": (
+            "Ich konnte diese Adresse nicht finden. Bitte versuchen Sie es erneut "
+            "mit einer genaueren Adresse, einem Hotelnamen, einer Stadt oder einem "
+            "Land, oder kontaktieren Sie den Admin, um Ihren Standort zu beschreiben."
+        ),
+        "tr": (
+            "Bu adresi bulamadım. Lütfen daha net bir adres, otel adı, şehir veya "
+            "ülke ile tekrar deneyin ya da konumunuzu açıklamak için admin ile "
+            "iletişime geçin."
+        ),
+        "ar": (
+            "لم أتمكن من العثور على هذا العنوان. يرجى المحاولة مرة أخرى بعنوان "
+            "أكثر دقة أو اسم فندق أو مدينة أو بلد، أو التواصل مع الإدارة لوصف موقعك."
+        ),
+        "ru": (
+            "Я не смог найти этот адрес. Попробуйте указать более точный адрес, "
+            "название отеля, город или страну, либо свяжитесь с админом, чтобы "
+            "описать вашу локацию."
+        ),
+    }
+
+    return replies.get(language, replies["en"])
+
+
+def get_address_not_found_keyboard(language: str = "en") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "Contact admin to describe location",
+                    callback_data="option_admin"
+                )
+            ]
+        ]
+    )
+
 def looks_like_address(text: str) -> bool:
     clean_text = text.strip().lower()
 
     address_keywords = [
         "straße",
+        "strase",
+        "stras",
+        "str.",
+        "str ",
         "strasse",
         "street",
         "st.",
@@ -1742,13 +1790,6 @@ async def handle_message(
             language=detected_language
         )
 
-        if (
-            customer.conversation_state == "awaiting_typed_address"
-            and not looks_like_address(incoming_text)
-        ):
-            customer.conversation_state = None
-            db.commit()
-
         if customer.conversation_state == "awaiting_typed_address":
             results = search_locations(incoming_text)[:7]
 
@@ -1777,13 +1818,21 @@ async def handle_message(
                 )
                 return
 
-            reply_text = get_unresolved_options_reply(
+            reply_text = get_address_not_found_reply(
                 customer.preferred_language or "en"
+            )
+
+            save_message(
+                db=db,
+                customer_id=customer.id,
+                direction="outgoing",
+                content=reply_text,
+                language=customer.preferred_language
             )
 
             await update.message.reply_text(
                 reply_text,
-                reply_markup=get_language_keyboard(
+                reply_markup=get_address_not_found_keyboard(
                     customer.preferred_language or "en"
                 )
             )

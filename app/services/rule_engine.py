@@ -232,21 +232,21 @@ def get_product_reply_if_matched(db, text: str, language: str) -> str | None:
     if not products:
         return None
 
-    if is_close_match(text, PRODUCT_KEYWORDS):
-        return format_product_list_reply(products, language)
-
     matched_product = get_matching_product(
         db,
         text
     )
 
-    if matched_product is None:
-        return None
+    if matched_product is not None:
+        if not is_within_working_hours(db):
+            return get_closed_hours_reply(db, language)
 
-    if not is_within_working_hours(db):
-        return get_closed_hours_reply(db, language)
+        return format_single_product_reply(matched_product, language)
 
-    return format_single_product_reply(matched_product, language)
+    if is_close_match(text, PRODUCT_KEYWORDS):
+        return format_product_list_reply(products, language)
+
+    return None
 
 
 def normalize_text(text: str) -> str:
