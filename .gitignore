@@ -5,3 +5,13 @@ __pycache__/
 .DS_Store
 .idea/
 data/
+
+# Cloudflare Worker local files
+cloudflare-worker/node_modules/
+cloudflare-worker/.wrangler/
+
+# Cloudflare Worker local/dev files
+cloudflare-worker/node_modules/
+cloudflare-worker/.wrangler/
+cloudflare-worker/.dev.vars
+cloudflare-worker/.env

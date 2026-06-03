@@ -1,0 +1,12 @@
+name = "crm-delivery-worker"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+[vars]
+APP_NAME = "CRM Delivery"
+ADMIN_WEB_URL = "https://crm.ayartuerk.me/admin/"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "crm-delivery-db"
+database_id = "14103291-eb66-4a3d-9f84-585832a4b015"
