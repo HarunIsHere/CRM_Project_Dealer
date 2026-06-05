@@ -524,14 +524,23 @@ async function syncAutoAliases(env, productId, productName) {
 
 async function replaceManualAliases(env, productId, aliasesText) {
   const aliases = new Set();
-  for (const alias of generateBasicAliases(aliasesText)) aliases.add(alias);
+
   for (const raw of String(aliasesText || "").split(",")) {
+    const alias = raw.trim().toLowerCase();
     const normalized = normalizeText(raw);
+
+    if (alias) aliases.add(alias);
     if (normalized) aliases.add(normalized);
   }
-  await env.DB.prepare("DELETE FROM product_aliases WHERE product_id = ?").bind(productId).run();
+
+  await env.DB.prepare(
+    "DELETE FROM product_aliases WHERE product_id = ?"
+  ).bind(productId).run();
+
   for (const alias of aliases) {
-    await env.DB.prepare("INSERT INTO product_aliases (product_id, alias) VALUES (?, ?)").bind(productId, alias).run();
+    await env.DB.prepare(
+      "INSERT INTO product_aliases (product_id, alias) VALUES (?, ?)"
+    ).bind(productId, alias).run();
   }
 }
 
@@ -1366,10 +1375,17 @@ async function handleCreateProduct(request, env) {
   const form = await request.formData();
   const name = String(form.get("name") || "").trim();
   const price = Number(form.get("price") || 0);
+
   if (name && price > 0) {
-    const result = await env.DB.prepare("INSERT INTO products (name, price, is_active) VALUES (?, ?, 1)").bind(name, price).run();
-    await syncAutoAliases(env, result.meta.last_row_id, name);
+    const inserted = await env.DB.prepare(
+      "INSERT INTO products (name, price, is_active) VALUES (?, ?, 1) RETURNING id"
+    ).bind(name, price).first();
+
+    if (inserted && inserted.id) {
+      await syncAutoAliases(env, inserted.id, name);
+    }
   }
+
   return redirectResponse("/admin");
 }
 
@@ -1392,8 +1408,14 @@ async function handleUpdateProduct(request, env, productId) {
 }
 
 async function handleDeleteProduct(env, productId) {
-  await env.DB.prepare("DELETE FROM product_aliases WHERE product_id = ?").bind(productId).run();
-  await env.DB.prepare("DELETE FROM products WHERE id = ?").bind(productId).run();
+  await env.DB.prepare(
+    "DELETE FROM product_aliases WHERE product_id = ?"
+  ).bind(productId).run();
+
+  await env.DB.prepare(
+    "DELETE FROM products WHERE id = ?"
+  ).bind(productId).run();
+
   return redirectResponse("/admin");
 }
 
