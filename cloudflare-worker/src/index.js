@@ -6,6 +6,57 @@ const SUPPORTED_LANGUAGES = ["en", "de", "tr", "ar", "ru"];
 
 const ADMIN_COOKIE_NAME = "admin_access_token";
 
+const APP_CAPABILITIES = {
+  app_name: "CRM Delivery",
+  runtime: "Cloudflare Worker + D1 + Telegram webhook",
+  response_policy: "local_first_ai_fallback",
+  local_first_handlers: [
+    "Telegram commands",
+    "callback buttons",
+    "typed menu numbers",
+    "language selection",
+    "product list",
+    "specific product matching",
+    "product aliases",
+    "working-hours restrictions",
+    "meeting point selection",
+    "typed address flow",
+    "Telegram shared location",
+    "admin contact request",
+    "admin notification forwarding",
+    "admin free-text reply",
+    "delivery ETA updates",
+    "no-delivery response",
+    "approved learned patterns"
+  ],
+  admin_features: [
+    "admin login",
+    "admin password change",
+    "admin password reset by Telegram code",
+    "admin notification receiver",
+    "working hours",
+    "bot response mode",
+    "products",
+    "product aliases",
+    "meeting points",
+    "open requests",
+    "customer history",
+    "AI learned pattern approval"
+  ],
+  ai_role: [
+    "AI is fallback only",
+    "AI is called only after local handlers fail",
+    "AI must return structured JSON",
+    "AI must not invent products",
+    "AI must not invent prices",
+    "AI must not invent meeting points",
+    "AI must not bypass working-hours logic",
+    "AI must not expose admin-only/internal details",
+    "AI must return handled=false for nonsense/random keyboard input",
+    "AI may help with normal customer questions using live context"
+  ]
+};
+
 const RESPONSE_TEXTS = {
   contact_admin_received: {
     en: "I received your message. I will help you shortly.",
@@ -186,6 +237,1443 @@ function redirectResponse(path) {
     status: 303,
     headers: { location: path }
   });
+}
+
+function getAdminUiText(language = "en") {
+  const texts = {
+    en: {
+      dashboard_title: "CRM Delivery Admin",
+      logout: "Logout",
+      change_password: "Change Password",
+      open_requests: "Open Requests",
+      back_to_dashboard: "Back to Admin Dashboard",
+      admin_language: "Admin Language",
+      view_language: "View Language",
+      save_language: "Save Language",
+      notification_settings: "Notification Settings",
+      admin_telegram_chat_id: "Admin Telegram Chat ID",
+      save_notification_receiver: "Save Notification Receiver",
+      working_hours: "Working Hours",
+      enable_working_hours: "Enable working-hours restrictions",
+      timezone: "Timezone",
+      start_time: "Start Time",
+      end_time: "End Time",
+      closed_hours_message_mode: "Closed-hours message mode",
+      auto_message: "Auto message from selected working hours",
+      custom_message: "Custom free-text message",
+      custom_closed_message: "Custom Closed Message",
+      working_hours_help: "Auto mode ignores the custom text and replies using the selected working hours in the customer's language plus English. Custom mode sends the free-text message exactly as written.",
+      save_working_hours: "Save Working Hours",
+      bot_response_mode: "Bot Response Mode",
+      respond_rule_base: "Respond with own rule base",
+      respond_ai: "Respond with AI when rule base cannot answer",
+      bot_response_help: "${ui.bot_response_help}",
+      ai_project_instructions: "AI Project Instructions",
+      ai_project_placeholder: "Extra business rules for AI fallback.",
+      ai_project_help: "${ui.ai_project_help}",
+      save_bot_response_mode: "Save Bot Response Mode",
+      products: "Products",
+      add_product: "Add Product",
+      product_name: "Product Name",
+      price: "Price",
+      create_product: "Create Product",
+      meeting_points: "Meeting Points",
+      add_meeting_point: "Add Meeting Point",
+      search_location: "Search location...",
+      search: "Search",
+      name: "Name",
+      address: "Address",
+      google_maps: "Google Maps",
+      google_maps_link: "Google Maps Link",
+      preferred: "Preferred",
+      active: "Active",
+      action: "Action",
+      set_preferred: "Set Preferred",
+      save: "Save",
+      delete: "Delete",
+      open_map: "Open Map",
+      set_as_preferred: "Set as preferred",
+      create_meeting_point: "Create Meeting Point",
+      ai_api_response_counter: "AI API Response Counter",
+      last_hour: "Last Hour",
+      last_24_hours: "Last 24 Hours",
+      last_week: "Last Week",
+      last_month: "Last Month",
+      total: "Total",
+      ai_learned_patterns: "AI Learned Patterns",
+      pattern: "Pattern",
+      intent: "Intent",
+      product: "Product",
+      response: "Response",
+      status: "Status",
+      hits: "Hits",
+      approve: "Approve",
+      reject: "Reject",
+      customers: "Customers",
+      id: "ID",
+      full_name: "Full Name",
+      username: "Username",
+      language: "Language",
+      last_seen: "Last Seen",
+      view_history: "View History",
+      customer_detail: "Customer Detail",
+      customer: "Customer",
+      telegram_id: "Telegram ID",
+      preferred_language: "Preferred Language",
+      blocked: "Blocked",
+      send_reply: "Send Reply",
+      send_reply_to_customer: "Send Reply to Customer",
+      structured_requests: "Structured Requests",
+      type: "Type",
+      item: "Item",
+      quantity: "Quantity",
+      text: "Text",
+      created_at: "Created At",
+      conversation_history: "Conversation History",
+      direction: "Direction",
+      source: "Source",
+      message: "Message",
+      done: "Done",
+      all_done: "All Done",
+      latest_text: "Latest Text",
+      latest_created_at: "Latest Created At"
+    },
+    de: {
+      dashboard_title: "CRM Delivery Admin",
+      logout: "Abmelden",
+      change_password: "Passwort ändern",
+      open_requests: "Offene Anfragen",
+      back_to_dashboard: "Zurück zum Admin-Dashboard",
+      admin_language: "Admin-Sprache",
+      view_language: "Anzeigesprache",
+      save_language: "Sprache speichern",
+      notification_settings: "Benachrichtigungseinstellungen",
+      admin_telegram_chat_id: "Admin Telegram Chat ID",
+      save_notification_receiver: "Benachrichtigungsempfänger speichern",
+      working_hours: "Arbeitszeiten",
+      enable_working_hours: "Arbeitszeitbeschränkungen aktivieren",
+      timezone: "Zeitzone",
+      start_time: "Startzeit",
+      end_time: "Endzeit",
+      closed_hours_message_mode: "Nachricht außerhalb der Arbeitszeit",
+      auto_message: "Automatische Nachricht aus gewählten Arbeitszeiten",
+      custom_message: "Eigene Freitextnachricht",
+      custom_closed_message: "Eigene Geschlossen-Nachricht",
+      working_hours_help: "Der Automodus ignoriert den eigenen Text und antwortet mit den gewählten Arbeitszeiten in der Kundensprache plus Englisch. Der eigene Modus sendet den Freitext exakt wie geschrieben.",
+      save_working_hours: "Arbeitszeiten speichern",
+      bot_response_mode: "Bot-Antwortmodus",
+      respond_rule_base: "Mit eigener Regelbasis antworten",
+      respond_ai: "Mit KI antworten, wenn die Regelbasis nicht antworten kann",
+      bot_response_help: "Der Bot prüft zuerst Buttons, Menünummern, Produkte, Standorte, Adressen, Arbeitszeiten und Admin-Befehle. OpenAI wird nur verwendet, wenn die App die Nachricht nicht verarbeiten kann. Wenn auch die KI nicht helfen kann, wird das ungelöste Menü angezeigt.",
+      ai_project_instructions: "KI-Projektanweisungen",
+      ai_project_placeholder: "Zusätzliche Geschäftsregeln für KI-Fallback.",
+      ai_project_help: "Diese Anweisungen werden dynamisch zusammen mit Live-Produkten, Preisen, Treffpunkten, Arbeitszeiten, Kundenhistorie und App-Fähigkeiten an OpenAI gesendet.",
+      save_bot_response_mode: "Bot-Antwortmodus speichern",
+      products: "Produkte",
+      add_product: "Produkt hinzufügen",
+      product_name: "Produktname",
+      price: "Preis",
+      create_product: "Produkt erstellen",
+      meeting_points: "Treffpunkte",
+      add_meeting_point: "Treffpunkt hinzufügen",
+      search_location: "Standort suchen...",
+      search: "Suchen",
+      name: "Name",
+      address: "Adresse",
+      google_maps: "Google Maps",
+      google_maps_link: "Google Maps Link",
+      preferred: "Bevorzugt",
+      active: "Aktiv",
+      action: "Aktion",
+      set_preferred: "Als bevorzugt setzen",
+      save: "Speichern",
+      delete: "Löschen",
+      open_map: "Karte öffnen",
+      set_as_preferred: "Als bevorzugt setzen",
+      create_meeting_point: "Treffpunkt erstellen",
+      ai_api_response_counter: "KI-API-Antwortzähler",
+      last_hour: "Letzte Stunde",
+      last_24_hours: "Letzte 24 Stunden",
+      last_week: "Letzte Woche",
+      last_month: "Letzter Monat",
+      total: "Gesamt",
+      ai_learned_patterns: "KI-gelernte Muster",
+      pattern: "Muster",
+      intent: "Absicht",
+      product: "Produkt",
+      response: "Antwort",
+      status: "Status",
+      hits: "Treffer",
+      approve: "Genehmigen",
+      reject: "Ablehnen",
+      customers: "Kunden",
+      id: "ID",
+      full_name: "Vollständiger Name",
+      username: "Benutzername",
+      language: "Sprache",
+      last_seen: "Zuletzt gesehen",
+      view_history: "Historie ansehen",
+      customer_detail: "Kundendetails",
+      customer: "Kunde",
+      telegram_id: "Telegram ID",
+      preferred_language: "Bevorzugte Sprache",
+      blocked: "Blockiert",
+      send_reply: "Antwort senden",
+      send_reply_to_customer: "Antwort an Kunden senden",
+      structured_requests: "Strukturierte Anfragen",
+      type: "Typ",
+      item: "Artikel",
+      quantity: "Menge",
+      text: "Text",
+      created_at: "Erstellt am",
+      conversation_history: "Konversationshistorie",
+      direction: "Richtung",
+      source: "Quelle",
+      message: "Nachricht",
+      done: "Erledigt",
+      all_done: "Alle erledigt",
+      latest_text: "Letzter Text",
+      latest_created_at: "Zuletzt erstellt"
+    },
+    tr: {
+      dashboard_title: "CRM Delivery Admin",
+      logout: "Çıkış",
+      change_password: "Şifre Değiştir",
+      open_requests: "Açık Talepler",
+      back_to_dashboard: "Admin Paneline Geri Dön",
+      admin_language: "Admin Dili",
+      view_language: "Görüntüleme Dili",
+      save_language: "Dili Kaydet",
+      notification_settings: "Bildirim Ayarları",
+      admin_telegram_chat_id: "Admin Telegram Chat ID",
+      save_notification_receiver: "Bildirim Alıcısını Kaydet",
+      working_hours: "Çalışma Saatleri",
+      enable_working_hours: "Çalışma saati kısıtlamalarını etkinleştir",
+      timezone: "Saat Dilimi",
+      start_time: "Başlangıç Saati",
+      end_time: "Bitiş Saati",
+      closed_hours_message_mode: "Kapalı saat mesaj modu",
+      auto_message: "Seçilen çalışma saatlerinden otomatik mesaj",
+      custom_message: "Özel serbest metin mesajı",
+      custom_closed_message: "Özel Kapalı Mesajı",
+      working_hours_help: "Otomatik mod özel metni yok sayar ve seçilen çalışma saatlerine göre müşterinin dilinde artı İngilizce yanıt verir. Özel mod serbest metni aynen gönderir.",
+      save_working_hours: "Çalışma Saatlerini Kaydet",
+      bot_response_mode: "Bot Yanıt Modu",
+      respond_rule_base: "Kendi kural sistemiyle yanıtla",
+      respond_ai: "Kural sistemi yanıtlayamazsa AI ile yanıtla",
+      bot_response_help: "Bot önce butonları, menü numaralarını, ürünleri, konumları, adresleri, çalışma saatlerini ve admin komutlarını kontrol eder. OpenAI yalnızca uygulama mesajı işleyemezse kullanılır. AI da işleyemezse çözülemeyen menü gösterilir.",
+      ai_project_instructions: "AI Proje Talimatları",
+      ai_project_placeholder: "AI fallback için ek iş kuralları.",
+      ai_project_help: "Bu talimatlar canlı ürünler, fiyatlar, buluşma noktaları, çalışma saatleri, müşteri geçmişi ve uygulama kabiliyetleriyle birlikte OpenAI çağrılarına dinamik olarak eklenir.",
+      save_bot_response_mode: "Bot Yanıt Modunu Kaydet",
+      products: "Ürünler",
+      add_product: "Ürün Ekle",
+      product_name: "Ürün Adı",
+      price: "Fiyat",
+      create_product: "Ürün Oluştur",
+      meeting_points: "Buluşma Noktaları",
+      add_meeting_point: "Buluşma Noktası Ekle",
+      search_location: "Konum ara...",
+      search: "Ara",
+      name: "Ad",
+      address: "Adres",
+      google_maps: "Google Maps",
+      google_maps_link: "Google Maps Link",
+      preferred: "Tercih Edilen",
+      active: "Aktif",
+      action: "İşlem",
+      set_preferred: "Tercih Edilen Yap",
+      save: "Kaydet",
+      delete: "Sil",
+      open_map: "Haritayı Aç",
+      set_as_preferred: "Tercih edilen olarak ayarla",
+      create_meeting_point: "Buluşma Noktası Oluştur",
+      ai_api_response_counter: "AI API Yanıt Sayacı",
+      last_hour: "Son Saat",
+      last_24_hours: "Son 24 Saat",
+      last_week: "Son Hafta",
+      last_month: "Son Ay",
+      total: "Toplam",
+      ai_learned_patterns: "AI Öğrenilen Kalıplar",
+      pattern: "Kalıp",
+      intent: "Niyet",
+      product: "Ürün",
+      response: "Yanıt",
+      status: "Durum",
+      hits: "Hit",
+      approve: "Onayla",
+      reject: "Reddet",
+      customers: "Müşteriler",
+      id: "ID",
+      full_name: "Tam Ad",
+      username: "Kullanıcı Adı",
+      language: "Dil",
+      last_seen: "Son Görülme",
+      view_history: "Geçmişi Gör",
+      customer_detail: "Müşteri Detayı",
+      customer: "Müşteri",
+      telegram_id: "Telegram ID",
+      preferred_language: "Tercih Edilen Dil",
+      blocked: "Engelli",
+      send_reply: "Yanıt Gönder",
+      send_reply_to_customer: "Müşteriye Yanıt Gönder",
+      structured_requests: "Yapılandırılmış Talepler",
+      type: "Tip",
+      item: "Ürün",
+      quantity: "Miktar",
+      text: "Metin",
+      created_at: "Oluşturulma",
+      conversation_history: "Konuşma Geçmişi",
+      direction: "Yön",
+      source: "Kaynak",
+      message: "Mesaj",
+      done: "Tamamlandı",
+      all_done: "Tümünü Tamamla",
+      latest_text: "Son Metin",
+      latest_created_at: "Son Oluşturulma"
+    },
+    ar: {
+      dashboard_title: "لوحة إدارة CRM Delivery",
+      logout: "تسجيل الخروج",
+      change_password: "تغيير كلمة المرور",
+      open_requests: "الطلبات المفتوحة",
+      back_to_dashboard: "العودة إلى لوحة الإدارة",
+      admin_language: "لغة الإدارة",
+      view_language: "لغة العرض",
+      save_language: "حفظ اللغة",
+      notification_settings: "إعدادات الإشعارات",
+      admin_telegram_chat_id: "معرف محادثة تيليجرام للإدارة",
+      save_notification_receiver: "حفظ مستلم الإشعارات",
+      working_hours: "ساعات العمل",
+      enable_working_hours: "تفعيل قيود ساعات العمل",
+      timezone: "المنطقة الزمنية",
+      start_time: "وقت البدء",
+      end_time: "وقت الانتهاء",
+      closed_hours_message_mode: "وضع رسالة خارج ساعات العمل",
+      auto_message: "رسالة تلقائية حسب ساعات العمل المحددة",
+      custom_message: "رسالة نصية مخصصة",
+      custom_closed_message: "رسالة الإغلاق المخصصة",
+      working_hours_help: "الوضع التلقائي يتجاهل النص المخصص ويرد باستخدام ساعات العمل المحددة بلغة العميل بالإضافة إلى الإنجليزية. الوضع المخصص يرسل النص كما هو.",
+      save_working_hours: "حفظ ساعات العمل",
+      bot_response_mode: "وضع رد البوت",
+      respond_rule_base: "الرد بنظام القواعد الخاص",
+      respond_ai: "الرد بالذكاء الاصطناعي عندما لا يستطيع نظام القواعد الإجابة",
+      bot_response_help: "يفحص البوت أولاً الأزرار، أرقام القوائم، المنتجات، المواقع، العناوين، ساعات العمل وأوامر الإدارة. يتم استخدام OpenAI فقط إذا لم تستطع التطبيق معالجة الرسالة. إذا لم يستطع الذكاء الاصطناعي أيضاً، تظهر قائمة غير محلولة.",
+      ai_project_instructions: "تعليمات مشروع الذكاء الاصطناعي",
+      ai_project_placeholder: "قواعد عمل إضافية للذكاء الاصطناعي الاحتياطي.",
+      ai_project_help: "تضاف هذه التعليمات ديناميكياً إلى طلبات OpenAI مع المنتجات والأسعار والمواقع وساعات العمل وسجل العميل وقدرات التطبيق.",
+      save_bot_response_mode: "حفظ وضع رد البوت",
+      products: "المنتجات",
+      add_product: "إضافة منتج",
+      product_name: "اسم المنتج",
+      price: "السعر",
+      create_product: "إنشاء منتج",
+      meeting_points: "نقاط اللقاء",
+      add_meeting_point: "إضافة نقطة لقاء",
+      search_location: "ابحث عن موقع...",
+      search: "بحث",
+      name: "الاسم",
+      address: "العنوان",
+      google_maps: "خرائط Google",
+      google_maps_link: "رابط خرائط Google",
+      preferred: "مفضل",
+      active: "نشط",
+      action: "إجراء",
+      set_preferred: "تعيين كمفضل",
+      save: "حفظ",
+      delete: "حذف",
+      open_map: "فتح الخريطة",
+      set_as_preferred: "تعيين كمفضل",
+      create_meeting_point: "إنشاء نقطة لقاء",
+      ai_api_response_counter: "عداد ردود API للذكاء الاصطناعي",
+      last_hour: "آخر ساعة",
+      last_24_hours: "آخر 24 ساعة",
+      last_week: "آخر أسبوع",
+      last_month: "آخر شهر",
+      total: "الإجمالي",
+      ai_learned_patterns: "الأنماط المتعلمة بالذكاء الاصطناعي",
+      pattern: "النمط",
+      intent: "القصد",
+      product: "المنتج",
+      response: "الرد",
+      status: "الحالة",
+      hits: "المرات",
+      approve: "موافقة",
+      reject: "رفض",
+      customers: "العملاء",
+      id: "ID",
+      full_name: "الاسم الكامل",
+      username: "اسم المستخدم",
+      language: "اللغة",
+      last_seen: "آخر ظهور",
+      view_history: "عرض السجل",
+      customer_detail: "تفاصيل العميل",
+      customer: "العميل",
+      telegram_id: "معرف تيليجرام",
+      preferred_language: "اللغة المفضلة",
+      blocked: "محظور",
+      send_reply: "إرسال رد",
+      send_reply_to_customer: "إرسال رد إلى العميل",
+      structured_requests: "الطلبات المنظمة",
+      type: "النوع",
+      item: "العنصر",
+      quantity: "الكمية",
+      text: "النص",
+      created_at: "تاريخ الإنشاء",
+      conversation_history: "سجل المحادثة",
+      direction: "الاتجاه",
+      source: "المصدر",
+      message: "الرسالة",
+      done: "تم",
+      all_done: "تم الكل",
+      latest_text: "آخر نص",
+      latest_created_at: "آخر إنشاء"
+    },
+    ru: {
+      dashboard_title: "CRM Delivery Admin",
+      logout: "Выйти",
+      change_password: "Изменить пароль",
+      open_requests: "Открытые запросы",
+      back_to_dashboard: "Назад к панели администратора",
+      admin_language: "Язык администратора",
+      view_language: "Язык интерфейса",
+      save_language: "Сохранить язык",
+      notification_settings: "Настройки уведомлений",
+      admin_telegram_chat_id: "Telegram Chat ID администратора",
+      save_notification_receiver: "Сохранить получателя уведомлений",
+      working_hours: "Рабочие часы",
+      enable_working_hours: "Включить ограничения рабочих часов",
+      timezone: "Часовой пояс",
+      start_time: "Время начала",
+      end_time: "Время окончания",
+      closed_hours_message_mode: "Режим сообщения вне рабочих часов",
+      auto_message: "Автоматическое сообщение по выбранным часам",
+      custom_message: "Пользовательское текстовое сообщение",
+      custom_closed_message: "Пользовательское сообщение закрытия",
+      working_hours_help: "Автоматический режим игнорирует пользовательский текст и отвечает на языке клиента плюс английский. Пользовательский режим отправляет текст точно как написано.",
+      save_working_hours: "Сохранить рабочие часы",
+      bot_response_mode: "Режим ответа бота",
+      respond_rule_base: "Отвечать собственной системой правил",
+      respond_ai: "Отвечать через AI, если правила не смогли ответить",
+      bot_response_help: "Бот сначала проверяет кнопки, номера меню, продукты, локации, адреса, рабочие часы и команды администратора. OpenAI используется только если приложение не может обработать сообщение.",
+      ai_project_instructions: "Инструкции AI проекта",
+      ai_project_placeholder: "Дополнительные бизнес-правила для AI fallback.",
+      ai_project_help: "Эти инструкции динамически добавляются к вызовам OpenAI вместе с продуктами, ценами, точками встречи, рабочими часами, историей клиента и возможностями приложения.",
+      save_bot_response_mode: "Сохранить режим ответа бота",
+      products: "Продукты",
+      add_product: "Добавить продукт",
+      product_name: "Название продукта",
+      price: "Цена",
+      create_product: "Создать продукт",
+      meeting_points: "Точки встречи",
+      add_meeting_point: "Добавить точку встречи",
+      search_location: "Искать локацию...",
+      search: "Поиск",
+      name: "Имя",
+      address: "Адрес",
+      google_maps: "Google Maps",
+      google_maps_link: "Ссылка Google Maps",
+      preferred: "Предпочтительно",
+      active: "Активно",
+      action: "Действие",
+      set_preferred: "Сделать предпочтительным",
+      save: "Сохранить",
+      delete: "Удалить",
+      open_map: "Открыть карту",
+      set_as_preferred: "Сделать предпочтительным",
+      create_meeting_point: "Создать точку встречи",
+      ai_api_response_counter: "Счетчик ответов AI API",
+      last_hour: "Последний час",
+      last_24_hours: "Последние 24 часа",
+      last_week: "Последняя неделя",
+      last_month: "Последний месяц",
+      total: "Всего",
+      ai_learned_patterns: "AI изученные шаблоны",
+      pattern: "Шаблон",
+      intent: "Намерение",
+      product: "Продукт",
+      response: "Ответ",
+      status: "Статус",
+      hits: "Попадания",
+      approve: "Одобрить",
+      reject: "Отклонить",
+      customers: "Клиенты",
+      id: "ID",
+      full_name: "Полное имя",
+      username: "Имя пользователя",
+      language: "Язык",
+      last_seen: "Последний визит",
+      view_history: "История",
+      customer_detail: "Детали клиента",
+      customer: "Клиент",
+      telegram_id: "Telegram ID",
+      preferred_language: "Предпочитаемый язык",
+      blocked: "Заблокирован",
+      send_reply: "Отправить ответ",
+      send_reply_to_customer: "Отправить ответ клиенту",
+      structured_requests: "Структурированные запросы",
+      type: "Тип",
+      item: "Товар",
+      quantity: "Количество",
+      text: "Текст",
+      created_at: "Создано",
+      conversation_history: "История переписки",
+      direction: "Направление",
+      source: "Источник",
+      message: "Сообщение",
+      done: "Готово",
+      all_done: "Все готово",
+      latest_text: "Последний текст",
+      latest_created_at: "Последнее создание"
+    }
+  };
+
+  return texts[language] || texts.en;
+}
+
+
+function getAdminDashboardUiText(language = "en") {
+  const texts = {
+    en: {
+      title: "CRM Delivery Admin",
+      logout: "Logout",
+      change_password: "Change Password",
+      open_requests: "Open Requests",
+      admin_language: "Admin Language",
+      view_language: "View Language",
+      save_language: "Save Language",
+      notification_settings: "Notification Settings",
+      admin_telegram_chat_id: "Admin Telegram Chat ID",
+      save_notification_receiver: "Save Notification Receiver",
+      working_hours: "Working Hours",
+      enable_working_hours: "Enable working-hours restrictions",
+      timezone: "Timezone",
+      start_time: "Start Time",
+      end_time: "End Time",
+      closed_hours_message_mode: "Closed-hours message mode",
+      auto_message: "Auto message from selected working hours",
+      custom_message: "Custom free-text message",
+      custom_closed_message: "Custom Closed Message",
+      working_hours_help: "Auto mode ignores the custom text and replies using the selected working hours in the customer's language plus English. Custom mode sends the free-text message exactly as written.",
+      save_working_hours: "Save Working Hours",
+      bot_response_mode: "Bot Response Mode",
+      respond_rule_base: "Respond with own rule base",
+      respond_ai: "Respond with AI when rule base cannot answer",
+      bot_response_help: "${ui.bot_response_help}",
+      ai_project_instructions: "AI Project Instructions",
+      ai_project_placeholder: "Extra business rules for AI fallback.",
+      ai_project_help: "${ui.ai_project_help}",
+      save_bot_response_mode: "Save Bot Response Mode",
+      products: "Products",
+      id: "ID",
+      name: "Name",
+      price: "Price",
+      aliases: "Aliases",
+      active: "Active",
+      action: "Action",
+      save: "Save",
+      delete: "Delete",
+      add_product: "Add Product",
+      product_name: "Product Name",
+      create_product: "Create Product",
+      meeting_points: "Meeting Points",
+      address: "Address",
+      google_maps: "Google Maps",
+      preferred: "Preferred",
+      open_map: "Open Map",
+      set_preferred: "Set Preferred",
+      add_meeting_point: "Add Meeting Point",
+      search_location: "Search location...",
+      search: "Search",
+      google_maps_link: "Google Maps Link",
+      set_as_preferred: "Set as preferred",
+      create_meeting_point: "Create Meeting Point",
+      ai_counter: "AI API Response Counter",
+      last_hour: "Last Hour",
+      last_24_hours: "Last 24 Hours",
+      last_week: "Last Week",
+      last_month: "Last Month",
+      total: "Total",
+      ai_patterns: "AI Learned Patterns",
+      pattern: "Pattern",
+      intent: "Intent",
+      product: "Product",
+      response: "Response",
+      status: "Status",
+      hits: "Hits",
+      customers: "Customers",
+      full_name: "Full Name",
+      username: "Username",
+      language: "Language",
+      last_seen: "Last Seen",
+      view_history: "View History"
+    },
+    de: {
+      title: "CRM Delivery Admin",
+      logout: "Abmelden",
+      change_password: "Passwort ändern",
+      open_requests: "Offene Anfragen",
+      admin_language: "Admin-Sprache",
+      view_language: "Anzeigesprache",
+      save_language: "Sprache speichern",
+      notification_settings: "Benachrichtigungseinstellungen",
+      admin_telegram_chat_id: "Admin Telegram Chat ID",
+      save_notification_receiver: "Benachrichtigungsempfänger speichern",
+      working_hours: "Arbeitszeiten",
+      enable_working_hours: "Arbeitszeitbeschränkungen aktivieren",
+      timezone: "Zeitzone",
+      start_time: "Startzeit",
+      end_time: "Endzeit",
+      closed_hours_message_mode: "Nachrichtenmodus außerhalb der Arbeitszeit",
+      auto_message: "Automatische Nachricht aus gewählten Arbeitszeiten",
+      custom_message: "Eigene Freitextnachricht",
+      custom_closed_message: "Eigene Geschlossen-Nachricht",
+      working_hours_help: "Der Automodus ignoriert den eigenen Text und antwortet mit den gewählten Arbeitszeiten in der Kundensprache plus Englisch. Der eigene Modus sendet den Freitext exakt wie geschrieben.",
+      save_working_hours: "Arbeitszeiten speichern",
+      bot_response_mode: "Bot-Antwortmodus",
+      respond_rule_base: "Mit eigener Regelbasis antworten",
+      respond_ai: "Mit KI antworten, wenn die Regelbasis nicht antworten kann",
+      bot_response_help: "Der Bot prüft zuerst Buttons, Menünummern, Produkte, Standorte, Adressen, Arbeitszeiten und Admin-Befehle. OpenAI wird nur verwendet, wenn die App die Nachricht nicht verarbeiten kann. Wenn auch die KI nicht helfen kann, wird das ungelöste Menü angezeigt.",
+      ai_project_instructions: "KI-Projektanweisungen",
+      ai_project_placeholder: "Zusätzliche Geschäftsregeln für KI-Fallback.",
+      ai_project_help: "Diese Anweisungen werden dynamisch zusammen mit Live-Produkten, Preisen, Treffpunkten, Arbeitszeiten, Kundenhistorie und App-Fähigkeiten an OpenAI gesendet.",
+      save_bot_response_mode: "Bot-Antwortmodus speichern",
+      products: "Produkte",
+      id: "ID",
+      name: "Name",
+      price: "Preis",
+      aliases: "Aliase",
+      active: "Aktiv",
+      action: "Aktion",
+      save: "Speichern",
+      delete: "Löschen",
+      add_product: "Produkt hinzufügen",
+      product_name: "Produktname",
+      create_product: "Produkt erstellen",
+      meeting_points: "Treffpunkte",
+      address: "Adresse",
+      google_maps: "Google Maps",
+      preferred: "Bevorzugt",
+      open_map: "Karte öffnen",
+      set_preferred: "Als bevorzugt setzen",
+      add_meeting_point: "Treffpunkt hinzufügen",
+      search_location: "Standort suchen...",
+      search: "Suchen",
+      google_maps_link: "Google Maps Link",
+      set_as_preferred: "Als bevorzugt setzen",
+      create_meeting_point: "Treffpunkt erstellen",
+      ai_counter: "KI-API-Antwortzähler",
+      last_hour: "Letzte Stunde",
+      last_24_hours: "Letzte 24 Stunden",
+      last_week: "Letzte Woche",
+      last_month: "Letzter Monat",
+      total: "Gesamt",
+      ai_patterns: "KI-gelernte Muster",
+      pattern: "Muster",
+      intent: "Absicht",
+      product: "Produkt",
+      response: "Antwort",
+      status: "Status",
+      hits: "Treffer",
+      customers: "Kunden",
+      full_name: "Vollständiger Name",
+      username: "Benutzername",
+      language: "Sprache",
+      last_seen: "Zuletzt gesehen",
+      view_history: "Historie ansehen"
+    },
+    tr: {
+      title: "CRM Delivery Admin",
+      logout: "Çıkış",
+      change_password: "Şifre Değiştir",
+      open_requests: "Açık Talepler",
+      admin_language: "Admin Dili",
+      view_language: "Görüntüleme Dili",
+      save_language: "Dili Kaydet",
+      notification_settings: "Bildirim Ayarları",
+      admin_telegram_chat_id: "Admin Telegram Chat ID",
+      save_notification_receiver: "Bildirim Alıcısını Kaydet",
+      working_hours: "Çalışma Saatleri",
+      enable_working_hours: "Çalışma saati kısıtlamalarını etkinleştir",
+      timezone: "Saat Dilimi",
+      start_time: "Başlangıç Saati",
+      end_time: "Bitiş Saati",
+      closed_hours_message_mode: "Kapalı saat mesaj modu",
+      auto_message: "Seçilen çalışma saatlerinden otomatik mesaj",
+      custom_message: "Özel serbest metin mesajı",
+      custom_closed_message: "Özel kapalı mesajı",
+      working_hours_help: "Otomatik mod özel metni yok sayar ve seçilen çalışma saatlerine göre müşterinin dilinde artı İngilizce yanıt verir. Özel mod serbest metni aynen gönderir.",
+      save_working_hours: "Çalışma Saatlerini Kaydet",
+      bot_response_mode: "Bot Yanıt Modu",
+      respond_rule_base: "Kendi kural sistemiyle yanıtla",
+      respond_ai: "Kural sistemi yanıtlayamazsa AI ile yanıtla",
+      bot_response_help: "Bot önce butonları, menü numaralarını, ürünleri, konumları, adresleri, çalışma saatlerini ve admin komutlarını kontrol eder. OpenAI yalnızca uygulama mesajı işleyemezse kullanılır. AI da işleyemezse çözülemeyen menü gösterilir.",
+      ai_project_instructions: "AI Proje Talimatları",
+      ai_project_placeholder: "AI fallback için ek iş kuralları.",
+      ai_project_help: "Bu talimatlar canlı ürünler, fiyatlar, buluşma noktaları, çalışma saatleri, müşteri geçmişi ve uygulama kabiliyetleriyle birlikte OpenAI çağrılarına dinamik olarak eklenir.",
+      save_bot_response_mode: "Bot Yanıt Modunu Kaydet",
+      products: "Ürünler",
+      id: "ID",
+      name: "Ad",
+      price: "Fiyat",
+      aliases: "Aliaslar",
+      active: "Aktif",
+      action: "İşlem",
+      save: "Kaydet",
+      delete: "Sil",
+      add_product: "Ürün Ekle",
+      product_name: "Ürün Adı",
+      create_product: "Ürün Oluştur",
+      meeting_points: "Buluşma Noktaları",
+      address: "Adres",
+      google_maps: "Google Maps",
+      preferred: "Tercih Edilen",
+      open_map: "Haritayı Aç",
+      set_preferred: "Tercih Edilen Yap",
+      add_meeting_point: "Buluşma Noktası Ekle",
+      search_location: "Konum ara...",
+      search: "Ara",
+      google_maps_link: "Google Maps Link",
+      set_as_preferred: "Tercih edilen olarak ayarla",
+      create_meeting_point: "Buluşma Noktası Oluştur",
+      ai_counter: "AI API Yanıt Sayacı",
+      last_hour: "Son Saat",
+      last_24_hours: "Son 24 Saat",
+      last_week: "Son Hafta",
+      last_month: "Son Ay",
+      total: "Toplam",
+      ai_patterns: "AI Öğrenilen Kalıplar",
+      pattern: "Kalıp",
+      intent: "Niyet",
+      product: "Ürün",
+      response: "Yanıt",
+      status: "Durum",
+      hits: "Hit",
+      customers: "Müşteriler",
+      full_name: "Tam Ad",
+      username: "Kullanıcı Adı",
+      language: "Dil",
+      last_seen: "Son Görülme",
+      view_history: "Geçmişi Gör"
+    },
+    ar: {
+      title: "لوحة إدارة CRM Delivery",
+      logout: "تسجيل الخروج",
+      change_password: "تغيير كلمة المرور",
+      open_requests: "الطلبات المفتوحة",
+      admin_language: "لغة الإدارة",
+      view_language: "لغة العرض",
+      save_language: "حفظ اللغة",
+      notification_settings: "إعدادات الإشعارات",
+      admin_telegram_chat_id: "معرف محادثة تيليجرام للإدارة",
+      save_notification_receiver: "حفظ مستلم الإشعارات",
+      working_hours: "ساعات العمل",
+      enable_working_hours: "تفعيل قيود ساعات العمل",
+      timezone: "المنطقة الزمنية",
+      start_time: "وقت البدء",
+      end_time: "وقت الانتهاء",
+      closed_hours_message_mode: "وضع رسالة خارج ساعات العمل",
+      auto_message: "رسالة تلقائية حسب ساعات العمل المحددة",
+      custom_message: "رسالة نصية مخصصة",
+      custom_closed_message: "رسالة الإغلاق المخصصة",
+      working_hours_help: "الوضع التلقائي يتجاهل النص المخصص ويرد باستخدام ساعات العمل المحددة بلغة العميل بالإضافة إلى الإنجليزية. الوضع المخصص يرسل النص كما هو.",
+      save_working_hours: "حفظ ساعات العمل",
+      bot_response_mode: "وضع رد البوت",
+      respond_rule_base: "الرد بنظام القواعد الخاص",
+      respond_ai: "الرد بالذكاء الاصطناعي عندما لا يستطيع نظام القواعد الإجابة",
+      bot_response_help: "يفحص البوت أولاً الأزرار وأرقام القوائم والمنتجات والمواقع والعناوين وساعات العمل وأوامر الإدارة. يتم استخدام OpenAI فقط إذا لم يستطع التطبيق معالجة الرسالة. إذا لم يستطع الذكاء الاصطناعي أيضاً، تظهر القائمة غير المحلولة.",
+      ai_project_instructions: "تعليمات مشروع الذكاء الاصطناعي",
+      ai_project_placeholder: "قواعد عمل إضافية للذكاء الاصطناعي الاحتياطي.",
+      ai_project_help: "تضاف هذه التعليمات ديناميكياً إلى طلبات OpenAI مع المنتجات والأسعار والمواقع وساعات العمل وسجل العميل وقدرات التطبيق.",
+      save_bot_response_mode: "حفظ وضع رد البوت",
+      products: "المنتجات",
+      id: "ID",
+      name: "الاسم",
+      price: "السعر",
+      aliases: "الأسماء البديلة",
+      active: "نشط",
+      action: "إجراء",
+      save: "حفظ",
+      delete: "حذف",
+      add_product: "إضافة منتج",
+      product_name: "اسم المنتج",
+      create_product: "إنشاء منتج",
+      meeting_points: "نقاط اللقاء",
+      address: "العنوان",
+      google_maps: "خرائط Google",
+      preferred: "مفضل",
+      open_map: "فتح الخريطة",
+      set_preferred: "تعيين كمفضل",
+      add_meeting_point: "إضافة نقطة لقاء",
+      search_location: "ابحث عن موقع...",
+      search: "بحث",
+      google_maps_link: "رابط خرائط Google",
+      set_as_preferred: "تعيين كمفضل",
+      create_meeting_point: "إنشاء نقطة لقاء",
+      ai_counter: "عداد ردود API للذكاء الاصطناعي",
+      last_hour: "آخر ساعة",
+      last_24_hours: "آخر 24 ساعة",
+      last_week: "آخر أسبوع",
+      last_month: "آخر شهر",
+      total: "الإجمالي",
+      ai_patterns: "الأنماط المتعلمة بالذكاء الاصطناعي",
+      pattern: "النمط",
+      intent: "القصد",
+      product: "المنتج",
+      response: "الرد",
+      status: "الحالة",
+      hits: "المرات",
+      customers: "العملاء",
+      full_name: "الاسم الكامل",
+      username: "اسم المستخدم",
+      language: "اللغة",
+      last_seen: "آخر ظهور",
+      view_history: "عرض السجل"
+    },
+    ru: {
+      title: "CRM Delivery Admin",
+      logout: "Выйти",
+      change_password: "Изменить пароль",
+      open_requests: "Открытые запросы",
+      admin_language: "Язык администратора",
+      view_language: "Язык интерфейса",
+      save_language: "Сохранить язык",
+      notification_settings: "Настройки уведомлений",
+      admin_telegram_chat_id: "Telegram Chat ID администратора",
+      save_notification_receiver: "Сохранить получателя уведомлений",
+      working_hours: "Рабочие часы",
+      enable_working_hours: "Включить ограничения рабочих часов",
+      timezone: "Часовой пояс",
+      start_time: "Время начала",
+      end_time: "Время окончания",
+      closed_hours_message_mode: "Режим сообщения вне рабочих часов",
+      auto_message: "Автоматическое сообщение по выбранным часам",
+      custom_message: "Пользовательское текстовое сообщение",
+      custom_closed_message: "Пользовательское сообщение закрытия",
+      working_hours_help: "Автоматический режим игнорирует пользовательский текст и отвечает на языке клиента плюс английский. Пользовательский режим отправляет текст точно как написано.",
+      save_working_hours: "Сохранить рабочие часы",
+      bot_response_mode: "Режим ответа бота",
+      respond_rule_base: "Отвечать собственной системой правил",
+      respond_ai: "Отвечать через AI, если правила не смогли ответить",
+      bot_response_help: "Бот сначала проверяет кнопки, номера меню, продукты, локации, адреса, рабочие часы и команды администратора. OpenAI используется только если приложение не может обработать сообщение.",
+      ai_project_instructions: "Инструкции AI проекта",
+      ai_project_placeholder: "Дополнительные бизнес-правила для AI fallback.",
+      ai_project_help: "Эти инструкции динамически добавляются к вызовам OpenAI вместе с продуктами, ценами, точками встречи, рабочими часами, историей клиента и возможностями приложения.",
+      save_bot_response_mode: "Сохранить режим ответа бота",
+      products: "Продукты",
+      id: "ID",
+      name: "Имя",
+      price: "Цена",
+      aliases: "Алиасы",
+      active: "Активно",
+      action: "Действие",
+      save: "Сохранить",
+      delete: "Удалить",
+      add_product: "Добавить продукт",
+      product_name: "Название продукта",
+      create_product: "Создать продукт",
+      meeting_points: "Точки встречи",
+      address: "Адрес",
+      google_maps: "Google Maps",
+      preferred: "Предпочтительно",
+      open_map: "Открыть карту",
+      set_preferred: "Сделать предпочтительным",
+      add_meeting_point: "Добавить точку встречи",
+      search_location: "Искать локацию...",
+      search: "Поиск",
+      google_maps_link: "Ссылка Google Maps",
+      set_as_preferred: "Сделать предпочтительным",
+      create_meeting_point: "Создать точку встречи",
+      ai_counter: "Счетчик ответов AI API",
+      last_hour: "Последний час",
+      last_24_hours: "Последние 24 часа",
+      last_week: "Последняя неделя",
+      last_month: "Последний месяц",
+      total: "Всего",
+      ai_patterns: "AI изученные шаблоны",
+      pattern: "Шаблон",
+      intent: "Намерение",
+      product: "Продукт",
+      response: "Ответ",
+      status: "Статус",
+      hits: "Попадания",
+      customers: "Клиенты",
+      full_name: "Полное имя",
+      username: "Имя пользователя",
+      language: "Язык",
+      last_seen: "Последний визит",
+      view_history: "История"
+    }
+  };
+
+  return texts[language] || texts.en;
+}
+
+
+function i18nAdmin(language = "en") {
+  const base = (
+    typeof getAdminDashboardUiText === "function"
+      ? getAdminDashboardUiText(language)
+      : {}
+  );
+
+  const extra = {
+    en: {
+      back_to_dashboard: "Back to Admin Dashboard",
+      all_done: "All Done",
+      customer: "Customer",
+      customer_detail: "Customer Detail",
+      telegram_id: "Telegram ID",
+      preferred_language: "Preferred Language",
+      blocked: "Blocked",
+      send_reply: "Send Reply",
+      send_reply_to_customer: "Send Reply to Customer",
+      structured_requests: "Structured Requests",
+      conversation_history: "Conversation History",
+      type: "Type",
+      item: "Item",
+      quantity: "Quantity",
+      request_count: "Request Count",
+      text: "Text",
+      created_at: "Created At",
+      latest_text: "Latest Text",
+      latest_created_at: "Latest Created At",
+      direction: "Direction",
+      source: "Source",
+      message: "Message",
+      open_customer: "Open Customer",
+      answer: "Answer",
+      done: "Done",
+      approve: "Approve",
+      reject: "Reject",
+      pending_status: "pending",
+      approved_status: "approved",
+      rejected_status: "rejected",
+      new_status: "new",
+      in_progress_status: "in progress",
+      done_status: "done",
+      true_value: "True",
+      false_value: "False"
+    },
+    de: {
+      back_to_dashboard: "Zurück zum Admin-Dashboard",
+      all_done: "Alle erledigt",
+      customer: "Kunde",
+      customer_detail: "Kundendetails",
+      telegram_id: "Telegram ID",
+      preferred_language: "Bevorzugte Sprache",
+      blocked: "Blockiert",
+      send_reply: "Antwort senden",
+      send_reply_to_customer: "Antwort an Kunden senden",
+      structured_requests: "Strukturierte Anfragen",
+      conversation_history: "Konversationshistorie",
+      type: "Typ",
+      item: "Artikel",
+      quantity: "Menge",
+      request_count: "Anzahl Anfragen",
+      text: "Text",
+      created_at: "Erstellt am",
+      latest_text: "Letzter Text",
+      latest_created_at: "Zuletzt erstellt",
+      direction: "Richtung",
+      source: "Quelle",
+      message: "Nachricht",
+      open_customer: "Kunde öffnen",
+      answer: "Antworten",
+      done: "Erledigt",
+      approve: "Genehmigen",
+      reject: "Ablehnen",
+      pending_status: "ausstehend",
+      approved_status: "genehmigt",
+      rejected_status: "abgelehnt",
+      new_status: "neu",
+      in_progress_status: "in Bearbeitung",
+      done_status: "erledigt",
+      true_value: "Ja",
+      false_value: "Nein"
+    },
+    tr: {
+      back_to_dashboard: "Admin Paneline Geri Dön",
+      all_done: "Tümünü Tamamla",
+      customer: "Müşteri",
+      customer_detail: "Müşteri Detayı",
+      telegram_id: "Telegram ID",
+      preferred_language: "Tercih Edilen Dil",
+      blocked: "Engelli",
+      send_reply: "Yanıt Gönder",
+      send_reply_to_customer: "Müşteriye Yanıt Gönder",
+      structured_requests: "Yapılandırılmış Talepler",
+      conversation_history: "Konuşma Geçmişi",
+      type: "Tip",
+      item: "Ürün",
+      quantity: "Miktar",
+      request_count: "Talep Sayısı",
+      text: "Metin",
+      created_at: "Oluşturulma",
+      latest_text: "Son Metin",
+      latest_created_at: "Son Oluşturulma",
+      direction: "Yön",
+      source: "Kaynak",
+      message: "Mesaj",
+      open_customer: "Müşteriyi Aç",
+      answer: "Cevapla",
+      done: "Tamamlandı",
+      approve: "Onayla",
+      reject: "Reddet",
+      pending_status: "beklemede",
+      approved_status: "onaylandı",
+      rejected_status: "reddedildi",
+      new_status: "yeni",
+      in_progress_status: "işlemde",
+      done_status: "tamamlandı",
+      true_value: "Evet",
+      false_value: "Hayır"
+    },
+    ar: {
+      back_to_dashboard: "العودة إلى لوحة الإدارة",
+      all_done: "تم الكل",
+      customer: "العميل",
+      customer_detail: "تفاصيل العميل",
+      telegram_id: "معرف تيليجرام",
+      preferred_language: "اللغة المفضلة",
+      blocked: "محظور",
+      send_reply: "إرسال رد",
+      send_reply_to_customer: "إرسال رد إلى العميل",
+      structured_requests: "الطلبات المنظمة",
+      conversation_history: "سجل المحادثة",
+      type: "النوع",
+      item: "العنصر",
+      quantity: "الكمية",
+      request_count: "عدد الطلبات",
+      text: "النص",
+      created_at: "تاريخ الإنشاء",
+      latest_text: "آخر نص",
+      latest_created_at: "آخر إنشاء",
+      direction: "الاتجاه",
+      source: "المصدر",
+      message: "الرسالة",
+      open_customer: "فتح العميل",
+      answer: "رد",
+      done: "تم",
+      approve: "موافقة",
+      reject: "رفض",
+      pending_status: "معلق",
+      approved_status: "موافق عليه",
+      rejected_status: "مرفوض",
+      new_status: "جديد",
+      in_progress_status: "قيد المعالجة",
+      done_status: "تم",
+      true_value: "نعم",
+      false_value: "لا"
+    },
+    ru: {
+      back_to_dashboard: "Назад к панели администратора",
+      all_done: "Все готово",
+      customer: "Клиент",
+      customer_detail: "Детали клиента",
+      telegram_id: "Telegram ID",
+      preferred_language: "Предпочитаемый язык",
+      blocked: "Заблокирован",
+      send_reply: "Отправить ответ",
+      send_reply_to_customer: "Отправить ответ клиенту",
+      structured_requests: "Структурированные запросы",
+      conversation_history: "История переписки",
+      type: "Тип",
+      item: "Товар",
+      quantity: "Количество",
+      request_count: "Количество запросов",
+      text: "Текст",
+      created_at: "Создано",
+      latest_text: "Последний текст",
+      latest_created_at: "Последнее создание",
+      direction: "Направление",
+      source: "Источник",
+      message: "Сообщение",
+      open_customer: "Открыть клиента",
+      answer: "Ответить",
+      done: "Готово",
+      approve: "Одобрить",
+      reject: "Отклонить",
+      pending_status: "ожидает",
+      approved_status: "одобрено",
+      rejected_status: "отклонено",
+      new_status: "новый",
+      in_progress_status: "в работе",
+      done_status: "готово",
+      true_value: "Да",
+      false_value: "Нет"
+    }
+  };
+
+  return {
+    ...base,
+    ...(extra[language] || extra.en),
+    _language: language
+  };
+}
+
+function i18nStatus(status, language = "en") {
+  const ui = i18nAdmin(language);
+  const value = String(status || "");
+
+  if (value === "pending") return ui.pending_status;
+  if (value === "approved") return ui.approved_status;
+  if (value === "rejected") return ui.rejected_status;
+  if (value === "new") return ui.new_status;
+  if (value === "in_progress") return ui.in_progress_status;
+  if (value === "done") return ui.done_status;
+
+  return value;
+}
+
+
+function i18nMessageSource(source, language = "en") {
+  const value = String(source || "");
+
+  const map = {
+    en: {
+      "Incoming": "Incoming",
+      "Rule Base": "Rule Base",
+      "AI": "AI",
+      "Admin": "Admin"
+    },
+    de: {
+      "Incoming": "Eingehend",
+      "Rule Base": "Regelbasis",
+      "AI": "KI",
+      "Admin": "Admin"
+    },
+    tr: {
+      "Incoming": "Gelen",
+      "Rule Base": "Kural Sistemi",
+      "AI": "AI",
+      "Admin": "Admin"
+    },
+    ar: {
+      "Incoming": "وارد",
+      "Rule Base": "نظام القواعد",
+      "AI": "الذكاء الاصطناعي",
+      "Admin": "الإدارة"
+    },
+    ru: {
+      "Incoming": "Входящее",
+      "Rule Base": "Система правил",
+      "AI": "AI",
+      "Admin": "Админ"
+    }
+  };
+
+  return (map[language] && map[language][value]) || value;
+}
+
+
+function i18nRequestType(type, language = "en") {
+  const value = String(type || "");
+
+  const map = {
+    en: {
+      product_specific: "Product request",
+      product_list: "Product list",
+      delivery_location: "Delivery location",
+      location: "Location",
+      address: "Address",
+      contact_admin: "Contact admin",
+      unresolved: "Unresolved"
+    },
+    de: {
+      product_specific: "Produktanfrage",
+      product_list: "Produktliste",
+      delivery_location: "Lieferort",
+      location: "Standort",
+      address: "Adresse",
+      contact_admin: "Admin kontaktieren",
+      unresolved: "Ungelöst"
+    },
+    tr: {
+      product_specific: "Ürün talebi",
+      product_list: "Ürün listesi",
+      delivery_location: "Teslimat konumu",
+      location: "Konum",
+      address: "Adres",
+      contact_admin: "Admin ile iletişim",
+      unresolved: "Çözülemeyen"
+    },
+    ar: {
+      product_specific: "طلب منتج",
+      product_list: "قائمة المنتجات",
+      delivery_location: "موقع التسليم",
+      location: "الموقع",
+      address: "العنوان",
+      contact_admin: "التواصل مع الإدارة",
+      unresolved: "غير محلول"
+    },
+    ru: {
+      product_specific: "Запрос товара",
+      product_list: "Список товаров",
+      delivery_location: "Место доставки",
+      location: "Локация",
+      address: "Адрес",
+      contact_admin: "Связаться с админом",
+      unresolved: "Нерешено"
+    }
+  };
+
+  return (map[language] && map[language][value]) || value;
+}
+
+function i18nIntent(intent, language = "en") {
+  const value = String(intent || "");
+
+  const map = {
+    en: {
+      general_answer: "General answer",
+      greeting: "Greeting",
+      product_request: "Product request",
+      location_request: "Location request",
+      address_request: "Address request",
+      contact_admin: "Contact admin",
+      abuse_or_insult: "Abuse / insult",
+      unclear: "Unclear"
+    },
+    de: {
+      general_answer: "Allgemeine Antwort",
+      greeting: "Begrüßung",
+      product_request: "Produktanfrage",
+      location_request: "Standortanfrage",
+      address_request: "Adressanfrage",
+      contact_admin: "Admin kontaktieren",
+      abuse_or_insult: "Beleidigung",
+      unclear: "Unklar"
+    },
+    tr: {
+      general_answer: "Genel cevap",
+      greeting: "Selamlama",
+      product_request: "Ürün talebi",
+      location_request: "Konum talebi",
+      address_request: "Adres talebi",
+      contact_admin: "Admin ile iletişim",
+      abuse_or_insult: "Hakaret",
+      unclear: "Belirsiz"
+    },
+    ar: {
+      general_answer: "رد عام",
+      greeting: "تحية",
+      product_request: "طلب منتج",
+      location_request: "طلب موقع",
+      address_request: "طلب عنوان",
+      contact_admin: "التواصل مع الإدارة",
+      abuse_or_insult: "إساءة / إهانة",
+      unclear: "غير واضح"
+    },
+    ru: {
+      general_answer: "Общий ответ",
+      greeting: "Приветствие",
+      product_request: "Запрос товара",
+      location_request: "Запрос локации",
+      address_request: "Запрос адреса",
+      contact_admin: "Связаться с админом",
+      abuse_or_insult: "Оскорбление",
+      unclear: "Неясно"
+    }
+  };
+
+  return (map[language] && map[language][value]) || value;
+}
+
+function i18nDirection(direction, language = "en") {
+  const value = String(direction || "");
+
+  const map = {
+    en: {
+      incoming: "Incoming",
+      outgoing: "Outgoing"
+    },
+    de: {
+      incoming: "Eingehend",
+      outgoing: "Ausgehend"
+    },
+    tr: {
+      incoming: "Gelen",
+      outgoing: "Giden"
+    },
+    ar: {
+      incoming: "وارد",
+      outgoing: "صادر"
+    },
+    ru: {
+      incoming: "Входящее",
+      outgoing: "Исходящее"
+    }
+  };
+
+  return (map[language] && map[language][value]) || value;
+}
+
+
+function getAdminTimezoneGroups(language = "en") {
+  const labels = {
+    en: [
+      ["Etc/GMT+12", "(UTC-12:00) International Date Line West"],
+      ["Etc/GMT+11", "(UTC-11:00) Coordinated Universal Time-11"],
+      ["Pacific/Honolulu", "(UTC-10:00) Hawaii"],
+      ["America/Anchorage", "(UTC-09:00) Alaska"],
+      ["America/Los_Angeles", "(UTC-08:00) Pacific Time - US & Canada"],
+      ["America/Denver", "(UTC-07:00) Mountain Time - US & Canada"],
+      ["America/Chicago", "(UTC-06:00) Central Time - US & Canada"],
+      ["America/New_York", "(UTC-05:00) Eastern Time - US & Canada"],
+      ["America/Halifax", "(UTC-04:00) Atlantic Time - Canada"],
+      ["America/Argentina/Buenos_Aires", "(UTC-03:00) Buenos Aires, Greenland"],
+      ["Etc/GMT+2", "(UTC-02:00) Mid-Atlantic"],
+      ["Atlantic/Azores", "(UTC-01:00) Azores, Cape Verde"],
+      ["Europe/London", "(UTC+00:00) Dublin, Edinburgh, Lisbon, London"],
+      ["Europe/Berlin", "(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna"],
+      ["Europe/Athens", "(UTC+02:00) Athens, Bucharest, Cairo, Helsinki"],
+      ["Europe/Istanbul", "(UTC+03:00) Istanbul, Moscow, Riyadh"],
+      ["Asia/Dubai", "(UTC+04:00) Abu Dhabi, Dubai, Muscat"],
+      ["Asia/Karachi", "(UTC+05:00) Islamabad, Karachi, Tashkent"],
+      ["Asia/Dhaka", "(UTC+06:00) Astana, Dhaka"],
+      ["Asia/Bangkok", "(UTC+07:00) Bangkok, Hanoi, Jakarta"],
+      ["Asia/Shanghai", "(UTC+08:00) Beijing, Hong Kong, Singapore, Taipei"],
+      ["Asia/Tokyo", "(UTC+09:00) Osaka, Sapporo, Seoul, Tokyo"],
+      ["Australia/Sydney", "(UTC+10:00) Canberra, Melbourne, Sydney"],
+      ["Pacific/Guadalcanal", "(UTC+11:00) Solomon Islands, New Caledonia"],
+      ["Pacific/Auckland", "(UTC+12:00) Auckland, Fiji"]
+    ],
+    de: [
+      ["Etc/GMT+12", "(UTC-12:00) Internationale Datumsgrenze West"],
+      ["Etc/GMT+11", "(UTC-11:00) Koordinierte Weltzeit-11"],
+      ["Pacific/Honolulu", "(UTC-10:00) Hawaii"],
+      ["America/Anchorage", "(UTC-09:00) Alaska"],
+      ["America/Los_Angeles", "(UTC-08:00) Pazifikzeit - USA & Kanada"],
+      ["America/Denver", "(UTC-07:00) Mountain Time - USA & Kanada"],
+      ["America/Chicago", "(UTC-06:00) Central Time - USA & Kanada"],
+      ["America/New_York", "(UTC-05:00) Eastern Time - USA & Kanada"],
+      ["America/Halifax", "(UTC-04:00) Atlantikzeit - Kanada"],
+      ["America/Argentina/Buenos_Aires", "(UTC-03:00) Buenos Aires, Grönland"],
+      ["Etc/GMT+2", "(UTC-02:00) Mittelatlantik"],
+      ["Atlantic/Azores", "(UTC-01:00) Azoren, Kap Verde"],
+      ["Europe/London", "(UTC+00:00) Dublin, Edinburgh, Lissabon, London"],
+      ["Europe/Berlin", "(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien"],
+      ["Europe/Athens", "(UTC+02:00) Athen, Bukarest, Kairo, Helsinki"],
+      ["Europe/Istanbul", "(UTC+03:00) Istanbul, Moskau, Riad"],
+      ["Asia/Dubai", "(UTC+04:00) Abu Dhabi, Dubai, Maskat"],
+      ["Asia/Karachi", "(UTC+05:00) Islamabad, Karatschi, Taschkent"],
+      ["Asia/Dhaka", "(UTC+06:00) Astana, Dhaka"],
+      ["Asia/Bangkok", "(UTC+07:00) Bangkok, Hanoi, Jakarta"],
+      ["Asia/Shanghai", "(UTC+08:00) Peking, Hongkong, Singapur, Taipeh"],
+      ["Asia/Tokyo", "(UTC+09:00) Osaka, Sapporo, Seoul, Tokio"],
+      ["Australia/Sydney", "(UTC+10:00) Canberra, Melbourne, Sydney"],
+      ["Pacific/Guadalcanal", "(UTC+11:00) Salomonen, Neukaledonien"],
+      ["Pacific/Auckland", "(UTC+12:00) Auckland, Fidschi"]
+    ],
+    tr: [
+      ["Etc/GMT+12", "(UTC-12:00) Uluslararası Tarih Çizgisi Batı"],
+      ["Etc/GMT+11", "(UTC-11:00) Eşgüdümlü Evrensel Zaman-11"],
+      ["Pacific/Honolulu", "(UTC-10:00) Hawaii"],
+      ["America/Anchorage", "(UTC-09:00) Alaska"],
+      ["America/Los_Angeles", "(UTC-08:00) Pasifik Saati - ABD & Kanada"],
+      ["America/Denver", "(UTC-07:00) Dağ Saati - ABD & Kanada"],
+      ["America/Chicago", "(UTC-06:00) Merkezi Saat - ABD & Kanada"],
+      ["America/New_York", "(UTC-05:00) Doğu Saati - ABD & Kanada"],
+      ["America/Halifax", "(UTC-04:00) Atlantik Saati - Kanada"],
+      ["America/Argentina/Buenos_Aires", "(UTC-03:00) Buenos Aires, Grönland"],
+      ["Etc/GMT+2", "(UTC-02:00) Orta Atlantik"],
+      ["Atlantic/Azores", "(UTC-01:00) Azorlar, Cape Verde"],
+      ["Europe/London", "(UTC+00:00) Dublin, Edinburgh, Lizbon, Londra"],
+      ["Europe/Berlin", "(UTC+01:00) Amsterdam, Berlin, Bern, Roma, Stockholm, Viyana"],
+      ["Europe/Athens", "(UTC+02:00) Atina, Bükreş, Kahire, Helsinki"],
+      ["Europe/Istanbul", "(UTC+03:00) İstanbul, Moskova, Riyad"],
+      ["Asia/Dubai", "(UTC+04:00) Abu Dabi, Dubai, Maskat"],
+      ["Asia/Karachi", "(UTC+05:00) İslamabad, Karaçi, Taşkent"],
+      ["Asia/Dhaka", "(UTC+06:00) Astana, Dakka"],
+      ["Asia/Bangkok", "(UTC+07:00) Bangkok, Hanoi, Jakarta"],
+      ["Asia/Shanghai", "(UTC+08:00) Pekin, Hong Kong, Singapur, Taipei"],
+      ["Asia/Tokyo", "(UTC+09:00) Osaka, Sapporo, Seul, Tokyo"],
+      ["Australia/Sydney", "(UTC+10:00) Canberra, Melbourne, Sidney"],
+      ["Pacific/Guadalcanal", "(UTC+11:00) Solomon Adaları, Yeni Kaledonya"],
+      ["Pacific/Auckland", "(UTC+12:00) Auckland, Fiji"]
+    ],
+    ar: [
+      ["Etc/GMT+12", "(UTC-12:00) خط التاريخ الدولي غرباً"],
+      ["Etc/GMT+11", "(UTC-11:00) التوقيت العالمي المنسق-11"],
+      ["Pacific/Honolulu", "(UTC-10:00) هاواي"],
+      ["America/Anchorage", "(UTC-09:00) ألاسكا"],
+      ["America/Los_Angeles", "(UTC-08:00) توقيت المحيط الهادئ - الولايات المتحدة وكندا"],
+      ["America/Denver", "(UTC-07:00) توقيت الجبال - الولايات المتحدة وكندا"],
+      ["America/Chicago", "(UTC-06:00) التوقيت المركزي - الولايات المتحدة وكندا"],
+      ["America/New_York", "(UTC-05:00) التوقيت الشرقي - الولايات المتحدة وكندا"],
+      ["America/Halifax", "(UTC-04:00) توقيت الأطلسي - كندا"],
+      ["America/Argentina/Buenos_Aires", "(UTC-03:00) بوينس آيرس، غرينلاند"],
+      ["Etc/GMT+2", "(UTC-02:00) وسط الأطلسي"],
+      ["Atlantic/Azores", "(UTC-01:00) الأزور، الرأس الأخضر"],
+      ["Europe/London", "(UTC+00:00) دبلن، إدنبرة، لشبونة، لندن"],
+      ["Europe/Berlin", "(UTC+01:00) أمستردام، برلين، برن، روما، ستوكهولم، فيينا"],
+      ["Europe/Athens", "(UTC+02:00) أثينا، بوخارست، القاهرة، هلسنكي"],
+      ["Europe/Istanbul", "(UTC+03:00) إسطنبول، موسكو، الرياض"],
+      ["Asia/Dubai", "(UTC+04:00) أبوظبي، دبي، مسقط"],
+      ["Asia/Karachi", "(UTC+05:00) إسلام آباد، كراتشي، طشقند"],
+      ["Asia/Dhaka", "(UTC+06:00) أستانا، دكا"],
+      ["Asia/Bangkok", "(UTC+07:00) بانكوك، هانوي، جاكرتا"],
+      ["Asia/Shanghai", "(UTC+08:00) بكين، هونغ كونغ، سنغافورة، تايبيه"],
+      ["Asia/Tokyo", "(UTC+09:00) أوساكا، سابورو، سيول، طوكيو"],
+      ["Australia/Sydney", "(UTC+10:00) كانبرا، ملبورن، سيدني"],
+      ["Pacific/Guadalcanal", "(UTC+11:00) جزر سليمان، كاليدونيا الجديدة"],
+      ["Pacific/Auckland", "(UTC+12:00) أوكلاند، فيجي"]
+    ],
+    ru: [
+      ["Etc/GMT+12", "(UTC-12:00) Международная линия перемены даты - запад"],
+      ["Etc/GMT+11", "(UTC-11:00) Всемирное координированное время-11"],
+      ["Pacific/Honolulu", "(UTC-10:00) Гавайи"],
+      ["America/Anchorage", "(UTC-09:00) Аляска"],
+      ["America/Los_Angeles", "(UTC-08:00) Тихоокеанское время - США и Канада"],
+      ["America/Denver", "(UTC-07:00) Горное время - США и Канада"],
+      ["America/Chicago", "(UTC-06:00) Центральное время - США и Канада"],
+      ["America/New_York", "(UTC-05:00) Восточное время - США и Канада"],
+      ["America/Halifax", "(UTC-04:00) Атлантическое время - Канада"],
+      ["America/Argentina/Buenos_Aires", "(UTC-03:00) Буэнос-Айрес, Гренландия"],
+      ["Etc/GMT+2", "(UTC-02:00) Средняя Атлантика"],
+      ["Atlantic/Azores", "(UTC-01:00) Азоры, Кабо-Верде"],
+      ["Europe/London", "(UTC+00:00) Дублин, Эдинбург, Лиссабон, Лондон"],
+      ["Europe/Berlin", "(UTC+01:00) Амстердам, Берлин, Берн, Рим, Стокгольм, Вена"],
+      ["Europe/Athens", "(UTC+02:00) Афины, Бухарест, Каир, Хельсинки"],
+      ["Europe/Istanbul", "(UTC+03:00) Стамбул, Москва, Эр-Рияд"],
+      ["Asia/Dubai", "(UTC+04:00) Абу-Даби, Дубай, Маскат"],
+      ["Asia/Karachi", "(UTC+05:00) Исламабад, Карачи, Ташкент"],
+      ["Asia/Dhaka", "(UTC+06:00) Астана, Дакка"],
+      ["Asia/Bangkok", "(UTC+07:00) Бангкок, Ханой, Джакарта"],
+      ["Asia/Shanghai", "(UTC+08:00) Пекин, Гонконг, Сингапур, Тайбэй"],
+      ["Asia/Tokyo", "(UTC+09:00) Осака, Саппоро, Сеул, Токио"],
+      ["Australia/Sydney", "(UTC+10:00) Канберра, Мельбурн, Сидней"],
+      ["Pacific/Guadalcanal", "(UTC+11:00) Соломоновы острова, Новая Каледония"],
+      ["Pacific/Auckland", "(UTC+12:00) Окленд, Фиджи"]
+    ]
+  };
+
+  return labels[language] || labels.en;
+}
+
+function getAdminTimezoneOptions(selectedTimezone, language = "en") {
+  return getAdminTimezoneGroups(language).map((entry) => {
+    const value = entry[0];
+    const label = entry[1];
+    const selected = value === selectedTimezone ? "selected" : "";
+
+    return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
+
+function formatMessageSource(messageType, direction = "") {
+  const value = String(messageType || "text");
+
+  if (direction === "incoming") return "Incoming";
+  if (value === "ai_reply") return "AI";
+  if (value === "learned_rule_reply") return "Learned Rule";
+  if (value === "admin_reply") return "Admin";
+  if (value === "delivery_eta") return "Delivery ETA";
+  if (value === "text") return "Rule Base";
+
+  return value;
 }
 
 function escapeHtml(value) {
@@ -1129,6 +2617,120 @@ function handleAdminLogout() {
   });
 }
 
+
+async function getLearnedPatternsForAdmin(env) {
+  const result = await env.DB.prepare(
+    `
+    SELECT lp.*, p.name AS product_name
+    FROM learned_patterns lp
+    LEFT JOIN products p ON p.id = lp.product_id
+    ORDER BY
+      CASE lp.status
+        WHEN 'pending' THEN 0
+        WHEN 'approved' THEN 1
+        ELSE 2
+      END,
+      lp.created_at DESC
+    LIMIT 100
+    `
+  ).all();
+
+  return result.results;
+}
+
+async function handleApproveLearnedPattern(env, patternId) {
+  await env.DB.prepare(
+    `
+    UPDATE learned_patterns
+    SET status = 'approved',
+        approved_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+    `
+  ).bind(patternId).run();
+
+  const pattern = await env.DB.prepare(
+    "SELECT * FROM learned_patterns WHERE id = ?"
+  ).bind(patternId).first();
+
+  if (pattern && pattern.intent === "product_specific" && pattern.product_id) {
+    await env.DB.prepare(
+      "INSERT INTO product_aliases (product_id, alias) VALUES (?, ?)"
+    ).bind(pattern.product_id, pattern.normalized_pattern).run();
+  }
+
+  return redirectResponse("/admin");
+}
+
+async function handleRejectLearnedPattern(env, patternId) {
+  await env.DB.prepare(
+    "UPDATE learned_patterns SET status = 'rejected' WHERE id = ?"
+  ).bind(patternId).run();
+
+  return redirectResponse("/admin");
+}
+
+async function handleDeleteLearnedPattern(env, patternId) {
+  await env.DB.prepare(
+    "DELETE FROM learned_patterns WHERE id = ?"
+  ).bind(patternId).run();
+
+  return redirectResponse("/admin");
+}
+
+async function getAiUsageStats(env) {
+  const lastHour = await env.DB.prepare(
+    `
+    SELECT COUNT(*) AS count
+    FROM messages
+    WHERE message_type = 'ai_reply'
+      AND created_at >= datetime('now', '-1 hour')
+    `
+  ).first();
+
+  const last24Hours = await env.DB.prepare(
+    `
+    SELECT COUNT(*) AS count
+    FROM messages
+    WHERE message_type = 'ai_reply'
+      AND created_at >= datetime('now', '-24 hours')
+    `
+  ).first();
+
+  const lastWeek = await env.DB.prepare(
+    `
+    SELECT COUNT(*) AS count
+    FROM messages
+    WHERE message_type = 'ai_reply'
+      AND created_at >= datetime('now', '-7 days')
+    `
+  ).first();
+
+  const lastMonth = await env.DB.prepare(
+    `
+    SELECT COUNT(*) AS count
+    FROM messages
+    WHERE message_type = 'ai_reply'
+      AND created_at >= datetime('now', '-30 days')
+    `
+  ).first();
+
+  const total = await env.DB.prepare(
+    `
+    SELECT COUNT(*) AS count
+    FROM messages
+    WHERE message_type = 'ai_reply'
+    `
+  ).first();
+
+  return {
+    lastHour: lastHour.count || 0,
+    last24Hours: last24Hours.count || 0,
+    lastWeek: lastWeek.count || 0,
+    lastMonth: lastMonth.count || 0,
+    total: total.count || 0
+  };
+}
+
 async function getAdminData(env) {
   const [customers, products, meetingPoints, aliasMap] = await Promise.all([
     env.DB.prepare("SELECT * FROM customers ORDER BY last_seen_at DESC").all(),
@@ -1141,6 +2743,8 @@ async function getAdminData(env) {
     customers: customers.results,
     products,
     meetingPoints,
+    learnedPatterns: await getLearnedPatternsForAdmin(env),
+    aiUsageStats: await getAiUsageStats(env),
     productAliasMap: aliasMap,
     settings: {
       admin_telegram_chat_id: await getSetting(env, "admin_telegram_chat_id") || "",
@@ -1150,12 +2754,15 @@ async function getAdminData(env) {
       working_hours_end: await getSetting(env, "working_hours_end") || "22:00",
       working_hours_closed_message: await getSetting(env, "working_hours_closed_message") || "",
       working_hours_message_mode: await getSetting(env, "working_hours_message_mode") || "custom",
-      admin_view_language: await getSetting(env, "admin_view_language") || "en"
+      admin_view_language: await getSetting(env, "admin_view_language") || "en",
+      ai_response_mode: await getSetting(env, "ai_response_mode") || "rule_base",
+      ai_custom_instructions: await getSetting(env, "ai_custom_instructions") || ""
     }
   };
 }
 
 function renderAdminDashboard(data) {
+  const ui = i18nAdmin(data.settings.admin_view_language);
   const adminText = ADMIN_TEXTS[data.settings.admin_view_language] || ADMIN_TEXTS.en;
 
   const productRows = data.products.map((product) => `
@@ -1166,10 +2773,10 @@ function renderAdminDashboard(data) {
         <td><input type="number" step="0.01" name="price" value="${escapeHtml(product.price)}" required></td>
         <td><textarea name="aliases" rows="2" cols="40">${escapeHtml((data.productAliasMap[product.id] || []).join(", "))}</textarea></td>
         <td><input type="checkbox" name="is_active" ${product.is_active ? "checked" : ""}></td>
-        <td><button type="submit">Save</button>
+        <td><button type="submit">${ui.save}</button>
       </form>
       <form action="/admin/products/${product.id}/delete" method="post" style="display:inline;">
-        <button type="submit">Delete</button>
+        <button type="submit">${ui.delete}</button>
       </form></td>
     </tr>
   `).join("");
@@ -1182,16 +2789,41 @@ function renderAdminDashboard(data) {
         <td><input type="text" name="address" value="${escapeHtml(point.address)}" size="50" required></td>
         <td>
           <input type="text" name="google_maps_link" value="${escapeHtml(point.google_maps_link)}" size="50" required>
-          <br><a href="${escapeHtml(point.google_maps_link)}" target="_blank">Open Map</a>
+          <br><a href="${escapeHtml(point.google_maps_link)}" target="_blank">${ui.open_map}</a>
         </td>
         <td>${point.is_default ? "True" : "False"}</td>
         <td><input type="checkbox" name="is_active" ${point.is_active ? "checked" : ""}></td>
-        <td><button type="submit">Save</button>
+        <td><button type="submit">${ui.save}</button>
       </form>
-      ${point.is_active ? `<form action="/admin/meeting-points/${point.id}/default" method="post" style="display:inline;"><button type="submit">Set Preferred</button></form>` : ""}
+      ${point.is_active ? `<form action="/admin/meeting-points/${point.id}/default" method="post" style="display:inline;"><button type="submit">${ui.set_preferred}</button></form>` : ""}
       <form action="/admin/meeting-points/${point.id}/delete" method="post" style="display:inline;">
-        <button type="submit">Delete</button>
+        <button type="submit">${ui.delete}</button>
       </form></td>
+    </tr>
+  `).join("");
+
+  const learnedPatternRows = data.learnedPatterns.map((pattern) => `
+    <tr>
+      <td>${pattern.id}</td>
+      <td>${escapeHtml(pattern.pattern_text)}</td>
+      <td>${escapeHtml(i18nIntent(pattern.intent, ui._language))}</td>
+      <td>${escapeHtml(pattern.product_name || "")}</td>
+      <td>${escapeHtml(pattern.response_text || "")}</td>
+      <td>${escapeHtml(i18nStatus(pattern.status, ui._language))}</td>
+      <td>${escapeHtml(pattern.hit_count)}</td>
+      <td>
+        ${pattern.status === "pending" ? `
+        <form action="/admin/learned-patterns/${pattern.id}/approve" method="post" style="display:inline;">
+          <button type="submit">${ui.approve}</button>
+        </form>
+        <form action="/admin/learned-patterns/${pattern.id}/reject" method="post" style="display:inline;">
+          <button type="submit">${ui.reject}</button>
+        </form>
+        ` : ""}
+        <form action="/admin/learned-patterns/${pattern.id}/delete" method="post" style="display:inline;">
+          <button type="submit">${ui.delete}</button>
+        </form>
+      </td>
     </tr>
   `).join("");
 
@@ -1202,7 +2834,7 @@ function renderAdminDashboard(data) {
       <td>${escapeHtml(customer.username)}</td>
       <td>${escapeHtml(customer.language)}</td>
       <td>${escapeHtml(customer.last_seen_at)}</td>
-      <td><a href="/admin/customers/${customer.id}">View History</a></td>
+      <td><a href="/admin/customers/${customer.id}">${ui.view_history}</a></td>
     </tr>
   `).join("");
 
@@ -1218,113 +2850,185 @@ function renderAdminDashboard(data) {
 </head>
 <body>
 <div class="admin-header">
-  <h1>CRM Delivery Admin</h1>
+  <h1>${ui.title}</h1>
   <div class="header-actions">
-    <form action="/admin/logout" method="post"><button type="submit">Logout</button></form>
-    <a href="/admin/change-password"><button type="button">Change Password</button></a>
+    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
+    <a href="/admin/change-password"><button type="button">${ui.change_password}</button></a>
   </div>
 </div>
 <hr><hr>
-<div class="page-actions"><a href="/admin/openrequests/"><button type="button">Open Requests</button></a></div>
+<div class="page-actions"><a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a></div>
 <hr><hr>
 
-<h2>Admin Language</h2>
+<h2>${ui.admin_language}</h2>
 <form action="/admin/settings/admin-language" method="post">
-  <label>View Language</label><br>
+  <label>${ui.view_language}</label><br>
   <select name="admin_view_language">
     <option value="en" ${selected(data.settings.admin_view_language, "en")}>English</option>
-    <option value="de" ${selected(data.settings.admin_view_language, "de")}>German</option>
-    <option value="tr" ${selected(data.settings.admin_view_language, "tr")}>Turkish</option>
-    <option value="ar" ${selected(data.settings.admin_view_language, "ar")}>Arabic</option>
-    <option value="ru" ${selected(data.settings.admin_view_language, "ru")}>Russian</option>
+    <option value="de" ${selected(data.settings.admin_view_language, "de")}>Deutsch</option>
+    <option value="tr" ${selected(data.settings.admin_view_language, "tr")}>Türkçe</option>
+    <option value="ar" ${selected(data.settings.admin_view_language, "ar")}>العربية</option>
+    <option value="ru" ${selected(data.settings.admin_view_language, "ru")}>Русский</option>
   </select>
-  <button type="submit">Save Language</button>
+  <button type="submit">${ui.save_language}</button>
 </form>
 <hr>
 
-<h2>Notification Settings</h2>
+<h2>${ui.notification_settings}</h2>
 <form action="/admin/settings/admin-telegram" method="post">
-  <label>Admin Telegram Chat ID</label><br>
+  <label>${ui.admin_telegram_chat_id}</label><br>
   <input type="text" name="admin_telegram_chat_id" value="${escapeHtml(data.settings.admin_telegram_chat_id)}" size="30" required>
-  <button type="submit">Save Notification Receiver</button>
+  <button type="submit">${ui.save_notification_receiver}</button>
 </form>
 <hr>
 
-<h2>Working Hours</h2>
+<h2>${ui.working_hours}</h2>
 <form action="/admin/settings/working-hours" method="post">
-  <label><input type="checkbox" name="working_hours_enabled" value="on" ${checked(data.settings.working_hours_enabled === "on")}>Enable working-hours restrictions</label>
+  <label><input type="checkbox" name="working_hours_enabled" value="on" ${checked(data.settings.working_hours_enabled === "on")}>${ui.enable_working_hours}</label>
   <br><br>
-  <label>Timezone</label><br>
-  <input type="text" name="working_hours_timezone" value="${escapeHtml(data.settings.working_hours_timezone)}" required>
+  <label>${ui.timezone}</label><br>
+  <select name="working_hours_timezone" required>
+    ${getAdminTimezoneOptions(data.settings.working_hours_timezone, ui._language)}
+  </select>
   <br><br>
-  <label>Start Time</label><br>
+  <label>${ui.start_time}</label><br>
   <input type="time" name="working_hours_start" value="${escapeHtml(data.settings.working_hours_start)}" required>
   <br><br>
-  <label>End Time</label><br>
+  <label>${ui.end_time}</label><br>
   <input type="time" name="working_hours_end" value="${escapeHtml(data.settings.working_hours_end)}" required>
   <br><br>
-  <label>Closed-hours message mode</label><br>
-  <label><input type="radio" name="working_hours_message_mode" value="auto" ${checked(data.settings.working_hours_message_mode === "auto")}>Auto message from selected working hours</label>
+  <label>${ui.closed_hours_message_mode}</label><br>
+  <label><input type="radio" name="working_hours_message_mode" value="auto" ${checked(data.settings.working_hours_message_mode === "auto")}>${ui.auto_message}</label>
   <br>
-  <label><input type="radio" name="working_hours_message_mode" value="custom" ${checked(data.settings.working_hours_message_mode !== "auto")}>Custom free-text message</label>
+  <label><input type="radio" name="working_hours_message_mode" value="custom" ${checked(data.settings.working_hours_message_mode !== "auto")}>${ui.custom_message}</label>
   <br><br>
-  <label>Custom Closed Message</label><br>
+  <label>${ui.custom_closed_message}</label><br>
   <textarea name="working_hours_closed_message" rows="3" cols="80">${escapeHtml(data.settings.working_hours_closed_message)}</textarea>
-  <p>Auto mode ignores the custom text and replies using the selected working hours in the customer's language plus English. Custom mode sends the free-text message exactly as written.</p>
+  <p>${ui.working_hours_help}</p>
   <br><br>
-  <button type="submit">Save Working Hours</button>
+  <button type="submit">${ui.save_working_hours}</button>
 </form>
 <hr>
 
-<h2>Products</h2>
+<h2>${ui.bot_response_mode}</h2>
+<form action="/admin/settings/ai-response-mode" method="post">
+  <label>
+    <input type="radio" name="ai_response_mode" value="rule_base" ${checked(data.settings.ai_response_mode !== "ai_fallback")}>
+    ${ui.respond_rule_base}
+  </label>
+
+  <br>
+
+  <label>
+    <input type="radio" name="ai_response_mode" value="ai_fallback" ${checked(data.settings.ai_response_mode === "ai_fallback")}>
+    ${ui.respond_ai}
+  </label>
+
+  <p>${ui.bot_response_help}</p>
+
+  <label>${ui.ai_project_instructions}</label><br>
+  <textarea
+    name="ai_custom_instructions"
+    rows="5"
+    cols="80"
+    placeholder="${ui.ai_project_placeholder}"
+  >${escapeHtml(data.settings.ai_custom_instructions || "")}</textarea>
+
+  <p>${ui.ai_project_help}</p>
+
+  <button type="submit">${ui.save_bot_response_mode}</button>
+</form>
+
+<hr>
+
+<h2>${ui.products}</h2>
 <table border="1" cellpadding="10">
-  <tr><th>ID</th><th>Name</th><th>Price</th><th>Aliases</th><th>Active</th><th>Action</th></tr>
+  <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.price}</th><th>${ui.aliases}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
   ${productRows}
 </table>
 
-<h3>Add Product</h3>
+<h3>${ui.add_product}</h3>
 <form action="/admin/products" method="post">
-  <label>Product Name</label><br>
+  <label>${ui.product_name}</label><br>
   <input type="text" name="name" required>
   <br><br>
-  <label>Price</label><br>
+  <label>${ui.price}</label><br>
   <input type="number" step="0.01" name="price" required>
   <br><br>
-  <button type="submit">Create Product</button>
+  <button type="submit">${ui.create_product}</button>
 </form>
 <hr>
 
-<h2>Meeting Points</h2>
+<h2>${ui.meeting_points}</h2>
 <table border="1" cellpadding="10">
-  <tr><th>ID</th><th>Name</th><th>Address</th><th>Google Maps</th><th>Preferred</th><th>Active</th><th>Action</th></tr>
+  <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.address}</th><th>${ui.google_maps}</th><th>${ui.preferred}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
   ${pointRows}
 </table>
 <p class="admin-info-text">${escapeHtml(adminText.meeting_point_help)}</p>
 
-<h3>Add Meeting Point</h3>
-<input type="text" id="location-search" placeholder="Search location..." size="50">
-<button onclick="searchLocation()">Search</button>
+<h3>${ui.add_meeting_point}</h3>
+<input type="text" id="location-search" placeholder="${ui.search_location}" size="50">
+<button onclick="searchLocation()">${ui.search}</button>
 <div id="search-results"></div>
 <br><br>
 <form action="/admin/meeting-points" method="post">
-  <label>Name</label><br>
+  <label>${ui.name}</label><br>
   <input type="text" id="name" name="name" required>
   <br><br>
-  <label>Address</label><br>
+  <label>${ui.address}</label><br>
   <input type="text" id="address" name="address" size="80" required>
   <br><br>
-  <label>Google Maps Link</label><br>
+  <label>${ui.google_maps_link}</label><br>
   <input type="text" id="google_maps_link" name="google_maps_link" size="80" required>
   <br><br>
-  <label><input type="checkbox" name="is_default">Set as preferred</label>
+  <label><input type="checkbox" name="is_default">${ui.set_as_preferred}</label>
   <br><br>
-  <button type="submit">Create Meeting Point</button>
+  <button type="submit">${ui.create_meeting_point}</button>
 </form>
 <hr>
 
-<h2>Customers</h2>
+<h2>${ui.ai_counter}</h2>
+
 <table border="1" cellpadding="10">
-  <tr><th>ID</th><th>Full Name</th><th>Username</th><th>Language</th><th>Last Seen</th><th>Action</th></tr>
+  <tr>
+    <th>${ui.last_hour}</th>
+    <th>${ui.last_24_hours}</th>
+    <th>${ui.last_week}</th>
+    <th>${ui.last_month}</th>
+    <th>${ui.total}</th>
+  </tr>
+  <tr>
+    <td>${data.aiUsageStats.lastHour}</td>
+    <td>${data.aiUsageStats.last24Hours}</td>
+    <td>${data.aiUsageStats.lastWeek}</td>
+    <td>${data.aiUsageStats.lastMonth}</td>
+    <td>${data.aiUsageStats.total}</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>${ui.ai_patterns}</h2>
+
+<table border="1" cellpadding="10">
+  <tr>
+    <th>${ui.id}</th>
+    <th>${ui.pattern}</th>
+    <th>${ui.intent}</th>
+    <th>${ui.product}</th>
+    <th>${ui.response}</th>
+    <th>${ui.status}</th>
+    <th>${ui.hits}</th>
+    <th>${ui.action}</th>
+  </tr>
+  ${learnedPatternRows}
+</table>
+
+<hr>
+
+<h2>${ui.customers}</h2>
+<table border="1" cellpadding="10">
+  <tr><th>${ui.id}</th><th>${ui.full_name}</th><th>${ui.username}</th><th>${ui.language}</th><th>${ui.last_seen}</th><th>${ui.action}</th></tr>
   ${customerRows}
 </table>
 
@@ -1502,6 +3206,28 @@ async function handleUpdateAdminLanguage(request, env) {
   return redirectResponse("/admin");
 }
 
+async function handleUpdateAiResponseMode(request, env) {
+  const form = await request.formData();
+  const mode = String(form.get("ai_response_mode") || "rule_base");
+  const customInstructions = String(
+    form.get("ai_custom_instructions") || ""
+  ).trim();
+
+  if (mode === "ai_fallback") {
+    await setSetting(env, "ai_response_mode", "ai_fallback");
+  } else {
+    await setSetting(env, "ai_response_mode", "rule_base");
+  }
+
+  await setSetting(
+    env,
+    "ai_custom_instructions",
+    customInstructions
+  );
+
+  return redirectResponse("/admin");
+}
+
 async function getOpenRequestContext(env) {
   const customers = await env.DB.prepare("SELECT * FROM customers ORDER BY last_seen_at DESC").all();
   const rows = await env.DB.prepare(
@@ -1538,27 +3264,32 @@ async function getOpenRequestContext(env) {
   };
 }
 
-function renderOpenRequestsTable(context) {
+function renderOpenRequestsTable(context, ui = i18nAdmin("en")) {
   const rows = context.openRequests.map((item) => {
     const customer = context.customerMap[item.customer_id];
-    const customerLabel = customer ? (customer.full_name || customer.username || customer.telegram_user_id) : "Unknown";
-    const quantity = item.request_type === "product_specific" ? (item.quantity || "") : item.request_count;
+    const customerLabel = customer
+      ? (customer.full_name || customer.username || customer.telegram_user_id)
+      : "Unknown";
+    const quantity = item.request_type === "product_specific"
+      ? (item.quantity || "")
+      : item.request_count;
+
     return `<tr>
       <td>${escapeHtml(customerLabel)}</td>
-      <td>${escapeHtml(item.request_type)}</td>
-      <td>${escapeHtml(item.item_name)}</td>
-      <td>${escapeHtml(quantity)}</td>
-      <td>${escapeHtml(item.request_count)}</td>
-      <td>${escapeHtml(item.status)}</td>
-      <td>${escapeHtml(item.latest_text)}${item.google_maps_link ? `<br><a href="${escapeHtml(item.google_maps_link)}" target="_blank">Open Map</a>` : ""}</td>
-      <td>${escapeHtml(item.latest_created_at)}</td>
-      <td>${customer ? `<a href="/admin/customers/${customer.id}"><button type="button" class="request-action-button">Open Customer</button></a><a href="/admin/customers/${customer.id}#send-reply"><button type="button" class="request-action-button">Answer</button></a>` : ""}</td>
+      <td>${escapeHtml(i18nRequestType(item.request_type, ui._language))}</td>
+      <td>${escapeHtml(item.item_name || "")}</td>
+      <td>${escapeHtml(quantity || "")}</td>
+      <td>${escapeHtml(item.request_count || "")}</td>
+      <td>${escapeHtml(i18nStatus(item.status, ui._language))}</td>
+      <td>${escapeHtml(item.latest_text || "")}${item.google_maps_link ? `<br><a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map}</a>` : ""}</td>
+      <td>${escapeHtml(item.latest_created_at || "")}</td>
+      <td>${customer ? `<a href="/admin/customers/${customer.id}"><button type="button" class="request-action-button">${ui.open_customer}</button></a><a href="/admin/customers/${customer.id}#send-reply"><button type="button" class="request-action-button">${ui.answer}</button></a>` : ""}</td>
       <td>
         <form action="/admin/customer-requests/group/done" method="post">
           <input type="hidden" name="customer_id" value="${escapeHtml(item.customer_id)}">
-          <input type="hidden" name="request_type" value="${escapeHtml(item.request_type)}">
+          <input type="hidden" name="request_type" value="${escapeHtml(i18nRequestType(item.request_type, ui._language))}">
           <input type="hidden" name="item_name" value="${escapeHtml(item.item_name || "")}">
-          <button type="submit">Done</button>
+          <button type="submit">${ui.done}</button>
         </form>
       </td>
     </tr>`;
@@ -1566,35 +3297,37 @@ function renderOpenRequestsTable(context) {
 
   return `<table border="1" cellpadding="10">
     <tr>
-      <th>Customer</th>
-      <th>Type</th>
-      <th>Item</th>
-      <th>Quantity</th>
-      <th>Request Count</th>
-      <th>Status</th>
-      <th>Latest Text</th>
-      <th>Latest Created At</th>
-      <th>Action</th>
-      <th>Done</th>
+      <th>${ui.customer}</th>
+      <th>${ui.type}</th>
+      <th>${ui.item}</th>
+      <th>${ui.quantity}</th>
+      <th>${ui.request_count}</th>
+      <th>${ui.status}</th>
+      <th>${ui.latest_text}</th>
+      <th>${ui.latest_created_at}</th>
+      <th>${ui.action}</th>
+      <th>${ui.done}</th>
     </tr>
     ${rows}
   </table>`;
 }
 
 async function handleOpenRequestsPage(env) {
-  const table = renderOpenRequestsTable(await getOpenRequestContext(env));
+  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
+  const table = renderOpenRequestsTable(await getOpenRequestContext(env), ui);
+
   return htmlResponse(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Open Requests</title>
+  <title>${ui.open_requests}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/static/admin.css">
 </head>
 <body>
-<h1>Open Requests</h1>
-<div class="page-actions"><a href="/admin"><button type="button">Back to Admin Dashboard</button></a></div>
+<h1>${ui.open_requests}</h1>
+<div class="page-actions"><a href="/admin"><button type="button">${ui.back_to_dashboard}</button></a></div>
 <div class="open-requests-table-actions">
-  <form action="/admin/customer-requests/all/done" method="post"><button type="submit">All Done</button></form>
+  <form action="/admin/customer-requests/all/done" method="post"><button type="submit">${ui.all_done}</button></form>
 </div>
 <div id="open-requests-container">${table}</div>
 <script>
@@ -1610,83 +3343,111 @@ setInterval(refreshOpenRequests, 10000);
 }
 
 async function handleOpenRequestsPartial(env) {
-  return htmlResponse(renderOpenRequestsTable(await getOpenRequestContext(env)));
+  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
+  return htmlResponse(renderOpenRequestsTable(await getOpenRequestContext(env), ui));
 }
 
 async function handleCustomerDetail(env, customerId) {
-  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(customerId).first();
+  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?")
+    .bind(customerId)
+    .first();
+
   if (!customer) return redirectResponse("/admin");
 
-  const messages = await env.DB.prepare("SELECT * FROM messages WHERE customer_id = ? ORDER BY created_at DESC").bind(customerId).all();
-  const requests = await env.DB.prepare("SELECT * FROM customer_requests WHERE customer_id = ? ORDER BY created_at DESC").bind(customerId).all();
+  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
+
+  const messages = await env.DB.prepare(
+    "SELECT * FROM messages WHERE customer_id = ? ORDER BY created_at DESC"
+  ).bind(customerId).all();
+
+  const requests = await env.DB.prepare(
+    "SELECT * FROM customer_requests WHERE customer_id = ? ORDER BY created_at DESC"
+  ).bind(customerId).all();
 
   const requestRows = requests.results.map((item) => `<tr>
     <td>${item.id}</td>
-    <td>${escapeHtml(item.request_type)}</td>
-    <td>${escapeHtml(item.status)}</td>
+    <td>${escapeHtml(i18nRequestType(item.request_type, ui._language))}</td>
+    <td>${escapeHtml(i18nStatus(item.status, ui._language))}</td>
     <td>${escapeHtml(item.item_name || "")}</td>
     <td>${escapeHtml(item.quantity || "")}</td>
-    <td>${escapeHtml(item.request_text)}${item.google_maps_link ? `<br><a href="${escapeHtml(item.google_maps_link)}" target="_blank">Open Map</a>` : ""}</td>
-    <td>${escapeHtml(item.created_at)}</td>
+    <td>${escapeHtml(item.request_text || "")}${item.google_maps_link ? `<br><a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map}</a>` : ""}</td>
+    <td>${escapeHtml(item.created_at || "")}</td>
     <td>
       <form action="/admin/customer-requests/${item.id}/status" method="post">
         <select name="status">
-          <option value="new" ${item.status === "new" ? "selected" : ""}>new</option>
-          <option value="in_progress" ${item.status === "in_progress" ? "selected" : ""}>in_progress</option>
-          <option value="done" ${item.status === "done" ? "selected" : ""}>done</option>
+          <option value="new" ${item.status === "new" ? "selected" : ""}>${ui.new_status}</option>
+          <option value="in_progress" ${item.status === "in_progress" ? "selected" : ""}>${ui.in_progress_status}</option>
+          <option value="done" ${item.status === "done" ? "selected" : ""}>${ui.done_status}</option>
         </select>
-        <button type="submit">Save</button>
+        <button type="submit">${ui.save}</button>
       </form>
     </td>
   </tr>`).join("");
 
   const messageRows = messages.results.map((message) => `<tr>
     <td>${message.id}</td>
-    <td>${escapeHtml(message.direction)}</td>
-    <td>${escapeHtml(message.content)}</td>
-    <td>${escapeHtml(message.language)}</td>
-    <td>${escapeHtml(message.created_at)}</td>
+    <td>${escapeHtml(i18nDirection(message.direction, ui._language))}</td>
+    <td>${escapeHtml(i18nMessageSource(formatMessageSource(message.message_type, message.direction), ui._language))}</td>
+    <td>${escapeHtml(message.content || "")}</td>
+    <td>${escapeHtml(message.language || "")}</td>
+    <td>${escapeHtml(message.created_at || "")}</td>
   </tr>`).join("");
 
   return htmlResponse(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Customer Detail</title>
+  <title>${ui.customer_detail}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/static/admin.css">
 </head>
 <body>
-<h1>Customer Detail</h1>
-<p><a href="/admin">Back to Admin Dashboard</a></p>
+<h1>${ui.customer_detail}</h1>
+<p><a href="/admin">${ui.back_to_dashboard}</a></p>
 
-<h2>Customer</h2>
+<h2>${ui.customer}</h2>
 <table border="1" cellpadding="8">
-  <tr><th>ID</th><td>${customer.id}</td></tr>
-  <tr><th>Telegram ID</th><td>${escapeHtml(customer.telegram_user_id)}</td></tr>
-  <tr><th>Username</th><td>${escapeHtml(customer.username)}</td></tr>
-  <tr><th>Full Name</th><td>${escapeHtml(customer.full_name)}</td></tr>
-  <tr><th>Language</th><td>${escapeHtml(customer.language)}</td></tr>
-  <tr><th>Preferred Language</th><td>${escapeHtml(customer.preferred_language)}</td></tr>
-  <tr><th>Blocked</th><td>${escapeHtml(customer.is_blocked)}</td></tr>
-  <tr><th>Last Seen</th><td>${escapeHtml(customer.last_seen_at)}</td></tr>
+  <tr><th>${ui.id}</th><td>${customer.id}</td></tr>
+  <tr><th>${ui.telegram_id}</th><td>${escapeHtml(customer.telegram_user_id || "")}</td></tr>
+  <tr><th>${ui.username}</th><td>${escapeHtml(customer.username || "")}</td></tr>
+  <tr><th>${ui.full_name}</th><td>${escapeHtml(customer.full_name || "")}</td></tr>
+  <tr><th>${ui.language}</th><td>${escapeHtml(customer.language || "")}</td></tr>
+  <tr><th>${ui.preferred_language}</th><td>${escapeHtml(customer.preferred_language || "")}</td></tr>
+  <tr><th>${ui.blocked}</th><td>${customer.is_blocked ? ui.true_value : ui.false_value}</td></tr>
+  <tr><th>${ui.last_seen}</th><td>${escapeHtml(customer.last_seen_at || "")}</td></tr>
 </table>
 
-<h2 id="send-reply">Send Reply</h2>
+<h2 id="send-reply">${ui.send_reply}</h2>
 <form action="/admin/customers/${customer.id}/reply" method="post">
   <textarea name="reply_text" rows="4" cols="80" required></textarea>
   <br><br>
-  <button type="submit">Send Reply to Customer</button>
+  <button type="submit">${ui.send_reply_to_customer}</button>
 </form>
 
-<h2>Structured Requests</h2>
+<h2>${ui.structured_requests}</h2>
 <table border="1" cellpadding="8">
-  <tr><th>ID</th><th>Type</th><th>Status</th><th>Item</th><th>Quantity</th><th>Text</th><th>Created At</th><th>Action</th></tr>
+  <tr>
+    <th>${ui.id}</th>
+    <th>${ui.type}</th>
+    <th>${ui.status}</th>
+    <th>${ui.item}</th>
+    <th>${ui.quantity}</th>
+    <th>${ui.text}</th>
+    <th>${ui.created_at}</th>
+    <th>${ui.action}</th>
+  </tr>
   ${requestRows}
 </table>
 
-<h2>Conversation History</h2>
+<h2>${ui.conversation_history}</h2>
 <table border="1" cellpadding="8">
-  <tr><th>ID</th><th>Direction</th><th>Message</th><th>Language</th><th>Created At</th></tr>
+  <tr>
+    <th>${ui.id}</th>
+    <th>${ui.direction}</th>
+    <th>${ui.source}</th>
+    <th>${ui.message}</th>
+    <th>${ui.language}</th>
+    <th>${ui.created_at}</th>
+  </tr>
   ${messageRows}
 </table>
 </body>
@@ -1886,6 +3647,375 @@ async function handleLocationMessage(env, message) {
   await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
 }
 
+
+async function getCustomerHistoryForAi(env, customerId) {
+  const result = await env.DB.prepare(
+    `
+    SELECT direction, content, message_type, created_at
+    FROM messages
+    WHERE customer_id = ?
+    ORDER BY created_at DESC
+    LIMIT 20
+    `
+  ).bind(customerId).all();
+
+  return result.results.reverse();
+}
+
+function isOpeningMessage(text) {
+  const clean = normalizeText(text);
+
+  const openings = [
+    "hello",
+    "hi",
+    "hey",
+    "hey man",
+    "naber",
+    "nbr",
+    "naber arkadas",
+    "naber genc",
+    "selam",
+    "merhaba",
+    "nasilsin",
+    "nasilsin arkadasim",
+    "hallo",
+    "servus",
+    "moin",
+    "salut",
+    "salam"
+  ];
+
+  return openings.some((opening) => (
+    clean === opening
+    || clean.startsWith(opening + " ")
+  ));
+}
+
+function isRandomKeyboardInput(text) {
+  const clean = String(text || "").trim();
+
+  if (!clean) return true;
+
+  if (isOpeningMessage(clean)) return false;
+
+  if (clean.length < 2) return true;
+
+  if (/^[^a-zA-Z0-9\u00c0-\u024f\u0600-\u06ff\u0400-\u04ff]+$/.test(clean)) {
+    return true;
+  }
+
+  if (clean.length >= 8) {
+    const letters = clean.replace(/[^a-zA-Z]/g, "");
+    const vowels = letters.match(/[aeiouAEIOU]/g) || [];
+
+    if (letters.length >= 8 && vowels.length / letters.length < 0.15) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function extractOpenAiOutputText(data) {
+  if (typeof data.output_text === "string" && data.output_text.trim()) {
+    return data.output_text.trim();
+  }
+
+  if (Array.isArray(data.output)) {
+    for (const item of data.output) {
+      if (!Array.isArray(item.content)) {
+        continue;
+      }
+
+      for (const content of item.content) {
+        if (typeof content.text === "string" && content.text.trim()) {
+          return content.text.trim();
+        }
+
+        if (typeof content.output_text === "string" && content.output_text.trim()) {
+          return content.output_text.trim();
+        }
+      }
+    }
+  }
+
+  if (
+    Array.isArray(data.choices)
+    && data.choices[0]
+    && data.choices[0].message
+    && typeof data.choices[0].message.content === "string"
+  ) {
+    return data.choices[0].message.content.trim();
+  }
+
+  return "";
+}
+
+
+function isAbusiveOrInsult(text) {
+  const clean = normalizeText(text);
+
+  const abusiveWords = [
+    "salak",
+    "aptal",
+    "gerizekali",
+    "mal",
+    "fuck",
+    "fucker",
+    "idiot",
+    "stupid",
+    "bitch",
+    "asshole",
+    "dumb",
+    "dumm",
+    "arschloch",
+    "hurensohn",
+    "orospu"
+  ];
+
+  return abusiveWords.some((word) => (
+    clean === word
+    || clean.includes(` ${word} `)
+    || clean.startsWith(`${word} `)
+    || clean.endsWith(` ${word}`)
+  ));
+}
+
+function shouldCreatePendingLearnedPattern(incomingText, aiResult) {
+  if (!aiResult || aiResult.handled !== true) {
+    return false;
+  }
+
+  if (!aiResult.reply || !String(aiResult.reply).trim()) {
+    return false;
+  }
+
+  if (isRandomKeyboardInput(incomingText)) {
+    return false;
+  }
+
+  if (isAbusiveOrInsult(incomingText)) {
+    return false;
+  }
+
+  if (isOpeningMessage(incomingText)) {
+    return true;
+  }
+
+  const intent = String(aiResult.intent || "general_answer");
+
+  if (
+    intent === "general_answer"
+    || intent === "product_list"
+    || intent === "product_specific"
+    || intent === "location"
+  ) {
+    return true;
+  }
+
+  return aiResult.learnable === true;
+}
+
+async function getAiFallbackReply(env, customer, incomingText, replyLanguage) {
+  if (!env.OPENAI_API_KEY) {
+    console.log("AI fallback skipped: OPENAI_API_KEY missing");
+    return { handled: false, reply: "" };
+  }
+
+  if (isRandomKeyboardInput(incomingText)) {
+    console.log("AI fallback skipped: random input");
+    return { handled: false, reply: "" };
+  }
+
+  const products = await getActiveProducts(env);
+  const meetingPoints = await getActiveMeetingPoints(env);
+  const history = await getCustomerHistoryForAi(env, customer.id);
+
+  const projectContext = {
+    app: {
+      name: "CRM Delivery",
+      runtime: "Cloudflare Worker + D1 + Telegram webhook",
+      rule: "local app handles known actions first; OpenAI is fallback only"
+    },
+    local_first_handlers: [
+      "commands",
+      "buttons",
+      "typed menu numbers",
+      "language selection",
+      "products",
+      "product aliases",
+      "working hours",
+      "meeting points",
+      "typed address",
+      "shared Telegram location",
+      "admin contact",
+      "admin reply",
+      "delivery ETA",
+      "approved learned patterns"
+    ],
+    admin_custom_ai_instructions:
+      await getSetting(env, "ai_custom_instructions") || "",
+    customer: {
+      id: customer.id,
+      language: customer.language,
+      preferred_language: customer.preferred_language || replyLanguage,
+      conversation_state: customer.conversation_state
+    },
+    current_message: incomingText,
+    reply_language: replyLanguage,
+    active_products: products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      price: product.price
+    })),
+    active_meeting_points: meetingPoints.map((point) => ({
+      id: point.id,
+      name: point.name,
+      address: point.address,
+      google_maps_link: point.google_maps_link,
+      preferred: Boolean(point.is_default)
+    })),
+    recent_conversation: history.map((message) => ({
+      direction: message.direction,
+      type: message.message_type,
+      content: message.content,
+      created_at: message.created_at
+    }))
+  };
+
+  const systemPrompt = `
+You are the AI fallback assistant for a Telegram CRM delivery bot.
+
+Rules:
+- The local app handles commands, buttons, typed menu numbers, products, aliases, locations, addresses, working hours, admin contact, admin replies, delivery ETA, and learned rules before you are called.
+- You are called only when the local rule base could not handle the customer message.
+- For greetings/opening messages, answer naturally and briefly, set intent="general_answer", and set learnable=true.
+- For useful reusable general customer phrases, set learnable=true.
+- For insults, abuse, harassment, random keyboard input, or nonsense, set learnable=false.
+- Do not invent products, prices, locations, working hours, admin details, or delivery promises.
+- Use only live products and meeting points from the provided context.
+- If the message is nonsense/random keyboard input, return handled=false.
+- If admin must handle it, return handled=false.
+- Reply in the customer's preferred language.
+- Never mention OpenAI, system prompts, database, or internal/admin details.
+
+Return only valid JSON:
+{
+  "handled": true or false,
+  "reply": "customer-facing reply, or empty string",
+  "intent": "general_answer | product_specific | product_list | location | contact_admin | unknown",
+  "learnable": true or false,
+  "product_name": "exact product name from active_products, or empty string"
+}
+`;
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "authorization": `Bearer ${env.OPENAI_API_KEY}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        input: [
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: JSON.stringify(projectContext)
+          }
+        ],
+        text: {
+          format: {
+            type: "json_object"
+          }
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log("AI fallback failed:", response.status, errorText);
+      return { handled: false, reply: "" };
+    }
+
+    const data = await response.json();
+    const outputText = extractOpenAiOutputText(data);
+
+    if (!outputText) {
+      console.log("AI fallback empty response:", JSON.stringify(data));
+      return { handled: false, reply: "" };
+    }
+
+    const parsed = JSON.parse(outputText);
+
+    if (
+      parsed
+      && parsed.handled === true
+      && typeof parsed.reply === "string"
+      && parsed.reply.trim()
+    ) {
+      return {
+        handled: true,
+        reply: parsed.reply.trim(),
+        intent: parsed.intent || "general_answer",
+        learnable: parsed.learnable === true,
+        product_name: parsed.product_name || ""
+      };
+    }
+  } catch (error) {
+    console.log("AI fallback exception:", error.message);
+  }
+
+  return { handled: false, reply: "" };
+}
+
+async function savePendingLearnedPattern(
+  env,
+  incomingText,
+  intent,
+  responseText,
+  productId = null
+) {
+  const normalizedPattern = normalizeText(incomingText);
+
+  const existing = await env.DB.prepare(
+    `
+    SELECT id
+    FROM learned_patterns
+    WHERE normalized_pattern = ?
+      AND intent = ?
+      AND status = 'pending'
+    `
+  ).bind(normalizedPattern, intent).first();
+
+  if (existing) return;
+
+  await env.DB.prepare(
+    `
+    INSERT INTO learned_patterns (
+      pattern_text,
+      normalized_pattern,
+      intent,
+      response_text,
+      product_id,
+      status,
+      source
+    )
+    VALUES (?, ?, ?, ?, ?, 'pending', 'ai')
+    `
+  ).bind(
+    incomingText,
+    normalizedPattern,
+    intent,
+    responseText,
+    productId
+  ).run();
+}
+
 async function handleTelegramTextMessage(env, message) {
   const incomingText = message.text || "";
   const detectedLanguage = detectLanguage(incomingText);
@@ -2003,6 +4133,53 @@ async function handleTelegramTextMessage(env, message) {
   }
 
   if (replyText === null) {
+    const aiResponseMode = await getSetting(env, "ai_response_mode") || "rule_base";
+
+    if (aiResponseMode === "ai_fallback") {
+      const aiResult = await getAiFallbackReply(
+        env,
+        customer,
+        incomingText,
+        replyLanguage
+      );
+
+      if (aiResult.handled) {
+        replyText = aiResult.reply;
+
+        if (shouldCreatePendingLearnedPattern(incomingText, aiResult)) {
+          let productId = null;
+
+          if (aiResult.product_name) {
+            const product = await env.DB.prepare(
+              "SELECT id FROM products WHERE name = ? AND is_active = 1"
+            ).bind(aiResult.product_name).first();
+
+            if (product) productId = product.id;
+          }
+
+          await savePendingLearnedPattern(
+            env,
+            incomingText,
+            aiResult.intent || "general_answer",
+            replyText,
+            productId
+          );
+        }
+
+        await saveMessage(
+          env,
+          customer.id,
+          "outgoing",
+          replyText,
+          detectedLanguage,
+          "ai_reply"
+        );
+
+        await sendTelegramMessage(env, message.chat.id, replyText);
+        return;
+      }
+    }
+
     await setCustomerState(env, customer.id, "awaiting_unresolved_option");
     replyText = t("unresolved", replyLanguage);
     replyMarkup = getLanguageKeyboard(replyLanguage);
@@ -2354,6 +4531,7 @@ async function routeRequest(request, env) {
   if (url.pathname === "/admin/settings/admin-telegram" && request.method === "POST") return handleUpdateAdminTelegram(request, env);
   if (url.pathname === "/admin/settings/working-hours" && request.method === "POST") return handleUpdateWorkingHours(request, env);
   if (url.pathname === "/admin/settings/admin-language" && request.method === "POST") return handleUpdateAdminLanguage(request, env);
+  if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
 
   if (url.pathname === "/admin/products" && request.method === "POST") return handleCreateProduct(request, env);
   const productUpdate = url.pathname.match(/^\/admin\/products\/(\d+)\/update$/);
@@ -2368,6 +4546,15 @@ async function routeRequest(request, env) {
   if (pointDefault && request.method === "POST") return handleSetPreferredMeetingPoint(env, Number(pointDefault[1]));
   const pointDelete = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/delete$/);
   if (pointDelete && request.method === "POST") return handleDeleteMeetingPoint(env, Number(pointDelete[1]));
+
+  const learnedApprove = url.pathname.match(/^\/admin\/learned-patterns\/(\d+)\/approve$/);
+  if (learnedApprove && request.method === "POST") return handleApproveLearnedPattern(env, Number(learnedApprove[1]));
+
+  const learnedReject = url.pathname.match(/^\/admin\/learned-patterns\/(\d+)\/reject$/);
+  if (learnedReject && request.method === "POST") return handleRejectLearnedPattern(env, Number(learnedReject[1]));
+
+  const learnedDelete = url.pathname.match(/^\/admin\/learned-patterns\/(\d+)\/delete$/);
+  if (learnedDelete && request.method === "POST") return handleDeleteLearnedPattern(env, Number(learnedDelete[1]));
 
   const customerDetail = url.pathname.match(/^\/admin\/customers\/(\d+)$/);
   if (customerDetail && request.method === "GET") return handleCustomerDetail(env, Number(customerDetail[1]));
