@@ -2737,33 +2737,6 @@ function makeGoogleMapsLink(latitude, longitude) {
   return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
 }
 
-function normalizeAddressSearchQuery(text) {
-  return String(text || "")
-    .replace(/straße/gi, "strasse")
-    .replace(/str\./gi, "strasse")
-    .replace(/\bstraßw\b/gi, "strasse")
-    .replace(/\bstrasw\b/gi, "strasse")
-    .replace(/\bstrabe\b/gi, "strasse")
-    .replace(/\bstrase\b/gi, "strasse")
-    .replace(/\bstrasse\b/gi, "strasse")
-    .replace(/\bstr\b/gi, "strasse")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getAddressSearchQueries(query) {
-  const original = String(query || "").trim();
-  const corrected = normalizeAddressSearchQuery(original);
-
-  if (!original) return [];
-
-  if (normalizeText(original) === normalizeText(corrected)) {
-    return [original];
-  }
-
-  return [original, corrected];
-}
-
 function extractPostalCode(text) {
   const match = String(text || "").match(/\b\d{5}\b/);
   return match ? match[0] : null;
@@ -2791,57 +2764,51 @@ async function searchLocations(env, query) {
   const collected = [];
   const seen = new Set();
 
-  const searchQueries = getAddressSearchQueries(query);
+  for (const city of allowedCities) {
+    const url = new URL("https://nominatim.openstreetmap.org/search");
+    url.searchParams.set("q", `${query}, ${city}`);
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("limit", "10");
+    url.searchParams.set("addressdetails", "1");
 
-  for (const searchQuery of searchQueries) {
-    for (const city of allowedCities) {
-      const url = new URL("https://nominatim.openstreetmap.org/search");
-      url.searchParams.set("q", `${searchQuery}, ${city}`);
-      url.searchParams.set("format", "jsonv2");
-      url.searchParams.set("limit", "10");
-      url.searchParams.set("addressdetails", "1");
+    const response = await fetch(url.toString(), {
+      headers: { "user-agent": "CRMProjectDealer/1.0" }
+    });
 
-      const response = await fetch(url.toString(), {
-        headers: { "user-agent": "CRMProjectDealer/1.0" }
-      });
+    if (!response.ok) continue;
 
-      if (!response.ok) continue;
+    const data = await response.json();
+    const cityNorm = normalizeText(city);
 
-      const data = await response.json();
-      const cityNorm = normalizeText(city);
+    for (const item of data) {
+      const displayName = item.display_name || "";
+      const displayNorm = normalizeText(displayName);
+      const address = item.address || {};
+      const itemPostalCode = String(address.postcode || "").trim();
 
-      for (const item of data) {
-        const displayName = item.display_name || "";
-        const displayNorm = normalizeText(displayName);
-        const address = item.address || {};
-        const itemPostalCode = String(address.postcode || "").trim();
+      if (!displayNorm.includes(cityNorm)) continue;
 
-        if (!displayNorm.includes(cityNorm)) continue;
-
-        if (postalCode && itemPostalCode !== postalCode && !displayName.includes(postalCode)) {
-          continue;
-        }
-
-        const key = `${item.lat}|${item.lon}|${displayName}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        collected.push({
-          name: item.name || displayName,
-          address: displayName,
-          postal_code: itemPostalCode,
-          latitude: item.lat,
-          longitude: item.lon,
-          google_maps_link: `https://www.google.com/maps?q=${item.lat},${item.lon}`
-        });
+      if (postalCode && itemPostalCode !== postalCode && !displayName.includes(postalCode)) {
+        continue;
       }
-    }
 
-    if (collected.length) break;
+      const key = `${item.lat}|${item.lon}|${displayName}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      collected.push({
+        name: item.name || displayName,
+        address: displayName,
+        postal_code: itemPostalCode,
+        latitude: item.lat,
+        longitude: item.lon,
+        google_maps_link: `https://www.google.com/maps?q=${item.lat},${item.lon}`
+      });
+    }
   }
 
   return collected
-    .sort((a, b) => addressResultScore(normalizeAddressSearchQuery(query), b) - addressResultScore(normalizeAddressSearchQuery(query), a))
+    .sort((a, b) => addressResultScore(query, b) - addressResultScore(query, a))
     .slice(0, 7);
 }
 

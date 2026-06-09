@@ -1916,7 +1916,6 @@ function escapeHtml(value) {
 
 function normalizeText(text) {
   return String(text || "")
-    .replace(/ß/g, "ss")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
@@ -2015,7 +2014,7 @@ function getClosedHoursKeyboard(language = "en") {
 }
 
 function getAdminWebKeyboard(env) {
-  const adminUrl = env.ADMIN_WEB_URL || "https://crm.ayartuerk.me/admin";
+  const adminUrl = env.ADMIN_WEB_URL || "https://crm.ayartuerk.me/admin/";
   return {
     inline_keyboard: [
       [{ text: "Open Admin Web Panel", url: adminUrl }],
@@ -2118,87 +2117,6 @@ async function setSetting(env, key, value) {
   }
 }
 
-function parseDeliveryCities(value) {
-  const raw = String(value || "").trim();
-
-  if (!raw) return ["Berlin"];
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      const cities = parsed
-        .map((city) => String(city || "").trim())
-        .filter(Boolean);
-
-      return cities.length ? [...new Set(cities)] : ["Berlin"];
-    }
-  } catch (_) {
-    // Fall back to comma parsing below.
-  }
-
-  const cities = raw
-    .split(",")
-    .map((city) => city.trim())
-    .filter(Boolean);
-
-  return cities.length ? [...new Set(cities)] : ["Berlin"];
-}
-
-async function getAllowedDeliveryCities(env) {
-  return parseDeliveryCities(await getSetting(env, "allowed_delivery_cities"));
-}
-
-async function setAllowedDeliveryCities(env, cities) {
-  const cleaned = [...new Set(
-    cities
-      .map((city) => String(city || "").trim())
-      .filter(Boolean)
-  )];
-
-  await setSetting(
-    env,
-    "allowed_delivery_cities",
-    JSON.stringify(cleaned.length ? cleaned : ["Berlin"])
-  );
-}
-
-function formatAllowedCities(cities) {
-  return cities.join(", ");
-}
-
-function detectUnsupportedDeliveryCity(text, allowedCities) {
-  const clean = normalizeText(text);
-  const allowed = allowedCities.map(normalizeText);
-
-  if (allowed.some((city) => clean.includes(city))) {
-    return null;
-  }
-
-  const knownCities = [
-    "berlin", "potsdam", "hamburg", "munich", "munchen", "muenchen",
-    "koln", "koeln", "cologne", "frankfurt", "stuttgart", "dusseldorf",
-    "duesseldorf", "dortmund", "essen", "leipzig", "bremen", "dresden",
-    "hannover", "nuremberg", "nurnberg", "nuernberg", "bonn",
-    "istanbul", "ankara", "izmir", "antalya", "bangkok", "samui",
-    "koh samui", "phangan", "koh phangan"
-  ];
-
-  return knownCities.find((city) => clean.includes(city) && !allowed.includes(city)) || null;
-}
-
-function getUnsupportedCityReply(language, allowedCities) {
-  const cities = formatAllowedCities(allowedCities);
-  const replies = {
-    en: `Delivery is not possible in that city yet. Delivery is currently available only in: ${cities}. Please enter an address in one of these cities or contact admin.`,
-    de: `Lieferung in diese Stadt ist derzeit noch nicht möglich. Lieferung ist aktuell nur hier verfügbar: ${cities}. Bitte geben Sie eine Adresse in einer dieser Städte ein oder kontaktieren Sie den Admin.`,
-    tr: `Bu şehre teslimat şu anda mümkün değil. Teslimat şu anda sadece şu şehirlerde mevcut: ${cities}. Lütfen bu şehirlerden birinde adres girin veya admin ile iletişime geçin.`,
-    ar: `التوصيل إلى هذه المدينة غير متاح حالياً. التوصيل متاح حالياً فقط في: ${cities}. يرجى إدخال عنوان في إحدى هذه المدن أو التواصل مع الإدارة.`,
-    ru: `Доставка в этот город пока недоступна. Сейчас доставка доступна только в: ${cities}. Введите адрес в одном из этих городов или свяжитесь с админом.`
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
 async function sendTelegram(method, env, payload) {
   const response = await fetch(`${TELEGRAM_API_BASE}${env.TELEGRAM_BOT_TOKEN}/${method}`, {
     method: "POST",
@@ -2279,92 +2197,6 @@ async function logCustomerRequest(env, customerId, requestType, requestText = nu
 
   return result.meta.last_row_id;
 }
-
-
-async function saveCustomerLocation(
-  env,
-  customerId,
-  source,
-  description = null,
-  latitude = null,
-  longitude = null,
-  googleMapsLink = null,
-  isPreferred = 0
-) {
-  const result = await env.DB.prepare(
-    `INSERT INTO customer_locations
-     (customer_id, source, description, latitude, longitude, google_maps_link, is_preferred)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    customerId,
-    source,
-    description,
-    latitude,
-    longitude,
-    googleMapsLink,
-    isPreferred ? 1 : 0
-  ).run();
-
-  return result.meta.last_row_id;
-}
-
-async function setPreferredCustomerLocation(env, customerId, locationId) {
-  await env.DB.prepare(
-    "UPDATE customer_locations SET is_preferred = 0 WHERE customer_id = ?"
-  ).bind(customerId).run();
-
-  await env.DB.prepare(
-    "UPDATE customer_locations SET is_preferred = 1 WHERE id = ? AND customer_id = ?"
-  ).bind(locationId, customerId).run();
-}
-
-function getSetPreferredLocationText(language = "en") {
-  const replies = {
-    en: "Set this as your preferred location?",
-    de: "Diesen Standort als bevorzugten Standort speichern?",
-    tr: "Bu konumu tercih edilen konumunuz olarak kaydedelim mi?",
-    ar: "هل تريد تعيين هذا الموقع كموقعك المفضل؟",
-    ru: "Сделать эту локацию предпочтительной?"
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getPreferredLocationSavedText(language = "en") {
-  const replies = {
-    en: "Preferred location saved.",
-    de: "Bevorzugter Standort gespeichert.",
-    tr: "Tercih edilen konum kaydedildi.",
-    ar: "تم حفظ الموقع المفضل.",
-    ru: "Предпочтительная локация сохранена."
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getPreferredLocationSkippedText(language = "en") {
-  const replies = {
-    en: "Location saved without changing your preferred location.",
-    de: "Standort gespeichert, ohne den bevorzugten Standort zu ändern.",
-    tr: "Konum kaydedildi, tercih edilen konum değiştirilmedi.",
-    ar: "تم حفظ الموقع دون تغيير موقعك المفضل.",
-    ru: "Локация сохранена без изменения предпочтительной локации."
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getSetPreferredLocationKeyboard(locationId) {
-  return {
-    inline_keyboard: [
-      [
-        { text: "Yes", callback_data: `preferred_location_yes_${locationId}` },
-        { text: "No", callback_data: `preferred_location_no_${locationId}` }
-      ]
-    ]
-  };
-}
-
 
 async function getActiveProducts(env) {
   const result = await env.DB.prepare("SELECT id, name, price, is_active FROM products WHERE is_active = 1 ORDER BY id ASC").all();
@@ -2668,29 +2500,19 @@ function getAddressChoicesKeyboard(results) {
       callback_data: `address_select_${index}`
     }
   ]);
-
   rows.push([
     {
       text: "Contact admin to describe location",
       callback_data: "option_admin"
     }
   ]);
-
-  rows.push([
-    {
-      text: "Cancel location entry",
-      callback_data: "cancel_location_entry"
-    }
-  ]);
-
   return { inline_keyboard: rows };
 }
 
 function getAddressNotFoundKeyboard() {
   return {
     inline_keyboard: [
-      [{ text: "Contact admin to describe location", callback_data: "option_admin" }],
-      [{ text: "Cancel location entry", callback_data: "cancel_location_entry" }]
+      [{ text: "Contact admin to describe location", callback_data: "option_admin" }]
     ]
   };
 }
@@ -2737,114 +2559,36 @@ function makeGoogleMapsLink(latitude, longitude) {
   return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
 }
 
-function normalizeAddressSearchQuery(text) {
-  return String(text || "")
-    .replace(/straße/gi, "strasse")
-    .replace(/str\./gi, "strasse")
-    .replace(/\bstraßw\b/gi, "strasse")
-    .replace(/\bstrasw\b/gi, "strasse")
-    .replace(/\bstrabe\b/gi, "strasse")
-    .replace(/\bstrase\b/gi, "strasse")
-    .replace(/\bstrasse\b/gi, "strasse")
-    .replace(/\bstr\b/gi, "strasse")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+async function searchLocations(query) {
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", "10");
+  url.searchParams.set("addressdetails", "1");
 
-function getAddressSearchQueries(query) {
-  const original = String(query || "").trim();
-  const corrected = normalizeAddressSearchQuery(original);
+  const response = await fetch(url.toString(), {
+    headers: { "user-agent": "CRMProjectDealer/1.0" }
+  });
 
-  if (!original) return [];
-
-  if (normalizeText(original) === normalizeText(corrected)) {
-    return [original];
+  if (!response.ok) {
+    return [];
   }
 
-  return [original, corrected];
+  const data = await response.json();
+
+  return data.map((item) => {
+    const latitude = item.lat;
+    const longitude = item.lon;
+    const displayName = item.display_name;
+    return {
+      name: item.name || displayName,
+      address: displayName,
+      latitude,
+      longitude,
+      google_maps_link: `https://www.google.com/maps?q=${latitude},${longitude}`
+    };
+  });
 }
-
-function extractPostalCode(text) {
-  const match = String(text || "").match(/\b\d{5}\b/);
-  return match ? match[0] : null;
-}
-
-function addressResultScore(query, item) {
-  const cleanQuery = normalizeText(query);
-  const displayName = normalizeText(item.address || "");
-  const name = normalizeText(item.name || "");
-  let score = 0;
-
-  for (const word of cleanQuery.split(/\s+/).filter((part) => part.length >= 3)) {
-    if (displayName.includes(word)) score += 2;
-    if (name.includes(word)) score += 3;
-  }
-
-  if (item.postal_code && cleanQuery.includes(item.postal_code)) score += 20;
-
-  return score;
-}
-
-async function searchLocations(env, query) {
-  const allowedCities = await getAllowedDeliveryCities(env);
-  const postalCode = extractPostalCode(query);
-  const collected = [];
-  const seen = new Set();
-
-  const searchQueries = getAddressSearchQueries(query);
-
-  for (const searchQuery of searchQueries) {
-    for (const city of allowedCities) {
-      const url = new URL("https://nominatim.openstreetmap.org/search");
-      url.searchParams.set("q", `${searchQuery}, ${city}`);
-      url.searchParams.set("format", "jsonv2");
-      url.searchParams.set("limit", "10");
-      url.searchParams.set("addressdetails", "1");
-
-      const response = await fetch(url.toString(), {
-        headers: { "user-agent": "CRMProjectDealer/1.0" }
-      });
-
-      if (!response.ok) continue;
-
-      const data = await response.json();
-      const cityNorm = normalizeText(city);
-
-      for (const item of data) {
-        const displayName = item.display_name || "";
-        const displayNorm = normalizeText(displayName);
-        const address = item.address || {};
-        const itemPostalCode = String(address.postcode || "").trim();
-
-        if (!displayNorm.includes(cityNorm)) continue;
-
-        if (postalCode && itemPostalCode !== postalCode && !displayName.includes(postalCode)) {
-          continue;
-        }
-
-        const key = `${item.lat}|${item.lon}|${displayName}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        collected.push({
-          name: item.name || displayName,
-          address: displayName,
-          postal_code: itemPostalCode,
-          latitude: item.lat,
-          longitude: item.lon,
-          google_maps_link: `https://www.google.com/maps?q=${item.lat},${item.lon}`
-        });
-      }
-    }
-
-    if (collected.length) break;
-  }
-
-  return collected
-    .sort((a, b) => addressResultScore(normalizeAddressSearchQuery(query), b) - addressResultScore(normalizeAddressSearchQuery(query), a))
-    .slice(0, 7);
-}
-
 
 async function getAdminChatId(env) {
   return getSetting(env, "admin_telegram_chat_id");
@@ -3244,7 +2988,6 @@ async function getAdminData(env) {
       allow_preferred_customer_location: await getSetting(env, "allow_preferred_customer_location") || "on",
       allow_new_customer_location: await getSetting(env, "allow_new_customer_location") || "on",
       allow_customer_pickup: await getSetting(env, "allow_customer_pickup") || "on",
-      allowed_delivery_cities: await getAllowedDeliveryCities(env),
       ai_response_mode: await getSetting(env, "ai_response_mode") || "rule_base",
       ai_custom_instructions: await getSetting(env, "ai_custom_instructions") || ""
     }
@@ -3458,20 +3201,6 @@ ${section === "dashboard" ? `
 
   <button type="submit">${ui.save_fulfillment_options}</button>
 </form>
-
-<hr>
-
-<h2>Delivery Cities</h2>
-<form action="/admin/settings/delivery-cities" method="post">
-  <p class="admin-info-text">Address suggestions are limited to these cities. Default city is Berlin.</p>
-
-  <label>Allowed cities</label><br>
-  <textarea name="allowed_delivery_cities" rows="3" cols="80">${escapeHtml((data.settings.allowed_delivery_cities || ["Berlin"]).join(", "))}</textarea>
-  <p>Enter cities separated by commas. Example: Berlin, Potsdam</p>
-
-  <button type="submit">Save Delivery Cities</button>
-</form>
-
 
 <h2>${ui.bot_response_mode}</h2>
 <form action="/admin/settings/ai-response-mode" method="post">
@@ -4337,19 +4066,6 @@ async function handleUpdateFulfillmentOptions(request, env) {
   return redirectResponse("/admin");
 }
 
-async function handleUpdateDeliveryCities(request, env) {
-  const form = await request.formData();
-  const raw = String(form.get("allowed_delivery_cities") || "");
-  const cities = raw
-    .split(",")
-    .map((city) => city.trim())
-    .filter(Boolean);
-
-  await setAllowedDeliveryCities(env, cities);
-
-  return redirectResponse("/admin");
-}
-
 async function handleUpdateAdminLanguage(request, env) {
   const form = await request.formData();
   let language = String(form.get("admin_view_language") || "en");
@@ -4598,18 +4314,31 @@ async function handleCustomerDetail(env, customerId) {
 
   const locations = await env.DB.prepare(`
     SELECT *
-    FROM customer_locations
+    FROM customer_requests
     WHERE customer_id = ?
-    ORDER BY is_preferred DESC, datetime(created_at) DESC, id DESC
+      AND request_type IN (
+        'delivery_location',
+        'location',
+        'telegram_location',
+        'location_share',
+        'typed_address',
+        'typed_address_location',
+        'selected_address',
+        'address',
+        'manual_location',
+        'location_description',
+        'contact_admin_location'
+      )
+    ORDER BY datetime(created_at) DESC, id DESC
   `).bind(customerId).all();
 
   const requestRows = requests.results.map((item) => `<tr>
     <td>${item.id}</td>
     <td>${escapeHtml(i18nRequestType(item.request_type, ui._language))}</td>
     <td>${escapeHtml(i18nStatus(item.status, ui._language))}</td>
-    <td>${escapeHtml(item.description || "")}</td>
+    <td>${escapeHtml(item.item_name || "")}</td>
     <td>${escapeHtml(item.quantity || "")}</td>
-    <td>${escapeHtml(item.description || "")}${item.google_maps_link ? `<br><a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map}</a>` : ""}</td>
+    <td>${escapeHtml(item.request_text || "")}${item.google_maps_link ? `<br><a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map}</a>` : ""}</td>
     <td>${escapeHtml(item.created_at || "")}</td>
     <td>
       <form action="/admin/customer-requests/${item.id}/status" method="post">
@@ -4628,14 +4357,14 @@ async function handleCustomerDetail(env, customerId) {
     const hasLongitude = item.longitude !== null && item.longitude !== undefined && String(item.longitude) !== "";
     const hasCoordinates = hasLatitude && hasLongitude;
 
-    const sourceLabel = item.source === "telegram_location"
+    const sourceLabel = hasCoordinates
       ? (ui.telegram_location || "Telegram location")
-      : (item.source === "typed_address" ? (ui.typed_address || "Typed address") : (ui.manual_location || "Manual location"));
+      : (item.google_maps_link ? (ui.typed_address || "Typed address") : (ui.manual_location || "Manual location"));
 
     const description = (
-      item.description
-      || item.description
-      || item.description
+      item.location_label
+      || item.request_text
+      || item.item_name
       || ""
     );
 
@@ -4647,10 +4376,9 @@ async function handleCustomerDetail(env, customerId) {
       <td>${escapeHtml(item.longitude || "")}</td>
       <td>${item.google_maps_link ? `<a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map || "Open Map"}</a>` : ""}</td>
       <td>${escapeHtml(sourceLabel)}</td>
-      <td>${item.is_preferred ? "Yes" : ""}</td>
       <td>${escapeHtml(item.created_at || "")}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="9">${escapeHtml(ui.no_locations || "No customer locations yet.")}</td></tr>`;
+  }).join("") || `<tr><td colspan="8">${escapeHtml(ui.no_locations || "No customer locations yet.")}</td></tr>`;
 
   const messageRows = messages.results.map((message) => `<tr>
     <td>${message.id}</td>
@@ -4735,7 +4463,6 @@ async function handleCustomerDetail(env, customerId) {
       <th>${ui.longitude || "Longitude"}</th>
       <th>${ui.google_maps || "Google Maps"}</th>
       <th>${ui.source || "Source"}</th>
-      <th>${ui.preferred || "Preferred"}</th>
       <th>${ui.created_at}</th>
     </tr>
     ${locationRows}
@@ -4973,25 +4700,7 @@ async function handleLocationMessage(env, message) {
     googleMapsLink
   );
 
-  const customerLocationId = await saveCustomerLocation(
-    env,
-    customer.id,
-    "telegram_location",
-    locationLabel,
-    latitude,
-    longitude,
-    googleMapsLink,
-    0
-  );
-
   await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
-
-  await sendTelegramMessage(
-    env,
-    message.chat.id,
-    getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
-    getSetPreferredLocationKeyboard(customerLocationId)
-  );
 
   const replyText = "Location received. We will confirm delivery shortly.";
   await sendTelegramMessage(env, message.chat.id, replyText);
@@ -5401,17 +5110,7 @@ async function handleTelegramTextMessage(env, message) {
   await saveMessage(env, customer.id, "incoming", incomingText, detectedLanguage);
 
   if (customer.conversation_state === "awaiting_typed_address") {
-    const allowedCities = await getAllowedDeliveryCities(env);
-    const unsupportedCity = detectUnsupportedDeliveryCity(incomingText, allowedCities);
-
-    if (unsupportedCity) {
-      const replyText = getUnsupportedCityReply(customer.preferred_language || "en", allowedCities);
-      await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-      await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-      return;
-    }
-
-    const results = (await searchLocations(env, incomingText)).slice(0, 7);
+    const results = (await searchLocations(incomingText)).slice(0, 7);
 
     if (results.length) {
       await setSetting(env, `address_search_results_${customer.id}`, JSON.stringify(results));
@@ -5460,18 +5159,8 @@ async function handleTelegramTextMessage(env, message) {
   }
 
   if (replyText === null && looksLikeAddress(incomingText)) {
-    const allowedCities = await getAllowedDeliveryCities(env);
-    const unsupportedCity = detectUnsupportedDeliveryCity(incomingText, allowedCities);
-
-    if (unsupportedCity) {
-      replyText = getUnsupportedCityReply(customer.preferred_language || "en", allowedCities);
-      await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-      await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-      return;
-    }
-
     await setCustomerState(env, customer.id, "awaiting_typed_address");
-    const results = (await searchLocations(env, incomingText)).slice(0, 7);
+    const results = (await searchLocations(incomingText)).slice(0, 7);
 
     if (results.length) {
       await setSetting(env, `address_search_results_${customer.id}`, JSON.stringify(results));
@@ -5481,10 +5170,7 @@ async function handleTelegramTextMessage(env, message) {
       return;
     }
 
-    replyText = t("address_not_found", customer.preferred_language || "en");
-    await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-    return;
+    await setCustomerState(env, customer.id, null);
   }
 
   if (replyText === null && isLocationRequest(incomingText)) {
@@ -5504,13 +5190,6 @@ async function handleTelegramTextMessage(env, message) {
         await forwardProductRequest(env, customer, incomingText, matchedProduct.name, quantity);
       }
     }
-  }
-
-  if (replyText === null && looksLikeAddress(incomingText)) {
-    replyText = t("address_not_found", customer.preferred_language || "en");
-    await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-    return;
   }
 
   if (replyText === null) {
@@ -5621,56 +5300,6 @@ async function handleTelegramCommand(env, message, customer, text) {
   }
 }
 
-async function handlePreferredLocationSelection(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-
-  if (callbackQuery.data.startsWith("preferred_location_yes_")) {
-    const locationId = Number(callbackQuery.data.replace("preferred_location_yes_", ""));
-
-    if (locationId) {
-      await setPreferredCustomerLocation(env, customer.id, locationId);
-    }
-
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      getPreferredLocationSavedText(language)
-    );
-    return;
-  }
-
-  if (callbackQuery.data.startsWith("preferred_location_no_")) {
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      getPreferredLocationSkippedText(language)
-    );
-  }
-}
-
-async function handleCancelLocationEntry(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-
-  await setCustomerState(env, customer.id, null);
-
-  const replies = {
-    en: "Location entry cancelled. You can now send a product name or choose an option.",
-    de: "Standorteingabe abgebrochen. Sie können jetzt einen Produktnamen senden oder eine Option auswählen.",
-    tr: "Konum girişi iptal edildi. Şimdi ürün adı gönderebilir veya bir seçenek seçebilirsiniz.",
-    ar: "تم إلغاء إدخال الموقع. يمكنك الآن إرسال اسم منتج أو اختيار خيار.",
-    ru: "Ввод локации отменён. Теперь вы можете отправить название товара или выбрать вариант."
-  };
-
-  await sendTelegramMessage(
-    env,
-    callbackQuery.message.chat.id,
-    replies[safeLang(language)] || replies.en,
-    getMenuKeyboard(language)
-  );
-}
-
 async function handleAddressSelection(env, callbackQuery) {
   const customer = await upsertCustomer(env, callbackQuery.from);
   const index = Number(callbackQuery.data.replace("address_select_", ""));
@@ -5708,26 +5337,9 @@ async function handleAddressSelection(env, callbackQuery) {
     googleMapsLink
   );
 
-  const customerLocationId = await saveCustomerLocation(
-    env,
-    customer.id,
-    "typed_address",
-    locationLabel,
-    latitude,
-    longitude,
-    googleMapsLink,
-    0
-  );
-
   await saveMessage(env, customer.id, "incoming", locationLabel, customer.preferred_language, "typed_address_location");
   await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
-
-  await sendTelegramMessage(
-    env,
-    callbackQuery.message.chat.id,
-    getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
-    getSetPreferredLocationKeyboard(customerLocationId)
-  );
+  await sendTelegramMessage(env, callbackQuery.message.chat.id, "Location received. We will confirm delivery shortly.");
 }
 
 async function handleMeetingPointSelection(env, callbackQuery) {
@@ -5901,8 +5513,6 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
 async function handleCallbackQuery(env, callbackQuery) {
   await answerCallbackQuery(env, callbackQuery.id);
 
-  if (callbackQuery.data.startsWith("preferred_location_")) return handlePreferredLocationSelection(env, callbackQuery);
-  if (callbackQuery.data === "cancel_location_entry") return handleCancelLocationEntry(env, callbackQuery);
   if (callbackQuery.data.startsWith("address_select_")) return handleAddressSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("meeting_point_select_")) return handleMeetingPointSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("delivery_")) return handleDeliveryEtaSelection(env, callbackQuery);
@@ -5979,13 +5589,12 @@ async function routeRequest(request, env) {
   if (url.pathname === "/admin/open-requests") return handleOpenRequestsPartial(env);
 
   if (url.pathname === "/admin/search-location" && request.method === "GET") {
-    return jsonResponse(await searchLocations(env, url.searchParams.get("query") || ""));
+    return jsonResponse(await searchLocations(url.searchParams.get("query") || ""));
   }
 
   if (url.pathname === "/admin/settings/admin-telegram" && request.method === "POST") return handleUpdateAdminTelegram(request, env);
   if (url.pathname === "/admin/settings/working-hours" && request.method === "POST") return handleUpdateWorkingHours(request, env);
   if (url.pathname === "/admin/settings/fulfillment-options" && request.method === "POST") return handleUpdateFulfillmentOptions(request, env);
-  if (url.pathname === "/admin/settings/delivery-cities" && request.method === "POST") return handleUpdateDeliveryCities(request, env);
   if (url.pathname === "/admin/settings/admin-language" && request.method === "POST") return handleUpdateAdminLanguage(request, env);
   if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
 

@@ -2015,7 +2015,7 @@ function getClosedHoursKeyboard(language = "en") {
 }
 
 function getAdminWebKeyboard(env) {
-  const adminUrl = env.ADMIN_WEB_URL || "https://crm.ayartuerk.me/admin";
+  const adminUrl = env.ADMIN_WEB_URL || "https://crm-delivery-worker.harunayarturk.workers.dev/admin";
   return {
     inline_keyboard: [
       [{ text: "Open Admin Web Panel", url: adminUrl }],
@@ -2291,7 +2291,7 @@ async function saveCustomerLocation(
   googleMapsLink = null,
   isPreferred = 0
 ) {
-  const result = await env.DB.prepare(
+  await env.DB.prepare(
     `INSERT INTO customer_locations
      (customer_id, source, description, latitude, longitude, google_maps_link, is_preferred)
      VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -2304,65 +2304,6 @@ async function saveCustomerLocation(
     googleMapsLink,
     isPreferred ? 1 : 0
   ).run();
-
-  return result.meta.last_row_id;
-}
-
-async function setPreferredCustomerLocation(env, customerId, locationId) {
-  await env.DB.prepare(
-    "UPDATE customer_locations SET is_preferred = 0 WHERE customer_id = ?"
-  ).bind(customerId).run();
-
-  await env.DB.prepare(
-    "UPDATE customer_locations SET is_preferred = 1 WHERE id = ? AND customer_id = ?"
-  ).bind(locationId, customerId).run();
-}
-
-function getSetPreferredLocationText(language = "en") {
-  const replies = {
-    en: "Set this as your preferred location?",
-    de: "Diesen Standort als bevorzugten Standort speichern?",
-    tr: "Bu konumu tercih edilen konumunuz olarak kaydedelim mi?",
-    ar: "هل تريد تعيين هذا الموقع كموقعك المفضل؟",
-    ru: "Сделать эту локацию предпочтительной?"
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getPreferredLocationSavedText(language = "en") {
-  const replies = {
-    en: "Preferred location saved.",
-    de: "Bevorzugter Standort gespeichert.",
-    tr: "Tercih edilen konum kaydedildi.",
-    ar: "تم حفظ الموقع المفضل.",
-    ru: "Предпочтительная локация сохранена."
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getPreferredLocationSkippedText(language = "en") {
-  const replies = {
-    en: "Location saved without changing your preferred location.",
-    de: "Standort gespeichert, ohne den bevorzugten Standort zu ändern.",
-    tr: "Konum kaydedildi, tercih edilen konum değiştirilmedi.",
-    ar: "تم حفظ الموقع دون تغيير موقعك المفضل.",
-    ru: "Локация сохранена без изменения предпочтительной локации."
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getSetPreferredLocationKeyboard(locationId) {
-  return {
-    inline_keyboard: [
-      [
-        { text: "Yes", callback_data: `preferred_location_yes_${locationId}` },
-        { text: "No", callback_data: `preferred_location_no_${locationId}` }
-      ]
-    ]
-  };
 }
 
 
@@ -2737,33 +2678,6 @@ function makeGoogleMapsLink(latitude, longitude) {
   return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
 }
 
-function normalizeAddressSearchQuery(text) {
-  return String(text || "")
-    .replace(/straße/gi, "strasse")
-    .replace(/str\./gi, "strasse")
-    .replace(/\bstraßw\b/gi, "strasse")
-    .replace(/\bstrasw\b/gi, "strasse")
-    .replace(/\bstrabe\b/gi, "strasse")
-    .replace(/\bstrase\b/gi, "strasse")
-    .replace(/\bstrasse\b/gi, "strasse")
-    .replace(/\bstr\b/gi, "strasse")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getAddressSearchQueries(query) {
-  const original = String(query || "").trim();
-  const corrected = normalizeAddressSearchQuery(original);
-
-  if (!original) return [];
-
-  if (normalizeText(original) === normalizeText(corrected)) {
-    return [original];
-  }
-
-  return [original, corrected];
-}
-
 function extractPostalCode(text) {
   const match = String(text || "").match(/\b\d{5}\b/);
   return match ? match[0] : null;
@@ -2791,57 +2705,51 @@ async function searchLocations(env, query) {
   const collected = [];
   const seen = new Set();
 
-  const searchQueries = getAddressSearchQueries(query);
+  for (const city of allowedCities) {
+    const url = new URL("https://nominatim.openstreetmap.org/search");
+    url.searchParams.set("q", `${query}, ${city}`);
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("limit", "10");
+    url.searchParams.set("addressdetails", "1");
 
-  for (const searchQuery of searchQueries) {
-    for (const city of allowedCities) {
-      const url = new URL("https://nominatim.openstreetmap.org/search");
-      url.searchParams.set("q", `${searchQuery}, ${city}`);
-      url.searchParams.set("format", "jsonv2");
-      url.searchParams.set("limit", "10");
-      url.searchParams.set("addressdetails", "1");
+    const response = await fetch(url.toString(), {
+      headers: { "user-agent": "CRMProjectDealer/1.0" }
+    });
 
-      const response = await fetch(url.toString(), {
-        headers: { "user-agent": "CRMProjectDealer/1.0" }
-      });
+    if (!response.ok) continue;
 
-      if (!response.ok) continue;
+    const data = await response.json();
+    const cityNorm = normalizeText(city);
 
-      const data = await response.json();
-      const cityNorm = normalizeText(city);
+    for (const item of data) {
+      const displayName = item.display_name || "";
+      const displayNorm = normalizeText(displayName);
+      const address = item.address || {};
+      const itemPostalCode = String(address.postcode || "").trim();
 
-      for (const item of data) {
-        const displayName = item.display_name || "";
-        const displayNorm = normalizeText(displayName);
-        const address = item.address || {};
-        const itemPostalCode = String(address.postcode || "").trim();
+      if (!displayNorm.includes(cityNorm)) continue;
 
-        if (!displayNorm.includes(cityNorm)) continue;
-
-        if (postalCode && itemPostalCode !== postalCode && !displayName.includes(postalCode)) {
-          continue;
-        }
-
-        const key = `${item.lat}|${item.lon}|${displayName}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        collected.push({
-          name: item.name || displayName,
-          address: displayName,
-          postal_code: itemPostalCode,
-          latitude: item.lat,
-          longitude: item.lon,
-          google_maps_link: `https://www.google.com/maps?q=${item.lat},${item.lon}`
-        });
+      if (postalCode && itemPostalCode !== postalCode && !displayName.includes(postalCode)) {
+        continue;
       }
-    }
 
-    if (collected.length) break;
+      const key = `${item.lat}|${item.lon}|${displayName}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      collected.push({
+        name: item.name || displayName,
+        address: displayName,
+        postal_code: itemPostalCode,
+        latitude: item.lat,
+        longitude: item.lon,
+        google_maps_link: `https://www.google.com/maps?q=${item.lat},${item.lon}`
+      });
+    }
   }
 
   return collected
-    .sort((a, b) => addressResultScore(normalizeAddressSearchQuery(query), b) - addressResultScore(normalizeAddressSearchQuery(query), a))
+    .sort((a, b) => addressResultScore(query, b) - addressResultScore(query, a))
     .slice(0, 7);
 }
 
@@ -4647,10 +4555,9 @@ async function handleCustomerDetail(env, customerId) {
       <td>${escapeHtml(item.longitude || "")}</td>
       <td>${item.google_maps_link ? `<a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map || "Open Map"}</a>` : ""}</td>
       <td>${escapeHtml(sourceLabel)}</td>
-      <td>${item.is_preferred ? "Yes" : ""}</td>
       <td>${escapeHtml(item.created_at || "")}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="9">${escapeHtml(ui.no_locations || "No customer locations yet.")}</td></tr>`;
+  }).join("") || `<tr><td colspan="8">${escapeHtml(ui.no_locations || "No customer locations yet.")}</td></tr>`;
 
   const messageRows = messages.results.map((message) => `<tr>
     <td>${message.id}</td>
@@ -4735,7 +4642,6 @@ async function handleCustomerDetail(env, customerId) {
       <th>${ui.longitude || "Longitude"}</th>
       <th>${ui.google_maps || "Google Maps"}</th>
       <th>${ui.source || "Source"}</th>
-      <th>${ui.preferred || "Preferred"}</th>
       <th>${ui.created_at}</th>
     </tr>
     ${locationRows}
@@ -4973,7 +4879,7 @@ async function handleLocationMessage(env, message) {
     googleMapsLink
   );
 
-  const customerLocationId = await saveCustomerLocation(
+  await saveCustomerLocation(
     env,
     customer.id,
     "telegram_location",
@@ -4984,14 +4890,18 @@ async function handleLocationMessage(env, message) {
     0
   );
 
-  await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
-
-  await sendTelegramMessage(
+  await saveCustomerLocation(
     env,
-    message.chat.id,
-    getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
-    getSetPreferredLocationKeyboard(customerLocationId)
+    customer.id,
+    "typed_address",
+    locationLabel,
+    latitude,
+    longitude,
+    googleMapsLink,
+    0
   );
+
+  await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
 
   const replyText = "Location received. We will confirm delivery shortly.";
   await sendTelegramMessage(env, message.chat.id, replyText);
@@ -5621,34 +5531,6 @@ async function handleTelegramCommand(env, message, customer, text) {
   }
 }
 
-async function handlePreferredLocationSelection(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-
-  if (callbackQuery.data.startsWith("preferred_location_yes_")) {
-    const locationId = Number(callbackQuery.data.replace("preferred_location_yes_", ""));
-
-    if (locationId) {
-      await setPreferredCustomerLocation(env, customer.id, locationId);
-    }
-
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      getPreferredLocationSavedText(language)
-    );
-    return;
-  }
-
-  if (callbackQuery.data.startsWith("preferred_location_no_")) {
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      getPreferredLocationSkippedText(language)
-    );
-  }
-}
-
 async function handleCancelLocationEntry(env, callbackQuery) {
   const customer = await upsertCustomer(env, callbackQuery.from);
   const language = customer.preferred_language || customer.language || "en";
@@ -5708,26 +5590,9 @@ async function handleAddressSelection(env, callbackQuery) {
     googleMapsLink
   );
 
-  const customerLocationId = await saveCustomerLocation(
-    env,
-    customer.id,
-    "typed_address",
-    locationLabel,
-    latitude,
-    longitude,
-    googleMapsLink,
-    0
-  );
-
   await saveMessage(env, customer.id, "incoming", locationLabel, customer.preferred_language, "typed_address_location");
   await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
-
-  await sendTelegramMessage(
-    env,
-    callbackQuery.message.chat.id,
-    getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
-    getSetPreferredLocationKeyboard(customerLocationId)
-  );
+  await sendTelegramMessage(env, callbackQuery.message.chat.id, "Location received. We will confirm delivery shortly.");
 }
 
 async function handleMeetingPointSelection(env, callbackQuery) {
@@ -5901,7 +5766,6 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
 async function handleCallbackQuery(env, callbackQuery) {
   await answerCallbackQuery(env, callbackQuery.id);
 
-  if (callbackQuery.data.startsWith("preferred_location_")) return handlePreferredLocationSelection(env, callbackQuery);
   if (callbackQuery.data === "cancel_location_entry") return handleCancelLocationEntry(env, callbackQuery);
   if (callbackQuery.data.startsWith("address_select_")) return handleAddressSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("meeting_point_select_")) return handleMeetingPointSelection(env, callbackQuery);

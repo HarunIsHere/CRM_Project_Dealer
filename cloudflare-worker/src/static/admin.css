@@ -496,3 +496,356 @@ hr + hr {
     color: #1e3a8a;
     margin: 10px 0 18px;
 }
+
+
+.admin-modal-content textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 700px) {
+  .admin-modal {
+    padding: 12px;
+  }
+
+  .admin-modal-content {
+    margin: 4vh auto;
+    padding: 16px;
+  }
+}
+
+
+.customer-message-modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.customer-message-modal.is-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customer-message-modal-card {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
+}
+
+.customer-message-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.customer-message-modal-header h3 {
+  margin: 0;
+}
+
+.customer-message-modal-close {
+  font-size: 28px;
+  line-height: 1;
+  padding: 4px 12px;
+}
+
+.customer-message-modal-card textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.customer-message-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .customer-message-modal {
+    padding: 12px;
+  }
+
+  .customer-message-modal-card {
+    max-height: calc(100vh - 24px);
+    padding: 16px;
+  }
+}
+
+
+.customer-info-grid th {
+  width: 18%;
+}
+
+.customer-info-grid td {
+  width: 32%;
+}
+
+.customer-detail-tabs {
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.customer-detail-tabs button.active-tab {
+  filter: brightness(0.88);
+}
+
+@media (max-width: 800px) {
+  .customer-info-grid,
+  .customer-info-grid tbody,
+  .customer-info-grid tr,
+  .customer-info-grid th,
+  .customer-info-grid td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .customer-info-grid tr {
+    border-bottom: 1px solid #d7dee8;
+  }
+
+  .customer-info-grid th {
+    border-bottom: 0;
+  }
+
+  .customer-info-grid td {
+    border-top: 0;
+  }
+}
+
+
+.admin-search-panel {
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 12px 0 18px;
+  box-shadow: 0 14px 42px rgba(15, 23, 42, 0.06);
+}
+
+.admin-search-panel h3 {
+  margin-top: 0;
+}
+
+.admin-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-search-grid label {
+  display: block;
+}
+
+.admin-search-grid input,
+.admin-search-grid select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 700px) {
+  .admin-search-panel {
+    padding: 12px;
+  }
+
+  .admin-search-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.admin-search-panel {
+  max-width: 100%;
+}
+
+.admin-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.admin-search-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.admin-search-grid label span {
+  display: block;
+}
+
+.admin-search-grid input,
+.admin-search-grid select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 700px) {
+  .admin-search-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.admin-search-panel {
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 12px 0 18px;
+  box-shadow: 0 14px 42px rgba(15, 23, 42, 0.06);
+}
+
+.admin-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.admin-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-filter-field label {
+  font-weight: 600;
+}
+
+.admin-filter-field input,
+.admin-filter-field select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 700px) {
+  .admin-search-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.products-top-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(280px, 420px);
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.products-top-layout .admin-search-panel {
+  margin: 0;
+}
+
+.admin-filter-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.admin-filter-row label {
+  font-weight: 600;
+}
+
+.admin-filter-row input,
+.admin-filter-row select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.add-product-panel form {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .products-top-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filter-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+
+/* Forced Products page top layout */
+.products-top-layout {
+  display: grid !important;
+  grid-template-columns: minmax(420px, 1fr) minmax(320px, 420px) !important;
+  gap: 16px !important;
+  align-items: start !important;
+  width: 100% !important;
+  margin: 12px 0 18px !important;
+}
+
+.products-top-layout .admin-search-panel {
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.products-filter-panel,
+.add-product-panel {
+  min-width: 0 !important;
+}
+
+.products-top-layout .admin-filter-row {
+  display: grid !important;
+  grid-template-columns: 150px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  align-items: center !important;
+  margin-bottom: 10px !important;
+}
+
+.products-top-layout .admin-filter-row label {
+  font-weight: 600 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+.products-top-layout .admin-filter-row input,
+.products-top-layout .admin-filter-row select {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+.add-product-panel form {
+  margin: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .products-top-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .products-top-layout .admin-filter-row {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  .products-top-layout .admin-filter-row label {
+    white-space: normal !important;
+  }
+}

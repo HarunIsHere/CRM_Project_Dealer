@@ -292,8 +292,10 @@ function getAdminUiText(language = "en") {
       bot_response_mode: "Bot Response Mode",
       respond_rule_base: "Respond with own rule base",
       respond_ai: "Respond with AI when rule base cannot answer",
+      bot_response_help: "${ui.bot_response_help}",
       ai_project_instructions: "AI Project Instructions",
       ai_project_placeholder: "Extra business rules for AI fallback.",
+      ai_project_help: "${ui.ai_project_help}",
       save_bot_response_mode: "Save Bot Response Mode",
       products: "Products",
       add_product: "Add Product",
@@ -387,8 +389,10 @@ function getAdminUiText(language = "en") {
       bot_response_mode: "Bot-Antwortmodus",
       respond_rule_base: "Mit eigener Regelbasis antworten",
       respond_ai: "Mit KI antworten, wenn die Regelbasis nicht antworten kann",
+      bot_response_help: "Der Bot prüft zuerst Buttons, Menünummern, Produkte, Standorte, Adressen, Arbeitszeiten und Admin-Befehle. OpenAI wird nur verwendet, wenn die App die Nachricht nicht verarbeiten kann. Wenn auch die KI nicht helfen kann, wird das ungelöste Menü angezeigt.",
       ai_project_instructions: "KI-Projektanweisungen",
       ai_project_placeholder: "Zusätzliche Geschäftsregeln für KI-Fallback.",
+      ai_project_help: "Diese Anweisungen werden dynamisch zusammen mit Live-Produkten, Preisen, Treffpunkten, Arbeitszeiten, Kundenhistorie und App-Fähigkeiten an OpenAI gesendet.",
       save_bot_response_mode: "Bot-Antwortmodus speichern",
       products: "Produkte",
       add_product: "Produkt hinzufügen",
@@ -482,8 +486,10 @@ function getAdminUiText(language = "en") {
       bot_response_mode: "Bot Yanıt Modu",
       respond_rule_base: "Kendi kural sistemiyle yanıtla",
       respond_ai: "Kural sistemi yanıtlayamazsa AI ile yanıtla",
+      bot_response_help: "Bot önce butonları, menü numaralarını, ürünleri, konumları, adresleri, çalışma saatlerini ve admin komutlarını kontrol eder. OpenAI yalnızca uygulama mesajı işleyemezse kullanılır. AI da işleyemezse çözülemeyen menü gösterilir.",
       ai_project_instructions: "AI Proje Talimatları",
       ai_project_placeholder: "AI fallback için ek iş kuralları.",
+      ai_project_help: "Bu talimatlar canlı ürünler, fiyatlar, buluşma noktaları, çalışma saatleri, müşteri geçmişi ve uygulama kabiliyetleriyle birlikte OpenAI çağrılarına dinamik olarak eklenir.",
       save_bot_response_mode: "Bot Yanıt Modunu Kaydet",
       products: "Ürünler",
       add_product: "Ürün Ekle",
@@ -577,8 +583,10 @@ function getAdminUiText(language = "en") {
       bot_response_mode: "وضع رد البوت",
       respond_rule_base: "الرد بنظام القواعد الخاص",
       respond_ai: "الرد بالذكاء الاصطناعي عندما لا يستطيع نظام القواعد الإجابة",
+      bot_response_help: "يفحص البوت أولاً الأزرار، أرقام القوائم، المنتجات، المواقع، العناوين، ساعات العمل وأوامر الإدارة. يتم استخدام OpenAI فقط إذا لم تستطع التطبيق معالجة الرسالة. إذا لم يستطع الذكاء الاصطناعي أيضاً، تظهر قائمة غير محلولة.",
       ai_project_instructions: "تعليمات مشروع الذكاء الاصطناعي",
       ai_project_placeholder: "قواعد عمل إضافية للذكاء الاصطناعي الاحتياطي.",
+      ai_project_help: "تضاف هذه التعليمات ديناميكياً إلى طلبات OpenAI مع المنتجات والأسعار والمواقع وساعات العمل وسجل العميل وقدرات التطبيق.",
       save_bot_response_mode: "حفظ وضع رد البوت",
       products: "المنتجات",
       add_product: "إضافة منتج",
@@ -672,8 +680,10 @@ function getAdminUiText(language = "en") {
       bot_response_mode: "Режим ответа бота",
       respond_rule_base: "Отвечать собственной системой правил",
       respond_ai: "Отвечать через AI, если правила не смогли ответить",
+      bot_response_help: "Бот сначала проверяет кнопки, номера меню, продукты, локации, адреса, рабочие часы и команды администратора. OpenAI используется только если приложение не может обработать сообщение.",
       ai_project_instructions: "Инструкции AI проекта",
       ai_project_placeholder: "Дополнительные бизнес-правила для AI fallback.",
+      ai_project_help: "Эти инструкции динамически добавляются к вызовам OpenAI вместе с продуктами, ценами, точками встречи, рабочими часами, историей клиента и возможностями приложения.",
       save_bot_response_mode: "Сохранить режим ответа бота",
       products: "Продукты",
       add_product: "Добавить продукт",
@@ -774,8 +784,10 @@ function getAdminDashboardUiText(language = "en") {
       bot_response_mode: "Bot Response Mode",
       respond_rule_base: "Respond with own rule base",
       respond_ai: "Respond with AI when rule base cannot answer",
+      bot_response_help: "${ui.bot_response_help}",
       ai_project_instructions: "AI Project Instructions",
       ai_project_placeholder: "Extra business rules for AI fallback.",
+      ai_project_help: "${ui.ai_project_help}",
       save_bot_response_mode: "Save Bot Response Mode",
       products: "Products",
       id: "ID",
@@ -846,8 +858,10 @@ function getAdminDashboardUiText(language = "en") {
       bot_response_mode: "Bot-Antwortmodus",
       respond_rule_base: "Mit eigener Regelbasis antworten",
       respond_ai: "Mit KI antworten, wenn die Regelbasis nicht antworten kann",
+      bot_response_help: "Der Bot prüft zuerst Buttons, Menünummern, Produkte, Standorte, Adressen, Arbeitszeiten und Admin-Befehle. OpenAI wird nur verwendet, wenn die App die Nachricht nicht verarbeiten kann. Wenn auch die KI nicht helfen kann, wird das ungelöste Menü angezeigt.",
       ai_project_instructions: "KI-Projektanweisungen",
       ai_project_placeholder: "Zusätzliche Geschäftsregeln für KI-Fallback.",
+      ai_project_help: "Diese Anweisungen werden dynamisch zusammen mit Live-Produkten, Preisen, Treffpunkten, Arbeitszeiten, Kundenhistorie und App-Fähigkeiten an OpenAI gesendet.",
       save_bot_response_mode: "Bot-Antwortmodus speichern",
       products: "Produkte",
       id: "ID",
@@ -918,8 +932,10 @@ function getAdminDashboardUiText(language = "en") {
       bot_response_mode: "Bot Yanıt Modu",
       respond_rule_base: "Kendi kural sistemiyle yanıtla",
       respond_ai: "Kural sistemi yanıtlayamazsa AI ile yanıtla",
+      bot_response_help: "Bot önce butonları, menü numaralarını, ürünleri, konumları, adresleri, çalışma saatlerini ve admin komutlarını kontrol eder. OpenAI yalnızca uygulama mesajı işleyemezse kullanılır. AI da işleyemezse çözülemeyen menü gösterilir.",
       ai_project_instructions: "AI Proje Talimatları",
       ai_project_placeholder: "AI fallback için ek iş kuralları.",
+      ai_project_help: "Bu talimatlar canlı ürünler, fiyatlar, buluşma noktaları, çalışma saatleri, müşteri geçmişi ve uygulama kabiliyetleriyle birlikte OpenAI çağrılarına dinamik olarak eklenir.",
       save_bot_response_mode: "Bot Yanıt Modunu Kaydet",
       products: "Ürünler",
       id: "ID",
@@ -990,8 +1006,10 @@ function getAdminDashboardUiText(language = "en") {
       bot_response_mode: "وضع رد البوت",
       respond_rule_base: "الرد بنظام القواعد الخاص",
       respond_ai: "الرد بالذكاء الاصطناعي عندما لا يستطيع نظام القواعد الإجابة",
+      bot_response_help: "يفحص البوت أولاً الأزرار وأرقام القوائم والمنتجات والمواقع والعناوين وساعات العمل وأوامر الإدارة. يتم استخدام OpenAI فقط إذا لم يستطع التطبيق معالجة الرسالة. إذا لم يستطع الذكاء الاصطناعي أيضاً، تظهر القائمة غير المحلولة.",
       ai_project_instructions: "تعليمات مشروع الذكاء الاصطناعي",
       ai_project_placeholder: "قواعد عمل إضافية للذكاء الاصطناعي الاحتياطي.",
+      ai_project_help: "تضاف هذه التعليمات ديناميكياً إلى طلبات OpenAI مع المنتجات والأسعار والمواقع وساعات العمل وسجل العميل وقدرات التطبيق.",
       save_bot_response_mode: "حفظ وضع رد البوت",
       products: "المنتجات",
       id: "ID",
@@ -1062,8 +1080,10 @@ function getAdminDashboardUiText(language = "en") {
       bot_response_mode: "Режим ответа бота",
       respond_rule_base: "Отвечать собственной системой правил",
       respond_ai: "Отвечать через AI, если правила не смогли ответить",
+      bot_response_help: "Бот сначала проверяет кнопки, номера меню, продукты, локации, адреса, рабочие часы и команды администратора. OpenAI используется только если приложение не может обработать сообщение.",
       ai_project_instructions: "Инструкции AI проекта",
       ai_project_placeholder: "Дополнительные бизнес-правила для AI fallback.",
+      ai_project_help: "Эти инструкции динамически добавляются к вызовам OpenAI вместе с продуктами, ценами, точками встречи, рабочими часами, историей клиента и возможностями приложения.",
       save_bot_response_mode: "Сохранить режим ответа бота",
       products: "Продукты",
       id: "ID",
@@ -1115,31 +1135,6 @@ function getAdminDashboardUiText(language = "en") {
 }
 
 
-
-function i18nBoolean(value, language = "en") {
-  const normalized = String(value).toLowerCase();
-
-  const isTrue = (
-    normalized === "true"
-    || normalized === "1"
-    || normalized === "yes"
-    || normalized === "on"
-  );
-
-  const labels = {
-    en: { yes: "Yes", no: "No" },
-    de: { yes: "Ja", no: "Nein" },
-    tr: { yes: "Evet", no: "Hayır" },
-    ar: { yes: "نعم", no: "لا" },
-    ru: { yes: "Да", no: "Нет" }
-  };
-
-  const selected = labels[language] || labels.en;
-
-  return isTrue ? selected.yes : selected.no;
-}
-
-
 function i18nAdmin(language = "en") {
   const base = (
     typeof getAdminDashboardUiText === "function"
@@ -1149,46 +1144,6 @@ function i18nAdmin(language = "en") {
 
   const extra = {
     en: {
-      save_ai_response_mode: "Save Bot Response Mode",
-      ai_project_instructions: "AI Project Instructions",
-      ai_fallback_mode: "Respond with AI when rule base cannot answer",
-      rule_base_mode: "Respond with own rule base",
-      fulfillment_options_help: "These settings control which location choices are shown to customers after they request a product.",
-      save_fulfillment_options: "Save Fulfillment Options",
-      allow_customer_pickup: "Allow customer pickup from our location",
-      allow_new_customer_location: "Allow delivery to a new customer location",
-      allow_preferred_customer_location: "Allow delivery to preferred customer location",
-      fulfillment_options: "Fulfillment / Location Options",
-      open_map: "Open Map",
-      no_locations: "No customer locations yet.",
-      manual_location: "Manual location",
-      typed_address: "Typed address",
-      telegram_location: "Telegram location",
-      google_maps: "Google Maps",
-      longitude: "Longitude",
-      latitude: "Latitude",
-      location_description: "Location / Description",
-      customer_locations: "Customer Locations",
-      price_max: "Maximum price",
-      price_min: "Minimum price",
-      search_filters: "Search / Filters",
-      clear_filters: "Clear Filters",
-      search_name_username: "Search full name / username",
-      search_product: "Search name / alias",
-      id_filter: "ID",
-      language_filter: "Language",
-      all_languages: "All languages",
-      last_seen_from: "Last seen from",
-      last_seen_to: "Last seen to",
-      active_status: "Active status",
-      all_statuses: "All statuses",
-      active_only: "Active only",
-      inactive_only: "Inactive only",
-      fuzzy_cutoff_note: "Fuzzy match cutoff: 80",
-      general: "General",
-      message_customer: "Message Customer",
-      send: "Send",
-      cancel: "Cancel",
       back_to_dashboard: "Back to Admin Dashboard",
       all_done: "All Done",
       customer: "Customer",
@@ -1226,46 +1181,6 @@ function i18nAdmin(language = "en") {
       false_value: "False"
     },
     de: {
-      save_ai_response_mode: "Bot-Antwortmodus speichern",
-      ai_project_instructions: "KI-Projektanweisungen",
-      ai_fallback_mode: "Mit KI antworten, wenn die Regelbasis nicht antworten kann",
-      rule_base_mode: "Mit eigener Regelbasis antworten",
-      fulfillment_options_help: "Diese Einstellungen steuern, welche Standortoptionen Kunden nach einer Produktanfrage angezeigt werden.",
-      save_fulfillment_options: "Abwicklungsoptionen speichern",
-      allow_customer_pickup: "Abholung durch Kunden an unserem Standort erlauben",
-      allow_new_customer_location: "Lieferung an neuen Kundenstandort erlauben",
-      allow_preferred_customer_location: "Lieferung an bevorzugten Kundenstandort erlauben",
-      fulfillment_options: "Abwicklung / Standortoptionen",
-      open_map: "Karte öffnen",
-      no_locations: "Noch keine Kundenstandorte.",
-      manual_location: "Manueller Standort",
-      typed_address: "Eingegebene Adresse",
-      telegram_location: "Telegram-Standort",
-      google_maps: "Google Maps",
-      longitude: "Längengrad",
-      latitude: "Breitengrad",
-      location_description: "Standort / Beschreibung",
-      customer_locations: "Kundenstandorte",
-      price_max: "Höchstpreis",
-      price_min: "Mindestpreis",
-      search_filters: "Suche / Filter",
-      clear_filters: "Filter löschen",
-      search_name_username: "Vollständigen Namen / Benutzernamen suchen",
-      search_product: "Name / Alias suchen",
-      id_filter: "ID",
-      language_filter: "Sprache",
-      all_languages: "Alle Sprachen",
-      last_seen_from: "Zuletzt gesehen von",
-      last_seen_to: "Zuletzt gesehen bis",
-      active_status: "Aktivstatus",
-      all_statuses: "Alle Status",
-      active_only: "Nur aktiv",
-      inactive_only: "Nur inaktiv",
-      fuzzy_cutoff_note: "Fuzzy-Match-Grenze: 80",
-      general: "Allgemein",
-      message_customer: "Nachricht an Kunden",
-      send: "Senden",
-      cancel: "Abbrechen",
       back_to_dashboard: "Zurück zum Admin-Dashboard",
       all_done: "Alle erledigt",
       customer: "Kunde",
@@ -1303,46 +1218,6 @@ function i18nAdmin(language = "en") {
       false_value: "Nein"
     },
     tr: {
-      save_ai_response_mode: "Bot Cevap Modunu Kaydet",
-      ai_project_instructions: "AI Proje Talimatları",
-      ai_fallback_mode: "Kural tabanı cevap veremezse AI ile cevap ver",
-      rule_base_mode: "Kendi kural tabanı ile cevap ver",
-      fulfillment_options_help: "Bu ayarlar, müşteri ürün istediğinde hangi konum seçeneklerinin gösterileceğini kontrol eder.",
-      save_fulfillment_options: "Teslimat Seçeneklerini Kaydet",
-      allow_customer_pickup: "Müşterinin bizim konumumuzdan teslim almasına izin ver",
-      allow_new_customer_location: "Müşterinin yeni konumuna teslimata izin ver",
-      allow_preferred_customer_location: "Müşterinin tercih edilen konumuna teslimata izin ver",
-      fulfillment_options: "Teslimat / Konum Seçenekleri",
-      open_map: "Haritayı Aç",
-      no_locations: "Henüz müşteri konumu yok.",
-      manual_location: "Manuel konum",
-      typed_address: "Yazılan adres",
-      telegram_location: "Telegram konumu",
-      google_maps: "Google Maps",
-      longitude: "Boylam",
-      latitude: "Enlem",
-      location_description: "Konum / Açıklama",
-      customer_locations: "Müşteri Konumları",
-      price_max: "Maksimum fiyat",
-      price_min: "Minimum fiyat",
-      search_filters: "Arama / Filtreler",
-      clear_filters: "Filtreleri Temizle",
-      search_name_username: "Tam ad / kullanıcı adı ara",
-      search_product: "Ad / takma ad ara",
-      id_filter: "ID",
-      language_filter: "Dil",
-      all_languages: "Tüm diller",
-      last_seen_from: "Son görülme başlangıç",
-      last_seen_to: "Son görülme bitiş",
-      active_status: "Aktiflik durumu",
-      all_statuses: "Tüm durumlar",
-      active_only: "Sadece aktif",
-      inactive_only: "Sadece pasif",
-      fuzzy_cutoff_note: "Fuzzy eşleşme sınırı: 80",
-      general: "Genel",
-      message_customer: "Müşteriye Mesaj",
-      send: "Gönder",
-      cancel: "İptal",
       back_to_dashboard: "Admin Paneline Geri Dön",
       all_done: "Tümünü Tamamla",
       customer: "Müşteri",
@@ -1380,46 +1255,6 @@ function i18nAdmin(language = "en") {
       false_value: "Hayır"
     },
     ar: {
-      save_ai_response_mode: "حفظ وضع رد البوت",
-      ai_project_instructions: "تعليمات مشروع الذكاء الاصطناعي",
-      ai_fallback_mode: "الرد بالذكاء الاصطناعي عندما لا تستطيع قاعدة القواعد الإجابة",
-      rule_base_mode: "الرد باستخدام قاعدة القواعد الخاصة",
-      fulfillment_options_help: "تتحكم هذه الإعدادات في خيارات الموقع التي تظهر للعميل بعد طلب منتج.",
-      save_fulfillment_options: "حفظ خيارات التسليم",
-      allow_customer_pickup: "السماح للعميل بالاستلام من موقعنا",
-      allow_new_customer_location: "السماح بالتسليم إلى موقع جديد للعميل",
-      allow_preferred_customer_location: "السماح بالتسليم إلى الموقع المفضل للعميل",
-      fulfillment_options: "خيارات التسليم / الموقع",
-      open_map: "فتح الخريطة",
-      no_locations: "لا توجد مواقع للعملاء بعد.",
-      manual_location: "موقع يدوي",
-      typed_address: "عنوان مكتوب",
-      telegram_location: "موقع Telegram",
-      google_maps: "خرائط Google",
-      longitude: "خط الطول",
-      latitude: "خط العرض",
-      location_description: "الموقع / الوصف",
-      customer_locations: "مواقع العملاء",
-      price_max: "الحد الأقصى للسعر",
-      price_min: "الحد الأدنى للسعر",
-      search_filters: "بحث / فلاتر",
-      clear_filters: "مسح الفلاتر",
-      search_name_username: "البحث في الاسم الكامل / اسم المستخدم",
-      search_product: "البحث في الاسم / الأسماء البديلة",
-      id_filter: "ID",
-      language_filter: "اللغة",
-      all_languages: "كل اللغات",
-      last_seen_from: "آخر ظهور من",
-      last_seen_to: "آخر ظهور إلى",
-      active_status: "حالة النشاط",
-      all_statuses: "كل الحالات",
-      active_only: "النشط فقط",
-      inactive_only: "غير النشط فقط",
-      fuzzy_cutoff_note: "حد المطابقة التقريبية: 80",
-      general: "عام",
-      message_customer: "مراسلة العميل",
-      send: "إرسال",
-      cancel: "إلغاء",
       back_to_dashboard: "العودة إلى لوحة الإدارة",
       all_done: "تم الكل",
       customer: "العميل",
@@ -1457,46 +1292,6 @@ function i18nAdmin(language = "en") {
       false_value: "لا"
     },
     ru: {
-      save_ai_response_mode: "Сохранить режим ответа бота",
-      ai_project_instructions: "Инструкции проекта ИИ",
-      ai_fallback_mode: "Отвечать через ИИ, если база правил не может ответить",
-      rule_base_mode: "Отвечать собственной базой правил",
-      fulfillment_options_help: "Эти настройки управляют тем, какие варианты локации показываются клиенту после запроса товара.",
-      save_fulfillment_options: "Сохранить варианты выполнения",
-      allow_customer_pickup: "Разрешить самовывоз из нашей локации",
-      allow_new_customer_location: "Разрешить доставку на новую локацию клиента",
-      allow_preferred_customer_location: "Разрешить доставку на предпочтительную локацию клиента",
-      fulfillment_options: "Выполнение / варианты локации",
-      open_map: "Открыть карту",
-      no_locations: "Локаций клиента пока нет.",
-      manual_location: "Ручное описание",
-      typed_address: "Введённый адрес",
-      telegram_location: "Локация Telegram",
-      google_maps: "Google Maps",
-      longitude: "Долгота",
-      latitude: "Широта",
-      location_description: "Локация / описание",
-      customer_locations: "Локации клиента",
-      price_max: "Максимальная цена",
-      price_min: "Минимальная цена",
-      search_filters: "Поиск / фильтры",
-      clear_filters: "Очистить фильтры",
-      search_name_username: "Искать полное имя / имя пользователя",
-      search_product: "Искать имя / псевдоним",
-      id_filter: "ID",
-      language_filter: "Язык",
-      all_languages: "Все языки",
-      last_seen_from: "Последний визит от",
-      last_seen_to: "Последний визит до",
-      active_status: "Статус активности",
-      all_statuses: "Все статусы",
-      active_only: "Только активные",
-      inactive_only: "Только неактивные",
-      fuzzy_cutoff_note: "Порог fuzzy matching: 80",
-      general: "Общее",
-      message_customer: "Написать клиенту",
-      send: "Отправить",
-      cancel: "Отмена",
       back_to_dashboard: "Назад к панели администратора",
       all_done: "Все готово",
       customer: "Клиент",
@@ -1916,7 +1711,6 @@ function escapeHtml(value) {
 
 function normalizeText(text) {
   return String(text || "")
-    .replace(/ß/g, "ss")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
@@ -2015,7 +1809,7 @@ function getClosedHoursKeyboard(language = "en") {
 }
 
 function getAdminWebKeyboard(env) {
-  const adminUrl = env.ADMIN_WEB_URL || "https://crm.ayartuerk.me/admin";
+  const adminUrl = env.ADMIN_WEB_URL || "https://crm.ayartuerk.me/admin/";
   return {
     inline_keyboard: [
       [{ text: "Open Admin Web Panel", url: adminUrl }],
@@ -2118,87 +1912,6 @@ async function setSetting(env, key, value) {
   }
 }
 
-function parseDeliveryCities(value) {
-  const raw = String(value || "").trim();
-
-  if (!raw) return ["Berlin"];
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      const cities = parsed
-        .map((city) => String(city || "").trim())
-        .filter(Boolean);
-
-      return cities.length ? [...new Set(cities)] : ["Berlin"];
-    }
-  } catch (_) {
-    // Fall back to comma parsing below.
-  }
-
-  const cities = raw
-    .split(",")
-    .map((city) => city.trim())
-    .filter(Boolean);
-
-  return cities.length ? [...new Set(cities)] : ["Berlin"];
-}
-
-async function getAllowedDeliveryCities(env) {
-  return parseDeliveryCities(await getSetting(env, "allowed_delivery_cities"));
-}
-
-async function setAllowedDeliveryCities(env, cities) {
-  const cleaned = [...new Set(
-    cities
-      .map((city) => String(city || "").trim())
-      .filter(Boolean)
-  )];
-
-  await setSetting(
-    env,
-    "allowed_delivery_cities",
-    JSON.stringify(cleaned.length ? cleaned : ["Berlin"])
-  );
-}
-
-function formatAllowedCities(cities) {
-  return cities.join(", ");
-}
-
-function detectUnsupportedDeliveryCity(text, allowedCities) {
-  const clean = normalizeText(text);
-  const allowed = allowedCities.map(normalizeText);
-
-  if (allowed.some((city) => clean.includes(city))) {
-    return null;
-  }
-
-  const knownCities = [
-    "berlin", "potsdam", "hamburg", "munich", "munchen", "muenchen",
-    "koln", "koeln", "cologne", "frankfurt", "stuttgart", "dusseldorf",
-    "duesseldorf", "dortmund", "essen", "leipzig", "bremen", "dresden",
-    "hannover", "nuremberg", "nurnberg", "nuernberg", "bonn",
-    "istanbul", "ankara", "izmir", "antalya", "bangkok", "samui",
-    "koh samui", "phangan", "koh phangan"
-  ];
-
-  return knownCities.find((city) => clean.includes(city) && !allowed.includes(city)) || null;
-}
-
-function getUnsupportedCityReply(language, allowedCities) {
-  const cities = formatAllowedCities(allowedCities);
-  const replies = {
-    en: `Delivery is not possible in that city yet. Delivery is currently available only in: ${cities}. Please enter an address in one of these cities or contact admin.`,
-    de: `Lieferung in diese Stadt ist derzeit noch nicht möglich. Lieferung ist aktuell nur hier verfügbar: ${cities}. Bitte geben Sie eine Adresse in einer dieser Städte ein oder kontaktieren Sie den Admin.`,
-    tr: `Bu şehre teslimat şu anda mümkün değil. Teslimat şu anda sadece şu şehirlerde mevcut: ${cities}. Lütfen bu şehirlerden birinde adres girin veya admin ile iletişime geçin.`,
-    ar: `التوصيل إلى هذه المدينة غير متاح حالياً. التوصيل متاح حالياً فقط في: ${cities}. يرجى إدخال عنوان في إحدى هذه المدن أو التواصل مع الإدارة.`,
-    ru: `Доставка в этот город пока недоступна. Сейчас доставка доступна только в: ${cities}. Введите адрес в одном из этих городов или свяжитесь с админом.`
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
 async function sendTelegram(method, env, payload) {
   const response = await fetch(`${TELEGRAM_API_BASE}${env.TELEGRAM_BOT_TOKEN}/${method}`, {
     method: "POST",
@@ -2279,92 +1992,6 @@ async function logCustomerRequest(env, customerId, requestType, requestText = nu
 
   return result.meta.last_row_id;
 }
-
-
-async function saveCustomerLocation(
-  env,
-  customerId,
-  source,
-  description = null,
-  latitude = null,
-  longitude = null,
-  googleMapsLink = null,
-  isPreferred = 0
-) {
-  const result = await env.DB.prepare(
-    `INSERT INTO customer_locations
-     (customer_id, source, description, latitude, longitude, google_maps_link, is_preferred)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    customerId,
-    source,
-    description,
-    latitude,
-    longitude,
-    googleMapsLink,
-    isPreferred ? 1 : 0
-  ).run();
-
-  return result.meta.last_row_id;
-}
-
-async function setPreferredCustomerLocation(env, customerId, locationId) {
-  await env.DB.prepare(
-    "UPDATE customer_locations SET is_preferred = 0 WHERE customer_id = ?"
-  ).bind(customerId).run();
-
-  await env.DB.prepare(
-    "UPDATE customer_locations SET is_preferred = 1 WHERE id = ? AND customer_id = ?"
-  ).bind(locationId, customerId).run();
-}
-
-function getSetPreferredLocationText(language = "en") {
-  const replies = {
-    en: "Set this as your preferred location?",
-    de: "Diesen Standort als bevorzugten Standort speichern?",
-    tr: "Bu konumu tercih edilen konumunuz olarak kaydedelim mi?",
-    ar: "هل تريد تعيين هذا الموقع كموقعك المفضل؟",
-    ru: "Сделать эту локацию предпочтительной?"
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getPreferredLocationSavedText(language = "en") {
-  const replies = {
-    en: "Preferred location saved.",
-    de: "Bevorzugter Standort gespeichert.",
-    tr: "Tercih edilen konum kaydedildi.",
-    ar: "تم حفظ الموقع المفضل.",
-    ru: "Предпочтительная локация сохранена."
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getPreferredLocationSkippedText(language = "en") {
-  const replies = {
-    en: "Location saved without changing your preferred location.",
-    de: "Standort gespeichert, ohne den bevorzugten Standort zu ändern.",
-    tr: "Konum kaydedildi, tercih edilen konum değiştirilmedi.",
-    ar: "تم حفظ الموقع دون تغيير موقعك المفضل.",
-    ru: "Локация сохранена без изменения предпочтительной локации."
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getSetPreferredLocationKeyboard(locationId) {
-  return {
-    inline_keyboard: [
-      [
-        { text: "Yes", callback_data: `preferred_location_yes_${locationId}` },
-        { text: "No", callback_data: `preferred_location_no_${locationId}` }
-      ]
-    ]
-  };
-}
-
 
 async function getActiveProducts(env) {
   const result = await env.DB.prepare("SELECT id, name, price, is_active FROM products WHERE is_active = 1 ORDER BY id ASC").all();
@@ -2668,29 +2295,19 @@ function getAddressChoicesKeyboard(results) {
       callback_data: `address_select_${index}`
     }
   ]);
-
   rows.push([
     {
       text: "Contact admin to describe location",
       callback_data: "option_admin"
     }
   ]);
-
-  rows.push([
-    {
-      text: "Cancel location entry",
-      callback_data: "cancel_location_entry"
-    }
-  ]);
-
   return { inline_keyboard: rows };
 }
 
 function getAddressNotFoundKeyboard() {
   return {
     inline_keyboard: [
-      [{ text: "Contact admin to describe location", callback_data: "option_admin" }],
-      [{ text: "Cancel location entry", callback_data: "cancel_location_entry" }]
+      [{ text: "Contact admin to describe location", callback_data: "option_admin" }]
     ]
   };
 }
@@ -2737,114 +2354,36 @@ function makeGoogleMapsLink(latitude, longitude) {
   return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
 }
 
-function normalizeAddressSearchQuery(text) {
-  return String(text || "")
-    .replace(/straße/gi, "strasse")
-    .replace(/str\./gi, "strasse")
-    .replace(/\bstraßw\b/gi, "strasse")
-    .replace(/\bstrasw\b/gi, "strasse")
-    .replace(/\bstrabe\b/gi, "strasse")
-    .replace(/\bstrase\b/gi, "strasse")
-    .replace(/\bstrasse\b/gi, "strasse")
-    .replace(/\bstr\b/gi, "strasse")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+async function searchLocations(query) {
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", "10");
+  url.searchParams.set("addressdetails", "1");
 
-function getAddressSearchQueries(query) {
-  const original = String(query || "").trim();
-  const corrected = normalizeAddressSearchQuery(original);
+  const response = await fetch(url.toString(), {
+    headers: { "user-agent": "CRMProjectDealer/1.0" }
+  });
 
-  if (!original) return [];
-
-  if (normalizeText(original) === normalizeText(corrected)) {
-    return [original];
+  if (!response.ok) {
+    return [];
   }
 
-  return [original, corrected];
+  const data = await response.json();
+
+  return data.map((item) => {
+    const latitude = item.lat;
+    const longitude = item.lon;
+    const displayName = item.display_name;
+    return {
+      name: item.name || displayName,
+      address: displayName,
+      latitude,
+      longitude,
+      google_maps_link: `https://www.google.com/maps?q=${latitude},${longitude}`
+    };
+  });
 }
-
-function extractPostalCode(text) {
-  const match = String(text || "").match(/\b\d{5}\b/);
-  return match ? match[0] : null;
-}
-
-function addressResultScore(query, item) {
-  const cleanQuery = normalizeText(query);
-  const displayName = normalizeText(item.address || "");
-  const name = normalizeText(item.name || "");
-  let score = 0;
-
-  for (const word of cleanQuery.split(/\s+/).filter((part) => part.length >= 3)) {
-    if (displayName.includes(word)) score += 2;
-    if (name.includes(word)) score += 3;
-  }
-
-  if (item.postal_code && cleanQuery.includes(item.postal_code)) score += 20;
-
-  return score;
-}
-
-async function searchLocations(env, query) {
-  const allowedCities = await getAllowedDeliveryCities(env);
-  const postalCode = extractPostalCode(query);
-  const collected = [];
-  const seen = new Set();
-
-  const searchQueries = getAddressSearchQueries(query);
-
-  for (const searchQuery of searchQueries) {
-    for (const city of allowedCities) {
-      const url = new URL("https://nominatim.openstreetmap.org/search");
-      url.searchParams.set("q", `${searchQuery}, ${city}`);
-      url.searchParams.set("format", "jsonv2");
-      url.searchParams.set("limit", "10");
-      url.searchParams.set("addressdetails", "1");
-
-      const response = await fetch(url.toString(), {
-        headers: { "user-agent": "CRMProjectDealer/1.0" }
-      });
-
-      if (!response.ok) continue;
-
-      const data = await response.json();
-      const cityNorm = normalizeText(city);
-
-      for (const item of data) {
-        const displayName = item.display_name || "";
-        const displayNorm = normalizeText(displayName);
-        const address = item.address || {};
-        const itemPostalCode = String(address.postcode || "").trim();
-
-        if (!displayNorm.includes(cityNorm)) continue;
-
-        if (postalCode && itemPostalCode !== postalCode && !displayName.includes(postalCode)) {
-          continue;
-        }
-
-        const key = `${item.lat}|${item.lon}|${displayName}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        collected.push({
-          name: item.name || displayName,
-          address: displayName,
-          postal_code: itemPostalCode,
-          latitude: item.lat,
-          longitude: item.lon,
-          google_maps_link: `https://www.google.com/maps?q=${item.lat},${item.lon}`
-        });
-      }
-    }
-
-    if (collected.length) break;
-  }
-
-  return collected
-    .sort((a, b) => addressResultScore(normalizeAddressSearchQuery(query), b) - addressResultScore(normalizeAddressSearchQuery(query), a))
-    .slice(0, 7);
-}
-
 
 async function getAdminChatId(env) {
   return getSetting(env, "admin_telegram_chat_id");
@@ -3241,10 +2780,6 @@ async function getAdminData(env) {
       working_hours_closed_message: await getSetting(env, "working_hours_closed_message") || "",
       working_hours_message_mode: await getSetting(env, "working_hours_message_mode") || "custom",
       admin_view_language: await getSetting(env, "admin_view_language") || "en",
-      allow_preferred_customer_location: await getSetting(env, "allow_preferred_customer_location") || "on",
-      allow_new_customer_location: await getSetting(env, "allow_new_customer_location") || "on",
-      allow_customer_pickup: await getSetting(env, "allow_customer_pickup") || "on",
-      allowed_delivery_cities: await getAllowedDeliveryCities(env),
       ai_response_mode: await getSetting(env, "ai_response_mode") || "rule_base",
       ai_custom_instructions: await getSetting(env, "ai_custom_instructions") || ""
     }
@@ -3358,7 +2893,7 @@ function renderAdminDashboard(data, section = "dashboard") {
 </div>
 <hr><hr>
 <div class="page-actions">
-  <a href="/admin"><button type="button">${ui.general}</button></a>
+  <a href="/admin"><button type="button">${ui.general || "General"}</button></a>
   <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
   <a href="/admin/products"><button type="button">${ui.products}</button></a>
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
@@ -3418,103 +2953,33 @@ ${section === "dashboard" ? `
 </form>
 <hr>
 
-
-<h2>${ui.fulfillment_options}</h2>
-<form action="/admin/settings/fulfillment-options" method="post">
-  <p class="admin-info-text">${escapeHtml(ui.fulfillment_options_help)}</p>
-
-  <label>
-    <input
-      type="checkbox"
-      name="allow_preferred_customer_location"
-      value="on"
-      ${checked(data.settings.allow_preferred_customer_location === "on")}
-    >
-    ${ui.allow_preferred_customer_location}
-  </label>
-  <br>
-
-  <label>
-    <input
-      type="checkbox"
-      name="allow_new_customer_location"
-      value="on"
-      ${checked(data.settings.allow_new_customer_location === "on")}
-    >
-    ${ui.allow_new_customer_location}
-  </label>
-  <br>
-
-  <label>
-    <input
-      type="checkbox"
-      name="allow_customer_pickup"
-      value="on"
-      ${checked(data.settings.allow_customer_pickup === "on")}
-    >
-    ${ui.allow_customer_pickup}
-  </label>
-  <br><br>
-
-  <button type="submit">${ui.save_fulfillment_options}</button>
-</form>
-
-<hr>
-
-<h2>Delivery Cities</h2>
-<form action="/admin/settings/delivery-cities" method="post">
-  <p class="admin-info-text">Address suggestions are limited to these cities. Default city is Berlin.</p>
-
-  <label>Allowed cities</label><br>
-  <textarea name="allowed_delivery_cities" rows="3" cols="80">${escapeHtml((data.settings.allowed_delivery_cities || ["Berlin"]).join(", "))}</textarea>
-  <p>Enter cities separated by commas. Example: Berlin, Potsdam</p>
-
-  <button type="submit">Save Delivery Cities</button>
-</form>
-
-
 <h2>${ui.bot_response_mode}</h2>
 <form action="/admin/settings/ai-response-mode" method="post">
   <label>
-    <input
-      type="radio"
-      name="ai_response_mode"
-      value="rule_base"
-      ${checked(data.settings.ai_response_mode !== "ai_fallback")}
-    >
-    ${ui.rule_base_mode}
+    <input type="radio" name="ai_response_mode" value="rule_base" ${checked(data.settings.ai_response_mode !== "ai_fallback")}>
+    ${ui.respond_rule_base}
   </label>
+
   <br>
 
   <label>
-    <input
-      type="radio"
-      name="ai_response_mode"
-      value="ai_fallback"
-      ${checked(data.settings.ai_response_mode === "ai_fallback")}
-    >
-    ${ui.ai_fallback_mode}
+    <input type="radio" name="ai_response_mode" value="ai_fallback" ${checked(data.settings.ai_response_mode === "ai_fallback")}>
+    ${ui.respond_ai}
   </label>
 
-  <p class="admin-info-text">
-    The bot always checks buttons, menu numbers, products, locations, addresses, working hours, and admin commands first. OpenAI is used only if the app cannot handle the message.
-  </p>
+  <p>${ui.bot_response_help}</p>
 
-  <label for="ai-custom-instructions">${ui.ai_project_instructions}</label>
-  <br>
+  <label>${ui.ai_project_instructions}</label><br>
   <textarea
-    id="ai-custom-instructions"
     name="ai_custom_instructions"
     rows="5"
     cols="80"
-    placeholder="Extra business rules for AI fallback."
+    placeholder="${ui.ai_project_placeholder}"
   >${escapeHtml(data.settings.ai_custom_instructions || "")}</textarea>
 
-  <p class="admin-info-text">
-    These instructions are added dynamically to OpenAI calls together with live products, prices, meeting points, working hours, customer history, and app capabilities.
-  </p>
+  <p>${ui.ai_project_help}</p>
 
-  <button type="submit">${ui.save_ai_response_mode}</button>
+  <button type="submit">${ui.save_bot_response_mode}</button>
 </form>
 
 <hr>
@@ -3523,127 +2988,25 @@ ${section === "dashboard" ? `
 ` : ""}
 ${section === "products" ? `
 <h2>${ui.products}</h2>
-
-<style>
-.products-top-layout-force {
-  display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(320px, 420px);
-  gap: 16px;
-  align-items: start;
-  width: 100%;
-  margin: 12px 0 18px;
-}
-
-.products-panel-force {
-  background: #ffffff;
-  border: 1px solid #d7dee8;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 14px 42px rgba(15, 23, 42, 0.06);
-  box-sizing: border-box;
-}
-
-.products-field-force {
-  display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.products-field-force label {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.products-field-force input,
-.products-field-force select {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-@media (max-width: 900px) {
-  .products-top-layout-force {
-    grid-template-columns: 1fr;
-  }
-
-  .products-field-force {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .products-field-force label {
-    white-space: normal;
-  }
-}
-</style>
-
-<div class="products-top-layout-force">
-  <section class="products-panel-force">
-    <h3>${ui.search_filters}</h3>
-
-    <div class="products-field-force">
-      <label for="product-search-id">${ui.id_filter}</label>
-      <input type="text" id="product-search-id" oninput="filterProductsTable()">
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-search-text">${ui.search_product}</label>
-      <input type="text" id="product-search-text" oninput="filterProductsTable()">
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-price-min">${ui.price_min}</label>
-      <input type="number" step="0.01" id="product-price-min" oninput="filterProductsTable()">
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-price-max">${ui.price_max}</label>
-      <input type="number" step="0.01" id="product-price-max" oninput="filterProductsTable()">
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-search-active">${ui.active_status}</label>
-      <select id="product-search-active" onchange="filterProductsTable()">
-        <option value="">${ui.all_statuses}</option>
-        <option value="active">${ui.active_only}</option>
-        <option value="inactive">${ui.inactive_only}</option>
-      </select>
-    </div>
-
-    <p>${ui.fuzzy_cutoff_note}</p>
-    <button type="button" onclick="clearProductsFilter()">${ui.clear_filters}</button>
-  </section>
-
-  <section class="products-panel-force">
-    <h3>${ui.add_product}</h3>
-
-    <form action="/admin/products" method="post">
-      <div class="products-field-force">
-        <label for="new-product-name">${ui.product_name}</label>
-        <input type="text" id="new-product-name" name="name" required>
-      </div>
-
-      <div class="products-field-force">
-        <label for="new-product-price">${ui.price}</label>
-        <input type="number" step="0.01" id="new-product-price" name="price" required>
-      </div>
-
-      <button type="submit">${ui.create_product}</button>
-    </form>
-  </section>
-</div>
-
-<table id="products-table" border="1" cellpadding="10">
+<table border="1" cellpadding="10">
   <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.price}</th><th>${ui.aliases}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
   ${productRows}
 </table>
+
+<h3>${ui.add_product}</h3>
+<form action="/admin/products" method="post">
+  <label>${ui.product_name}</label><br>
+  <input type="text" name="name" required>
+  <br><br>
+  <label>${ui.price}</label><br>
+  <input type="number" step="0.01" name="price" required>
+  <br><br>
+  <button type="submit">${ui.create_product}</button>
+</form>
 <hr>
+
+
 ` : ""}
-
-
-
 ${section === "meeting_points" ? `
 <h2>${ui.meeting_points}</h2>
 <table border="1" cellpadding="10">
@@ -3675,7 +3038,6 @@ ${section === "meeting_points" ? `
 
 
 ` : ""}
-
 ${section === "ai" ? `
 <h2>${ui.ai_counter}</h2>
 
@@ -3718,112 +3080,19 @@ ${section === "ai" ? `
 
 
 ` : ""}
-
 ${section === "customers" ? `
 <h2>${ui.customers}</h2>
-
-<style>
-.customers-filter-layout-force {
-  display: grid;
-  grid-template-columns: minmax(520px, 760px);
-  gap: 16px;
-  align-items: start;
-  width: 100%;
-  margin: 12px 0 18px;
-}
-
-.customers-panel-force {
-  background: #ffffff;
-  border: 1px solid #d7dee8;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 14px 42px rgba(15, 23, 42, 0.06);
-  box-sizing: border-box;
-}
-
-.customers-field-force {
-  display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.customers-field-force label {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.customers-field-force input,
-.customers-field-force select {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-@media (max-width: 900px) {
-  .customers-filter-layout-force {
-    grid-template-columns: 1fr;
-  }
-
-  .customers-field-force {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .customers-field-force label {
-    white-space: normal;
-  }
-}
-</style>
-
-<div class="customers-filter-layout-force">
-  <section class="customers-panel-force">
-    <h3>${ui.search_filters}</h3>
-
-    <div class="customers-field-force">
-      <label for="customer-search-id">${ui.id_filter}</label>
-      <input type="text" id="customer-search-id" oninput="filterCustomersTable()">
-    </div>
-
-    <div class="customers-field-force">
-      <label for="customer-search-text">${ui.search_name_username}</label>
-      <input type="text" id="customer-search-text" oninput="filterCustomersTable()">
-    </div>
-
-    <div class="customers-field-force">
-      <label for="customer-search-language">${ui.language_filter}</label>
-      <select id="customer-search-language" onchange="filterCustomersTable()">
-        <option value="">${ui.all_languages}</option>
-        <option value="en">English</option>
-        <option value="de">Deutsch</option>
-        <option value="tr">Türkçe</option>
-        <option value="ar">العربية</option>
-        <option value="ru">Русский</option>
-        <option value="unknown">unknown</option>
-      </select>
-    </div>
-
-    <div class="customers-field-force">
-      <label for="customer-search-last-seen-from">${ui.last_seen_from}</label>
-      <input type="datetime-local" id="customer-search-last-seen-from" onchange="filterCustomersTable()">
-    </div>
-
-    <div class="customers-field-force">
-      <label for="customer-search-last-seen-to">${ui.last_seen_to}</label>
-      <input type="datetime-local" id="customer-search-last-seen-to" onchange="filterCustomersTable()">
-    </div>
-
-    <p>${ui.fuzzy_cutoff_note}</p>
-    <button type="button" onclick="clearCustomersFilter()">${ui.clear_filters}</button>
-  </section>
-</div>
-
-<table id="customers-table" border="1" cellpadding="10">
+<table border="1" cellpadding="10">
   <tr><th>${ui.id}</th><th>${ui.full_name}</th><th>${ui.username}</th><th>${ui.language}</th><th>${ui.last_seen}</th><th>${ui.action}</th></tr>
   ${customerRows}
 </table>
 
+
+` : ""}
+
+
+
+${section === "customers" ? `
 <div
   id="customer-message-modal"
   style="display:none; position:fixed; z-index:99999; inset:0; background:rgba(15,23,42,0.55); padding:24px; box-sizing:border-box; align-items:center; justify-content:center;"
@@ -3847,8 +3116,6 @@ ${section === "customers" ? `
     </form>
   </div>
 </div>
-
-<hr>
 ` : ""}
 
 <script>
@@ -3899,236 +3166,6 @@ window.addEventListener("keydown", (event) => {
     closeCustomerMessageModal();
   }
 });
-
-
-function normalizeSearchText(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
-function levenshteinDistance(a, b) {
-  a = normalizeSearchText(a);
-  b = normalizeSearchText(b);
-
-  if (a === b) return 0;
-  if (!a.length) return b.length;
-  if (!b.length) return a.length;
-
-  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
-  const current = Array(b.length + 1);
-
-  for (let i = 1; i <= a.length; i += 1) {
-    current[0] = i;
-
-    for (let j = 1; j <= b.length; j += 1) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-
-      current[j] = Math.min(
-        current[j - 1] + 1,
-        previous[j] + 1,
-        previous[j - 1] + cost
-      );
-    }
-
-    for (let j = 0; j <= b.length; j += 1) {
-      previous[j] = current[j];
-    }
-  }
-
-  return previous[b.length];
-}
-
-function fuzzyScore(query, value) {
-  query = normalizeSearchText(query);
-  value = normalizeSearchText(value);
-
-  if (!query) return 100;
-  if (!value) return 0;
-  if (value.includes(query)) return 100;
-
-  const parts = value.split(/[\s,;:/|]+/).filter(Boolean);
-  let bestScore = 0;
-
-  for (const part of parts) {
-    const distance = levenshteinDistance(query, part);
-    const maxLength = Math.max(query.length, part.length);
-    const score = Math.round((1 - distance / maxLength) * 100);
-
-    if (score > bestScore) bestScore = score;
-  }
-
-  const wholeDistance = levenshteinDistance(query, value);
-  const wholeMaxLength = Math.max(query.length, value.length);
-  const wholeScore = Math.round((1 - wholeDistance / wholeMaxLength) * 100);
-
-  return Math.max(bestScore, wholeScore);
-}
-
-function rowCellText(row, index) {
-  const cell = row.cells[index];
-
-  if (!cell) return "";
-
-  const input = cell.querySelector("input, textarea, select");
-
-  if (input) {
-    if (input.type === "checkbox") {
-      return input.checked ? "active" : "inactive";
-    }
-
-    return input.value || input.textContent || "";
-  }
-
-  return cell.textContent || "";
-}
-
-function parseTableDate(value) {
-  value = String(value || "").trim();
-
-  if (!value) return null;
-
-  const normalized = value.replace(" ", "T");
-  const date = new Date(normalized);
-
-  if (Number.isNaN(date.getTime())) return null;
-
-  return date;
-}
-
-function parseProductPrice(value) {
-  const cleaned = String(value || "")
-    .replace(",", ".")
-    .replace(/[^\d.]/g, "");
-
-  if (!cleaned) return null;
-
-  const parsed = Number(cleaned);
-
-  return Number.isNaN(parsed) ? null : parsed;
-}
-
-function filterProductsTable() {
-  const table = document.getElementById("products-table");
-
-  if (!table) return;
-
-  const idQuery = normalizeSearchText(document.getElementById("product-search-id")?.value);
-  const textQuery = document.getElementById("product-search-text")?.value || "";
-  const priceMin = parseProductPrice(document.getElementById("product-price-min")?.value);
-  const priceMax = parseProductPrice(document.getElementById("product-price-max")?.value);
-  const activeStatus = document.getElementById("product-search-active")?.value || "";
-  const cutoff = 80;
-
-  Array.from(table.tBodies[0]?.rows || table.rows).forEach((row, index) => {
-    if (index === 0 && row.querySelector("th")) return;
-
-    const id = normalizeSearchText(rowCellText(row, 0));
-    const name = rowCellText(row, 1);
-    const price = parseProductPrice(rowCellText(row, 2));
-    const aliases = rowCellText(row, 3);
-    const active = normalizeSearchText(rowCellText(row, 4));
-
-    const idMatches = !idQuery || id === idQuery;
-    const activeMatches = !activeStatus || active === activeStatus;
-    const fuzzyMatches = !textQuery || Math.max(
-      fuzzyScore(textQuery, name),
-      fuzzyScore(textQuery, aliases)
-    ) >= cutoff;
-
-    const minMatches = priceMin === null || (price !== null && price >= priceMin);
-    const maxMatches = priceMax === null || (price !== null && price <= priceMax);
-
-    row.style.display = (
-      idMatches
-      && activeMatches
-      && fuzzyMatches
-      && minMatches
-      && maxMatches
-    ) ? "" : "none";
-  });
-}
-
-function clearProductsFilter() {
-  const ids = [
-    "product-search-id",
-    "product-search-text",
-    "product-price-min",
-    "product-price-max",
-    "product-search-active"
-  ];
-
-  ids.forEach((id) => {
-    const element = document.getElementById(id);
-
-    if (element) element.value = "";
-  });
-
-  filterProductsTable();
-}
-
-function filterCustomersTable() {
-  const table = document.getElementById("customers-table");
-
-  if (!table) return;
-
-  const idQuery = normalizeSearchText(document.getElementById("customer-search-id")?.value);
-  const textQuery = document.getElementById("customer-search-text")?.value || "";
-  const languageQuery = normalizeSearchText(document.getElementById("customer-search-language")?.value);
-  const fromDate = parseTableDate(document.getElementById("customer-search-last-seen-from")?.value);
-  const toDate = parseTableDate(document.getElementById("customer-search-last-seen-to")?.value);
-  const cutoff = 80;
-
-  Array.from(table.tBodies[0]?.rows || table.rows).forEach((row, index) => {
-    if (index === 0 && row.querySelector("th")) return;
-
-    const id = normalizeSearchText(rowCellText(row, 0));
-    const fullName = rowCellText(row, 1);
-    const username = rowCellText(row, 2);
-    const language = normalizeSearchText(rowCellText(row, 3));
-    const lastSeenValue = rowCellText(row, 4);
-    const lastSeenDate = parseTableDate(lastSeenValue);
-
-    const idMatches = !idQuery || id === idQuery;
-    const languageMatches = !languageQuery || language === languageQuery;
-    const fuzzyMatches = !textQuery || Math.max(
-      fuzzyScore(textQuery, fullName),
-      fuzzyScore(textQuery, username)
-    ) >= cutoff;
-
-    const fromMatches = !fromDate || (lastSeenDate && lastSeenDate >= fromDate);
-    const toMatches = !toDate || (lastSeenDate && lastSeenDate <= toDate);
-
-    row.style.display = (
-      idMatches
-      && languageMatches
-      && fuzzyMatches
-      && fromMatches
-      && toMatches
-    ) ? "" : "none";
-  });
-}
-
-function clearCustomersFilter() {
-  const ids = [
-    "customer-search-id",
-    "customer-search-text",
-    "customer-search-language",
-    "customer-search-last-seen-from",
-    "customer-search-last-seen-to"
-  ];
-
-  ids.forEach((id) => {
-    const element = document.getElementById(id);
-
-    if (element) element.value = "";
-  });
-
-  filterCustomersTable();
-}
-
 
 async function searchLocation() {
   const query = document.getElementById("location-search").value.trim();
@@ -4312,44 +3349,6 @@ async function handleUpdateWorkingHours(request, env) {
   return redirectResponse("/admin");
 }
 
-
-async function handleUpdateFulfillmentOptions(request, env) {
-  const form = await request.formData();
-
-  await setSetting(
-    env,
-    "allow_preferred_customer_location",
-    form.get("allow_preferred_customer_location") ? "on" : "off"
-  );
-
-  await setSetting(
-    env,
-    "allow_new_customer_location",
-    form.get("allow_new_customer_location") ? "on" : "off"
-  );
-
-  await setSetting(
-    env,
-    "allow_customer_pickup",
-    form.get("allow_customer_pickup") ? "on" : "off"
-  );
-
-  return redirectResponse("/admin");
-}
-
-async function handleUpdateDeliveryCities(request, env) {
-  const form = await request.formData();
-  const raw = String(form.get("allowed_delivery_cities") || "");
-  const cities = raw
-    .split(",")
-    .map((city) => city.trim())
-    .filter(Boolean);
-
-  await setAllowedDeliveryCities(env, cities);
-
-  return redirectResponse("/admin");
-}
-
 async function handleUpdateAdminLanguage(request, env) {
   const form = await request.formData();
   let language = String(form.get("admin_view_language") || "en");
@@ -4485,7 +3484,7 @@ async function handleOpenRequestsPage(env) {
 </div>
 <hr><hr>
 <div class="page-actions">
-  <a href="/admin"><button type="button">${ui.general}</button></a>
+  <a href="/admin"><button type="button">${ui.general || "General"}</button></a>
   <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
   <a href="/admin/products"><button type="button">${ui.products}</button></a>
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
@@ -4596,20 +3595,13 @@ async function handleCustomerDetail(env, customerId) {
     "SELECT * FROM customer_requests WHERE customer_id = ? ORDER BY created_at DESC"
   ).bind(customerId).all();
 
-  const locations = await env.DB.prepare(`
-    SELECT *
-    FROM customer_locations
-    WHERE customer_id = ?
-    ORDER BY is_preferred DESC, datetime(created_at) DESC, id DESC
-  `).bind(customerId).all();
-
   const requestRows = requests.results.map((item) => `<tr>
     <td>${item.id}</td>
     <td>${escapeHtml(i18nRequestType(item.request_type, ui._language))}</td>
     <td>${escapeHtml(i18nStatus(item.status, ui._language))}</td>
-    <td>${escapeHtml(item.description || "")}</td>
+    <td>${escapeHtml(item.item_name || "")}</td>
     <td>${escapeHtml(item.quantity || "")}</td>
-    <td>${escapeHtml(item.description || "")}${item.google_maps_link ? `<br><a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map}</a>` : ""}</td>
+    <td>${escapeHtml(item.request_text || "")}${item.google_maps_link ? `<br><a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map}</a>` : ""}</td>
     <td>${escapeHtml(item.created_at || "")}</td>
     <td>
       <form action="/admin/customer-requests/${item.id}/status" method="post">
@@ -4622,35 +3614,6 @@ async function handleCustomerDetail(env, customerId) {
       </form>
     </td>
   </tr>`).join("");
-
-  const locationRows = locations.results.map((item) => {
-    const hasLatitude = item.latitude !== null && item.latitude !== undefined && String(item.latitude) !== "";
-    const hasLongitude = item.longitude !== null && item.longitude !== undefined && String(item.longitude) !== "";
-    const hasCoordinates = hasLatitude && hasLongitude;
-
-    const sourceLabel = item.source === "telegram_location"
-      ? (ui.telegram_location || "Telegram location")
-      : (item.source === "typed_address" ? (ui.typed_address || "Typed address") : (ui.manual_location || "Manual location"));
-
-    const description = (
-      item.description
-      || item.description
-      || item.description
-      || ""
-    );
-
-    return `<tr>
-      <td>${item.id}</td>
-      <td>${escapeHtml(i18nRequestType(item.request_type, ui._language))}</td>
-      <td>${escapeHtml(description)}</td>
-      <td>${escapeHtml(item.latitude || "")}</td>
-      <td>${escapeHtml(item.longitude || "")}</td>
-      <td>${item.google_maps_link ? `<a href="${escapeHtml(item.google_maps_link)}" target="_blank">${ui.open_map || "Open Map"}</a>` : ""}</td>
-      <td>${escapeHtml(sourceLabel)}</td>
-      <td>${item.is_preferred ? "Yes" : ""}</td>
-      <td>${escapeHtml(item.created_at || "")}</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="9">${escapeHtml(ui.no_locations || "No customer locations yet.")}</td></tr>`;
 
   const messageRows = messages.results.map((message) => `<tr>
     <td>${message.id}</td>
@@ -4670,119 +3633,54 @@ async function handleCustomerDetail(env, customerId) {
 </head>
 <body>
 <h1>${ui.customer_detail}</h1>
-<div class="page-actions">
-  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
-  <a href="/admin"><button type="button">${ui.back_to_dashboard}</button></a>
-</div>
+<p><a href="/admin">${ui.back_to_dashboard}</a></p>
 
 <h2>${ui.customer}</h2>
-<table border="1" cellpadding="8" class="customer-info-grid">
-  <tr>
-    <th>${ui.id}</th>
-    <td>${customer.id}</td>
-    <th>Telegram ID</th>
-    <td>${escapeHtml(customer.telegram_user_id)}</td>
-  </tr>
-  <tr>
-    <th>${ui.username}</th>
-    <td>${escapeHtml(customer.username)}</td>
-    <th>${ui.full_name}</th>
-    <td>${escapeHtml(customer.full_name)}</td>
-  </tr>
-  <tr>
-    <th>${ui.language}</th>
-    <td>${escapeHtml(customer.language)}</td>
-    <th>${ui.preferred_language}</th>
-    <td>${escapeHtml(customer.preferred_language)}</td>
-  </tr>
-  <tr>
-    <th>${ui.blocked}</th>
-    <td>${i18nBoolean(customer.is_blocked, ui._language)}</td>
-    <th>${ui.last_seen}</th>
-    <td>${escapeHtml(customer.last_seen_at)}</td>
-  </tr>
+<table border="1" cellpadding="8">
+  <tr><th>${ui.id}</th><td>${customer.id}</td></tr>
+  <tr><th>${ui.telegram_id}</th><td>${escapeHtml(customer.telegram_user_id || "")}</td></tr>
+  <tr><th>${ui.username}</th><td>${escapeHtml(customer.username || "")}</td></tr>
+  <tr><th>${ui.full_name}</th><td>${escapeHtml(customer.full_name || "")}</td></tr>
+  <tr><th>${ui.language}</th><td>${escapeHtml(customer.language || "")}</td></tr>
+  <tr><th>${ui.preferred_language}</th><td>${escapeHtml(customer.preferred_language || "")}</td></tr>
+  <tr><th>${ui.blocked}</th><td>${customer.is_blocked ? ui.true_value : ui.false_value}</td></tr>
+  <tr><th>${ui.last_seen}</th><td>${escapeHtml(customer.last_seen_at || "")}</td></tr>
 </table>
 
-<h2 id="send-reply">${ui.message_customer || "Message Customer"} - ${escapeHtml(customer.full_name || customer.username || customer.telegram_user_id || "")}</h2>
+<h2 id="send-reply">${ui.send_reply}</h2>
 <form action="/admin/customers/${customer.id}/reply" method="post">
   <textarea name="reply_text" rows="4" cols="80" required></textarea>
   <br><br>
-  <button type="submit">${ui.send || "Send"}</button>
+  <button type="submit">${ui.send_reply_to_customer}</button>
 </form>
 
-<div class="page-actions customer-detail-tabs">
-  <button type="button" id="structured-requests-tab-button" onclick="showCustomerDetailTab('structured-requests')">${ui.structured_requests}</button>
-  <button type="button" id="customer-locations-tab-button" onclick="showCustomerDetailTab('customer-locations')">${ui.customer_locations || "Customer Locations"}</button>
-  <button type="button" id="conversation-history-tab-button" onclick="showCustomerDetailTab('conversation-history')">${ui.conversation_history}</button>
-</div>
+<h2>${ui.structured_requests}</h2>
+<table border="1" cellpadding="8">
+  <tr>
+    <th>${ui.id}</th>
+    <th>${ui.type}</th>
+    <th>${ui.status}</th>
+    <th>${ui.item}</th>
+    <th>${ui.quantity}</th>
+    <th>${ui.text}</th>
+    <th>${ui.created_at}</th>
+    <th>${ui.action}</th>
+  </tr>
+  ${requestRows}
+</table>
 
-<section id="structured-requests-tab">
-  <h2>${ui.structured_requests}</h2>
-  <table border="1" cellpadding="8">
-    <tr><th>${ui.id}</th><th>${ui.type}</th><th>${ui.status}</th><th>${ui.item}</th><th>${ui.quantity}</th><th>${ui.text}</th><th>${ui.created_at}</th><th>${ui.action}</th></tr>
-    ${requestRows}
-  </table>
-</section>
-
-<section id="customer-locations-tab" style="display:none;">
-  <h2>${ui.customer_locations || "Customer Locations"}</h2>
-  <table border="1" cellpadding="8">
-    <tr>
-      <th>${ui.id}</th>
-      <th>${ui.type}</th>
-      <th>${ui.location_description || "Location / Description"}</th>
-      <th>${ui.latitude || "Latitude"}</th>
-      <th>${ui.longitude || "Longitude"}</th>
-      <th>${ui.google_maps || "Google Maps"}</th>
-      <th>${ui.source || "Source"}</th>
-      <th>${ui.preferred || "Preferred"}</th>
-      <th>${ui.created_at}</th>
-    </tr>
-    ${locationRows}
-  </table>
-</section>
-
-<section id="conversation-history-tab" style="display:none;">
-  <h2>${ui.conversation_history}</h2>
-  <table border="1" cellpadding="8">
-    <tr><th>${ui.id}</th><th>${ui.direction}</th><th>${ui.source}</th><th>${ui.message}</th><th>${ui.language}</th><th>${ui.created_at}</th></tr>
-    ${messageRows}
-  </table>
-</section>
-
-<script>
-function showCustomerDetailTab(tabName) {
-  const structuredTab = document.getElementById("structured-requests-tab");
-  const locationsTab = document.getElementById("customer-locations-tab");
-  const historyTab = document.getElementById("conversation-history-tab");
-  const structuredButton = document.getElementById("structured-requests-tab-button");
-  const locationsButton = document.getElementById("customer-locations-tab-button");
-  const historyButton = document.getElementById("conversation-history-tab-button");
-
-  if (
-    !structuredTab
-    || !locationsTab
-    || !historyTab
-    || !structuredButton
-    || !locationsButton
-    || !historyButton
-  ) return;
-
-  const showStructured = tabName === "structured-requests";
-  const showLocations = tabName === "customer-locations";
-  const showHistory = tabName === "conversation-history";
-
-  structuredTab.style.display = showStructured ? "block" : "none";
-  locationsTab.style.display = showLocations ? "block" : "none";
-  historyTab.style.display = showHistory ? "block" : "none";
-
-  structuredButton.classList.toggle("active-tab", showStructured);
-  locationsButton.classList.toggle("active-tab", showLocations);
-  historyButton.classList.toggle("active-tab", showHistory);
-}
-
-showCustomerDetailTab("structured-requests");
-</script>
+<h2>${ui.conversation_history}</h2>
+<table border="1" cellpadding="8">
+  <tr>
+    <th>${ui.id}</th>
+    <th>${ui.direction}</th>
+    <th>${ui.source}</th>
+    <th>${ui.message}</th>
+    <th>${ui.language}</th>
+    <th>${ui.created_at}</th>
+  </tr>
+  ${messageRows}
+</table>
 </body>
 </html>`);
 }
@@ -4973,25 +3871,7 @@ async function handleLocationMessage(env, message) {
     googleMapsLink
   );
 
-  const customerLocationId = await saveCustomerLocation(
-    env,
-    customer.id,
-    "telegram_location",
-    locationLabel,
-    latitude,
-    longitude,
-    googleMapsLink,
-    0
-  );
-
   await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
-
-  await sendTelegramMessage(
-    env,
-    message.chat.id,
-    getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
-    getSetPreferredLocationKeyboard(customerLocationId)
-  );
 
   const replyText = "Location received. We will confirm delivery shortly.";
   await sendTelegramMessage(env, message.chat.id, replyText);
@@ -5401,17 +4281,7 @@ async function handleTelegramTextMessage(env, message) {
   await saveMessage(env, customer.id, "incoming", incomingText, detectedLanguage);
 
   if (customer.conversation_state === "awaiting_typed_address") {
-    const allowedCities = await getAllowedDeliveryCities(env);
-    const unsupportedCity = detectUnsupportedDeliveryCity(incomingText, allowedCities);
-
-    if (unsupportedCity) {
-      const replyText = getUnsupportedCityReply(customer.preferred_language || "en", allowedCities);
-      await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-      await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-      return;
-    }
-
-    const results = (await searchLocations(env, incomingText)).slice(0, 7);
+    const results = (await searchLocations(incomingText)).slice(0, 7);
 
     if (results.length) {
       await setSetting(env, `address_search_results_${customer.id}`, JSON.stringify(results));
@@ -5460,18 +4330,8 @@ async function handleTelegramTextMessage(env, message) {
   }
 
   if (replyText === null && looksLikeAddress(incomingText)) {
-    const allowedCities = await getAllowedDeliveryCities(env);
-    const unsupportedCity = detectUnsupportedDeliveryCity(incomingText, allowedCities);
-
-    if (unsupportedCity) {
-      replyText = getUnsupportedCityReply(customer.preferred_language || "en", allowedCities);
-      await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-      await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-      return;
-    }
-
     await setCustomerState(env, customer.id, "awaiting_typed_address");
-    const results = (await searchLocations(env, incomingText)).slice(0, 7);
+    const results = (await searchLocations(incomingText)).slice(0, 7);
 
     if (results.length) {
       await setSetting(env, `address_search_results_${customer.id}`, JSON.stringify(results));
@@ -5481,10 +4341,7 @@ async function handleTelegramTextMessage(env, message) {
       return;
     }
 
-    replyText = t("address_not_found", customer.preferred_language || "en");
-    await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-    return;
+    await setCustomerState(env, customer.id, null);
   }
 
   if (replyText === null && isLocationRequest(incomingText)) {
@@ -5504,13 +4361,6 @@ async function handleTelegramTextMessage(env, message) {
         await forwardProductRequest(env, customer, incomingText, matchedProduct.name, quantity);
       }
     }
-  }
-
-  if (replyText === null && looksLikeAddress(incomingText)) {
-    replyText = t("address_not_found", customer.preferred_language || "en");
-    await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-    return;
   }
 
   if (replyText === null) {
@@ -5621,56 +4471,6 @@ async function handleTelegramCommand(env, message, customer, text) {
   }
 }
 
-async function handlePreferredLocationSelection(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-
-  if (callbackQuery.data.startsWith("preferred_location_yes_")) {
-    const locationId = Number(callbackQuery.data.replace("preferred_location_yes_", ""));
-
-    if (locationId) {
-      await setPreferredCustomerLocation(env, customer.id, locationId);
-    }
-
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      getPreferredLocationSavedText(language)
-    );
-    return;
-  }
-
-  if (callbackQuery.data.startsWith("preferred_location_no_")) {
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      getPreferredLocationSkippedText(language)
-    );
-  }
-}
-
-async function handleCancelLocationEntry(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-
-  await setCustomerState(env, customer.id, null);
-
-  const replies = {
-    en: "Location entry cancelled. You can now send a product name or choose an option.",
-    de: "Standorteingabe abgebrochen. Sie können jetzt einen Produktnamen senden oder eine Option auswählen.",
-    tr: "Konum girişi iptal edildi. Şimdi ürün adı gönderebilir veya bir seçenek seçebilirsiniz.",
-    ar: "تم إلغاء إدخال الموقع. يمكنك الآن إرسال اسم منتج أو اختيار خيار.",
-    ru: "Ввод локации отменён. Теперь вы можете отправить название товара или выбрать вариант."
-  };
-
-  await sendTelegramMessage(
-    env,
-    callbackQuery.message.chat.id,
-    replies[safeLang(language)] || replies.en,
-    getMenuKeyboard(language)
-  );
-}
-
 async function handleAddressSelection(env, callbackQuery) {
   const customer = await upsertCustomer(env, callbackQuery.from);
   const index = Number(callbackQuery.data.replace("address_select_", ""));
@@ -5708,26 +4508,9 @@ async function handleAddressSelection(env, callbackQuery) {
     googleMapsLink
   );
 
-  const customerLocationId = await saveCustomerLocation(
-    env,
-    customer.id,
-    "typed_address",
-    locationLabel,
-    latitude,
-    longitude,
-    googleMapsLink,
-    0
-  );
-
   await saveMessage(env, customer.id, "incoming", locationLabel, customer.preferred_language, "typed_address_location");
   await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
-
-  await sendTelegramMessage(
-    env,
-    callbackQuery.message.chat.id,
-    getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
-    getSetPreferredLocationKeyboard(customerLocationId)
-  );
+  await sendTelegramMessage(env, callbackQuery.message.chat.id, "Location received. We will confirm delivery shortly.");
 }
 
 async function handleMeetingPointSelection(env, callbackQuery) {
@@ -5901,8 +4684,6 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
 async function handleCallbackQuery(env, callbackQuery) {
   await answerCallbackQuery(env, callbackQuery.id);
 
-  if (callbackQuery.data.startsWith("preferred_location_")) return handlePreferredLocationSelection(env, callbackQuery);
-  if (callbackQuery.data === "cancel_location_entry") return handleCancelLocationEntry(env, callbackQuery);
   if (callbackQuery.data.startsWith("address_select_")) return handleAddressSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("meeting_point_select_")) return handleMeetingPointSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("delivery_")) return handleDeliveryEtaSelection(env, callbackQuery);
@@ -5979,13 +4760,11 @@ async function routeRequest(request, env) {
   if (url.pathname === "/admin/open-requests") return handleOpenRequestsPartial(env);
 
   if (url.pathname === "/admin/search-location" && request.method === "GET") {
-    return jsonResponse(await searchLocations(env, url.searchParams.get("query") || ""));
+    return jsonResponse(await searchLocations(url.searchParams.get("query") || ""));
   }
 
   if (url.pathname === "/admin/settings/admin-telegram" && request.method === "POST") return handleUpdateAdminTelegram(request, env);
   if (url.pathname === "/admin/settings/working-hours" && request.method === "POST") return handleUpdateWorkingHours(request, env);
-  if (url.pathname === "/admin/settings/fulfillment-options" && request.method === "POST") return handleUpdateFulfillmentOptions(request, env);
-  if (url.pathname === "/admin/settings/delivery-cities" && request.method === "POST") return handleUpdateDeliveryCities(request, env);
   if (url.pathname === "/admin/settings/admin-language" && request.method === "POST") return handleUpdateAdminLanguage(request, env);
   if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
 

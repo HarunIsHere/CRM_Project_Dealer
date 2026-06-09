@@ -2,14 +2,9 @@ name = "crm-delivery-worker"
 main = "src/index.js"
 compatibility_date = "2026-06-01"
 
-routes = [
-  { pattern = "crm.ayartuerk.me/*", zone_name = "ayartuerk.me" }
-]
-
-
 [vars]
 APP_NAME = "CRM Delivery"
-ADMIN_WEB_URL = "https://crm.ayartuerk.me/admin"
+ADMIN_WEB_URL = "https://crm-delivery-worker.harunayarturk.workers.dev/admin"
 
 [[d1_databases]]
 binding = "DB"
