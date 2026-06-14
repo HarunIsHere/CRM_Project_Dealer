@@ -6707,13 +6707,6 @@ async function handleTelegramTextMessage(env, message) {
     return;
   }
 
-  if (
-    !["awaiting_product_quantity", "awaiting_basket_quantity", "awaiting_special_request"].includes(customer.conversation_state || "")
-    && await handleProductRequestFromText(env, customer, message.chat.id, incomingText, customer.preferred_language || customer.language || "en")
-  ) {
-    return;
-  }
-
   if (customer.conversation_state === "awaiting_typed_address") {
     const language = customer.preferred_language || customer.language || "en";
 
@@ -6922,10 +6915,6 @@ async function handleTelegramCommand(env, message, customer, text) {
   const command = parts[0].split("@")[0];
 
   if (command === "/start") {
-    await setCustomerState(env, customer.id, null);
-    await setSetting(env, `pending_product_quantity_${customer.id}`, "");
-    await setSetting(env, `pending_basket_quantity_item_${customer.id}`, "");
-    await setSetting(env, `pending_product_fulfillment_request_${customer.id}`, "");
     await sendTelegramMessage(env, message.chat.id, "CRM Delivery Bot is running.");
     return;
   }

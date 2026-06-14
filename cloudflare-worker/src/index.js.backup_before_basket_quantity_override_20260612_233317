@@ -2877,9 +2877,6 @@ function getCartUiText(language = "en") {
       increase: "+",
       decrease: "-",
       clear_basket: "Clear basket",
-      change_quantity: "Change amount",
-      enter_new_quantity: "Please enter the new amount.",
-      basket_quantity_updated: "Basket amount updated.",
       item_removed: "Item removed from basket.",
       item_updated: "Basket updated.",
       checkout_next_stage: "Checkout delivery selection will be added in the next step."
@@ -2897,9 +2894,6 @@ function getCartUiText(language = "en") {
       increase: "+",
       decrease: "-",
       clear_basket: "Warenkorb leeren",
-      change_quantity: "Menge ändern",
-      enter_new_quantity: "Bitte geben Sie die neue Menge ein.",
-      basket_quantity_updated: "Warenkorbmenge aktualisiert.",
       item_removed: "Artikel aus dem Warenkorb entfernt.",
       item_updated: "Warenkorb aktualisiert.",
       checkout_next_stage: "Die Lieferauswahl für den Checkout wird im nächsten Schritt hinzugefügt."
@@ -2917,9 +2911,6 @@ function getCartUiText(language = "en") {
       increase: "+",
       decrease: "-",
       clear_basket: "Sepeti temizle",
-      change_quantity: "Adedi değiştir",
-      enter_new_quantity: "Lütfen yeni adedi yazın.",
-      basket_quantity_updated: "Sepet adedi güncellendi.",
       item_removed: "Ürün sepetten kaldırıldı.",
       item_updated: "Sepet güncellendi.",
       checkout_next_stage: "Checkout teslimat seçimi bir sonraki adımda eklenecek."
@@ -2954,9 +2945,6 @@ function getCartUiText(language = "en") {
       increase: "+",
       decrease: "-",
       clear_basket: "Очистить корзину",
-      change_quantity: "Изменить количество",
-      enter_new_quantity: "Пожалуйста, введите новое количество.",
-      basket_quantity_updated: "Количество в корзине обновлено.",
       item_removed: "Товар удалён из корзины.",
       item_updated: "Корзина обновлена.",
       checkout_next_stage: "Выбор доставки для оформления будет добавлен на следующем шаге."
@@ -3058,7 +3046,8 @@ function getBasketKeyboard(items, language = "en") {
 
   for (const item of items) {
     rows.push([
-      { text: `${ui.change_quantity} ${item.name}`, callback_data: `basket_change_${item.id}` }
+      { text: `${ui.decrease} ${item.name}`, callback_data: `basket_decrease_${item.id}` },
+      { text: `${ui.increase} ${item.name}`, callback_data: `basket_increase_${item.id}` }
     ]);
     rows.push([
       { text: `${ui.remove} ${item.name}`, callback_data: `basket_remove_${item.id}` }
@@ -3165,26 +3154,6 @@ async function handleProductRequestFromText(env, customer, chatId, incomingText,
   await addProductToBasket(env, customer.id, matchedProduct, quantity);
   await sendAddedToBasket(env, customer, chatId, matchedProduct, quantity);
   return true;
-}
-
-async function setPendingBasketQuantityChange(env, customerId, cartItemId) {
-  await setSetting(env, `pending_basket_quantity_item_${customerId}`, String(cartItemId));
-}
-
-async function getPendingBasketQuantityChange(env, customerId) {
-  const value = await getSetting(env, `pending_basket_quantity_item_${customerId}`);
-  return Number(value || 0);
-}
-
-async function clearPendingBasketQuantityChange(env, customerId) {
-  await setSetting(env, `pending_basket_quantity_item_${customerId}`, "");
-}
-
-async function getCartItemForCustomer(env, customerId, itemId) {
-  const cart = await getOrCreateActiveCart(env, customerId);
-  return env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
-  ).bind(itemId, cart.id).first();
 }
 
 async function handleBasketSelection(env, callbackQuery) {
@@ -6627,45 +6596,6 @@ async function handleTelegramTextMessage(env, message) {
 
   await saveMessage(env, customer.id, "incoming", incomingText, detectedLanguage);
 
-  if (customer.conversation_state === "awaiting_basket_quantity") {
-    const language = customer.preferred_language || customer.language || "en";
-    const ui = getCartUiText(language);
-    const itemId = await getPendingBasketQuantityChange(env, customer.id);
-    const quantity = extractQuantity(incomingText);
-
-    if (!itemId) {
-      await clearPendingBasketQuantityChange(env, customer.id);
-      await setCustomerState(env, customer.id, null);
-      await sendTelegramMessage(env, message.chat.id, getInvalidProductQuantityText(language));
-      return;
-    }
-
-    const item = await getCartItemForCustomer(env, customer.id, itemId);
-
-    if (!item) {
-      await clearPendingBasketQuantityChange(env, customer.id);
-      await setCustomerState(env, customer.id, null);
-      await sendTelegramMessage(env, message.chat.id, ui.empty_basket);
-      return;
-    }
-
-    if (!quantity || Number(quantity) < 1) {
-      await sendTelegramMessage(env, message.chat.id, getInvalidProductQuantityText(language));
-      return;
-    }
-
-    await env.DB.prepare(
-      "UPDATE shopping_cart_items SET quantity = ? WHERE id = ?"
-    ).bind(Math.floor(Number(quantity)), itemId).run();
-
-    await clearPendingBasketQuantityChange(env, customer.id);
-    await setCustomerState(env, customer.id, null);
-
-    await sendTelegramMessage(env, message.chat.id, ui.basket_quantity_updated);
-    await sendBasketView(env, customer, message.chat.id);
-    return;
-  }
-
   if (customer.conversation_state === "awaiting_product_quantity") {
     const language = customer.preferred_language || customer.language || "en";
     const pendingProduct = await getPendingProductQuantity(env, customer.id);
@@ -6704,13 +6634,6 @@ async function handleTelegramTextMessage(env, message) {
     await clearPendingProductQuantity(env, customer.id);
     await setCustomerState(env, customer.id, null);
     await sendAddedToBasket(env, customer, message.chat.id, product, quantity);
-    return;
-  }
-
-  if (
-    !["awaiting_product_quantity", "awaiting_basket_quantity", "awaiting_special_request"].includes(customer.conversation_state || "")
-    && await handleProductRequestFromText(env, customer, message.chat.id, incomingText, customer.preferred_language || customer.language || "en")
-  ) {
     return;
   }
 
@@ -6922,10 +6845,6 @@ async function handleTelegramCommand(env, message, customer, text) {
   const command = parts[0].split("@")[0];
 
   if (command === "/start") {
-    await setCustomerState(env, customer.id, null);
-    await setSetting(env, `pending_product_quantity_${customer.id}`, "");
-    await setSetting(env, `pending_basket_quantity_item_${customer.id}`, "");
-    await setSetting(env, `pending_product_fulfillment_request_${customer.id}`, "");
     await sendTelegramMessage(env, message.chat.id, "CRM Delivery Bot is running.");
     return;
   }

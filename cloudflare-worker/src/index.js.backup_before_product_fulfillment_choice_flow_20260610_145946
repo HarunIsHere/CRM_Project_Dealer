@@ -2366,168 +2366,13 @@ function getSetPreferredLocationKeyboard(locationId) {
 }
 
 
-
-function getAdminGeneralExtraUiText(language = "en") {
-  const texts = {
-    en: {
-      delivery_cities: "Delivery Cities",
-      delivery_cities_help: "Address suggestions are limited to these cities. Default city is Berlin.",
-      allowed_cities: "Allowed cities",
-      allowed_cities_example: "Enter cities separated by commas. Example: Berlin, Potsdam",
-      save_delivery_cities: "Save Delivery Cities",
-      ai_response_mode_help: "The bot always checks buttons, menu numbers, products, locations, addresses, working hours, and admin commands first. OpenAI is used only if the app cannot handle the message.",
-      ai_project_placeholder: "Extra business rules for AI fallback.",
-      ai_project_context_help: "These instructions are added dynamically to OpenAI calls together with live products, prices, meeting points, working hours, customer history, and app capabilities."
-    },
-    de: {
-      delivery_cities: "Lieferstädte",
-      delivery_cities_help: "Adressvorschläge sind auf diese Städte beschränkt. Standardstadt ist Berlin.",
-      allowed_cities: "Erlaubte Städte",
-      allowed_cities_example: "Städte durch Kommas getrennt eingeben. Beispiel: Berlin, Potsdam",
-      save_delivery_cities: "Lieferstädte speichern",
-      ai_response_mode_help: "Der Bot prüft zuerst Buttons, Menü-Nummern, Produkte, Standorte, Adressen, Arbeitszeiten und Admin-Befehle. OpenAI wird nur verwendet, wenn die App die Nachricht nicht selbst verarbeiten kann.",
-      ai_project_placeholder: "Zusätzliche Geschäftsregeln für AI-Fallback.",
-      ai_project_context_help: "Diese Anweisungen werden dynamisch zu OpenAI-Aufrufen hinzugefügt, zusammen mit Live-Produkten, Preisen, Treffpunkten, Arbeitszeiten, Kundenhistorie und App-Funktionen."
-    },
-    tr: {
-      delivery_cities: "Teslimat Şehirleri",
-      delivery_cities_help: "Adres önerileri bu şehirlerle sınırlıdır. Varsayılan şehir Berlin'dir.",
-      allowed_cities: "İzin verilen şehirler",
-      allowed_cities_example: "Şehirleri virgülle ayırarak girin. Örnek: Berlin, Potsdam",
-      save_delivery_cities: "Teslimat Şehirlerini Kaydet",
-      ai_response_mode_help: "Bot önce butonları, menü numaralarını, ürünleri, konumları, adresleri, çalışma saatlerini ve admin komutlarını kontrol eder. OpenAI yalnızca uygulama mesajı işleyemediğinde kullanılır.",
-      ai_project_placeholder: "AI fallback için ek iş kuralları.",
-      ai_project_context_help: "Bu talimatlar OpenAI çağrılarına canlı ürünler, fiyatlar, buluşma noktaları, çalışma saatleri, müşteri geçmişi ve uygulama özellikleriyle birlikte dinamik olarak eklenir."
-    },
-    ar: {
-      delivery_cities: "مدن التوصيل",
-      delivery_cities_help: "اقتراحات العناوين محدودة بهذه المدن. المدينة الافتراضية هي برلين.",
-      allowed_cities: "المدن المسموح بها",
-      allowed_cities_example: "أدخل المدن مفصولة بفواصل. مثال: Berlin, Potsdam",
-      save_delivery_cities: "حفظ مدن التوصيل",
-      ai_response_mode_help: "يتحقق البوت أولاً من الأزرار، أرقام القائمة، المنتجات، المواقع، العناوين، ساعات العمل، وأوامر الإدارة. يتم استخدام OpenAI فقط إذا لم يتمكن التطبيق من معالجة الرسالة.",
-      ai_project_placeholder: "قواعد عمل إضافية لاستخدام AI fallback.",
-      ai_project_context_help: "تتم إضافة هذه التعليمات ديناميكياً إلى استدعاءات OpenAI مع المنتجات الحية، الأسعار، نقاط اللقاء، ساعات العمل، سجل العميل، وإمكانيات التطبيق."
-    },
-    ru: {
-      delivery_cities: "Города доставки",
-      delivery_cities_help: "Подсказки адресов ограничены этими городами. Город по умолчанию - Берлин.",
-      allowed_cities: "Разрешенные города",
-      allowed_cities_example: "Введите города через запятую. Пример: Berlin, Potsdam",
-      save_delivery_cities: "Сохранить города доставки",
-      ai_response_mode_help: "Бот сначала проверяет кнопки, номера меню, товары, локации, адреса, рабочие часы и админ-команды. OpenAI используется только если приложение не может обработать сообщение.",
-      ai_project_placeholder: "Дополнительные бизнес-правила для AI fallback.",
-      ai_project_context_help: "Эти инструкции динамически добавляются к вызовам OpenAI вместе с текущими товарами, ценами, точками встречи, рабочими часами, историей клиента и возможностями приложения."
-    }
-  };
-
-  return texts[safeLang(language)] || texts.en;
-}
-
-function getProductCategoryUiText(language = "en") {
-  const texts = {
-    en: {
-      categories: "Categories",
-      category: "Category",
-      add_category: "Add Category",
-      category_name: "Category Name",
-      create_category: "Create Category",
-      no_category: "No category",
-      all_categories: "All categories",
-      uncategorized: "Uncategorized",
-      active_categories: "Active categories",
-      inactive_categories: "Inactive categories",
-      category_status: "Category status",
-      assign_category: "Assign Category"
-    },
-    de: {
-      categories: "Kategorien",
-      category: "Kategorie",
-      add_category: "Kategorie hinzufügen",
-      category_name: "Kategoriename",
-      create_category: "Kategorie erstellen",
-      no_category: "Keine Kategorie",
-      all_categories: "Alle Kategorien",
-      uncategorized: "Nicht kategorisiert",
-      active_categories: "Aktive Kategorien",
-      inactive_categories: "Inaktive Kategorien",
-      category_status: "Kategoriestatus",
-      assign_category: "Kategorie zuweisen"
-    },
-    tr: {
-      categories: "Kategoriler",
-      category: "Kategori",
-      add_category: "Kategori Ekle",
-      category_name: "Kategori Adı",
-      create_category: "Kategori Oluştur",
-      no_category: "Kategori yok",
-      all_categories: "Tüm kategoriler",
-      uncategorized: "Kategorisiz",
-      active_categories: "Aktif kategoriler",
-      inactive_categories: "Pasif kategoriler",
-      category_status: "Kategori durumu",
-      assign_category: "Kategori Ata"
-    },
-    ar: {
-      categories: "الفئات",
-      category: "الفئة",
-      add_category: "إضافة فئة",
-      category_name: "اسم الفئة",
-      create_category: "إنشاء فئة",
-      no_category: "بدون فئة",
-      all_categories: "كل الفئات",
-      uncategorized: "غير مصنف",
-      active_categories: "الفئات النشطة",
-      inactive_categories: "الفئات غير النشطة",
-      category_status: "حالة الفئة",
-      assign_category: "تعيين الفئة"
-    },
-    ru: {
-      categories: "Категории",
-      category: "Категория",
-      add_category: "Добавить категорию",
-      category_name: "Название категории",
-      create_category: "Создать категорию",
-      no_category: "Без категории",
-      all_categories: "Все категории",
-      uncategorized: "Без категории",
-      active_categories: "Активные категории",
-      inactive_categories: "Неактивные категории",
-      category_status: "Статус категории",
-      assign_category: "Назначить категорию"
-    }
-  };
-
-  return texts[safeLang(language)] || texts.en;
-}
-
 async function getActiveProducts(env) {
   const result = await env.DB.prepare("SELECT id, name, price, is_active FROM products WHERE is_active = 1 ORDER BY id ASC").all();
   return result.results;
 }
 
 async function getAllProducts(env) {
-  const result = await env.DB.prepare(
-    `SELECT
-       p.id,
-       p.name,
-       p.price,
-       p.is_active,
-       p.category_id,
-       pc.name AS category_name
-     FROM products p
-     LEFT JOIN product_categories pc ON pc.id = p.category_id
-     ORDER BY p.id ASC`
-  ).all();
-
-  return result.results;
-}
-
-async function getAllProductCategories(env) {
-  const result = await env.DB.prepare(
-    "SELECT id, name, is_active FROM product_categories ORDER BY name ASC"
-  ).all();
-
+  const result = await env.DB.prepare("SELECT id, name, price, is_active FROM products ORDER BY id ASC").all();
   return result.results;
 }
 
@@ -2585,52 +2430,8 @@ async function replaceManualAliases(env, productId, aliasesText) {
   }
 }
 
-function normalizeProductMatchText(text) {
-  return normalizeText(text)
-    .replace(/\\b(gullun|gullum|gulluye|gulluyu|gulluden|gullude|gullunun)\\b/g, "gullu")
-    .replace(/\\b(davutun|davutu|davuta|davuttan|davutta|davutunun)\\b/g, "davut")
-    .replace(/\\b(kavunlunun|kavunluyu|kavunluya|kavunludan|kavunluda)\\b/g, "kavunlu")
-    .replace(/\\b(mahmutun|mahmutu|mahmuta|mahmuttan|mahmutta)\\b/g, "mahmut");
-}
-
-function stripProductSuffixes(token) {
-  const clean = normalizeProductMatchText(token);
-  const variants = new Set([clean]);
-
-  const suffixes = [
-    "lar", "ler",
-    "nin", "nın", "nun", "nün",
-    "in", "ın", "un", "ün",
-    "yi", "yı", "yu", "yü",
-    "i", "ı", "u", "ü",
-    "a", "e",
-    "dan", "den", "tan", "ten",
-    "da", "de", "ta", "te",
-    "n"
-  ].map(normalizeText);
-
-  for (const suffix of suffixes) {
-    if (clean.length > suffix.length + 3 && clean.endsWith(suffix)) {
-      variants.add(clean.slice(0, -suffix.length));
-    }
-  }
-
-  return Array.from(variants).filter(Boolean);
-}
-
-function bestProductTokenScore(inputToken, targetToken) {
-  let best = partialScore(inputToken, targetToken);
-
-  for (const variant of stripProductSuffixes(inputToken)) {
-    best = Math.max(best, partialScore(variant, targetToken));
-  }
-
-  return best;
-}
-
 async function getMatchingProduct(env, text) {
-  const clean = normalizeProductMatchText(text);
-
+  const clean = normalizeText(text);
   if (isCloseMatch(clean, GREETING_KEYWORDS)) {
     return null;
   }
@@ -2642,43 +2443,35 @@ async function getMatchingProduct(env, text) {
      WHERE p.is_active = 1`
   ).all();
 
-  const inputWords = clean.split(/\s+/).filter((word) => word.length >= 3);
-
+  let best = null;
   for (const row of aliasesResult.results) {
-    const alias = normalizeProductMatchText(row.alias);
+    const score = partialScore(clean, normalizeText(row.alias));
+    if (!best || score > best.score) best = { score, product: row };
+  }
 
-    if (clean === alias || clean.includes(alias) || alias.includes(clean)) {
-      return row;
-    }
+  if (best && best.score >= 0.90) {
+    return best.product;
+  }
 
-    for (const word of inputWords) {
-      const aliasWords = alias.split(/\s+/).filter((part) => part.length >= 3);
-
-      for (const aliasWord of aliasWords) {
-        if (bestProductTokenScore(word, aliasWord) >= 0.78) {
-          return row;
-        }
-      }
+  for (const word of clean.split(/\s+/).filter((word) => word.length >= 3)) {
+    for (const row of aliasesResult.results) {
+      const score = partialScore(word, normalizeText(row.alias));
+      if (score >= 0.90) return row;
     }
   }
 
   const products = await getActiveProducts(env);
-
+  best = null;
   for (const product of products) {
-    const productName = normalizeProductMatchText(product.name);
+    const score = partialScore(clean, normalizeText(product.name));
+    if (!best || score > best.score) best = { score, product };
+  }
 
-    if (clean === productName || clean.includes(productName) || productName.includes(clean)) {
-      return product;
-    }
+  if (best && best.score >= 0.90) return best.product;
 
-    const productWords = productName.split(/\s+/).filter((part) => part.length >= 3);
-
-    for (const word of inputWords) {
-      for (const productWord of productWords) {
-        if (bestProductTokenScore(word, productWord) >= 0.78) {
-          return product;
-        }
-      }
+  for (const word of clean.split(/\s+/).filter((word) => word.length >= 4)) {
+    for (const product of products) {
+      if (partialScore(word, normalizeText(product.name)) >= 0.90) return product;
     }
   }
 
@@ -2698,661 +2491,22 @@ function formatPrice(price) {
   return Number.isInteger(number) ? String(number) : String(number);
 }
 
-
-function getCustomerProductUiText(language = "en") {
-  const texts = {
-    en: {
-      available_products: "Available products:",
-      show_categories: "Show categories",
-      special_request: "Special request",
-      basket: "Basket",
-      back_to_products: "Back to products",
-      uncategorized_products: "Uncategorized products",
-      choose_category: "Choose a category:",
-      no_products_available: "No active products are available right now.",
-      no_products_in_category: "No active products are available in this category.",
-      type_special_request: "Please type your special request.",
-      special_request_received: "Special request received. Admin will review it."
-    },
-    de: {
-      available_products: "Verfügbare Produkte:",
-      show_categories: "Kategorien anzeigen",
-      special_request: "Sonderwunsch",
-      basket: "Warenkorb",
-      back_to_products: "Zurück zu Produkten",
-      uncategorized_products: "Nicht kategorisierte Produkte",
-      choose_category: "Kategorie auswählen:",
-      no_products_available: "Derzeit sind keine aktiven Produkte verfügbar.",
-      no_products_in_category: "In dieser Kategorie sind keine aktiven Produkte verfügbar.",
-      type_special_request: "Bitte geben Sie Ihren Sonderwunsch ein.",
-      special_request_received: "Sonderwunsch erhalten. Der Admin prüft ihn."
-    },
-    tr: {
-      available_products: "Mevcut ürünler:",
-      show_categories: "Kategorileri göster",
-      special_request: "Özel istek",
-      basket: "Sepet",
-      back_to_products: "Ürünlere dön",
-      uncategorized_products: "Kategorisiz ürünler",
-      choose_category: "Bir kategori seçin:",
-      no_products_available: "Şu anda aktif ürün yok.",
-      no_products_in_category: "Bu kategoride aktif ürün yok.",
-      type_special_request: "Lütfen özel isteğinizi yazın.",
-      special_request_received: "Özel istek alındı. Admin inceleyecek."
-    },
-    ar: {
-      available_products: "المنتجات المتوفرة:",
-      show_categories: "عرض الفئات",
-      special_request: "طلب خاص",
-      basket: "السلة",
-      back_to_products: "العودة إلى المنتجات",
-      uncategorized_products: "منتجات بدون فئة",
-      choose_category: "اختر فئة:",
-      no_products_available: "لا توجد منتجات نشطة حالياً.",
-      no_products_in_category: "لا توجد منتجات نشطة في هذه الفئة.",
-      type_special_request: "يرجى كتابة طلبك الخاص.",
-      special_request_received: "تم استلام الطلب الخاص. ستقوم الإدارة بمراجعته."
-    },
-    ru: {
-      available_products: "Доступные товары:",
-      show_categories: "Показать категории",
-      special_request: "Особый запрос",
-      basket: "Корзина",
-      back_to_products: "Назад к товарам",
-      uncategorized_products: "Товары без категории",
-      choose_category: "Выберите категорию:",
-      no_products_available: "Сейчас нет активных товаров.",
-      no_products_in_category: "В этой категории нет активных товаров.",
-      type_special_request: "Пожалуйста, напишите ваш особый запрос.",
-      special_request_received: "Особый запрос получен. Админ его проверит."
-    }
-  };
-
-  return texts[safeLang(language)] || texts.en;
-}
-
-async function getActiveProductCategories(env) {
-  const result = await env.DB.prepare(
-    `SELECT DISTINCT pc.id, pc.name
-     FROM product_categories pc
-     JOIN products p ON p.category_id = pc.id
-     WHERE pc.is_active = 1 AND p.is_active = 1
-     ORDER BY pc.name ASC`
-  ).all();
-
-  return result.results;
-}
-
-async function getActiveProductsByCategory(env, categoryId) {
-  const result = await env.DB.prepare(
-    `SELECT id, name, price, is_active, category_id
-     FROM products
-     WHERE is_active = 1 AND category_id = ?
-     ORDER BY name ASC`
-  ).bind(categoryId).all();
-
-  return result.results;
-}
-
-async function getActiveUncategorizedProducts(env) {
-  const result = await env.DB.prepare(
-    `SELECT id, name, price, is_active, category_id
-     FROM products
-     WHERE is_active = 1 AND category_id IS NULL
-     ORDER BY name ASC`
-  ).all();
-
-  return result.results;
-}
-
-function getProductMenuKeyboard(products, language = "en") {
-  const ui = getCustomerProductUiText(language);
-  const rows = [
-    [{ text: ui.show_categories, callback_data: "product_show_categories" }],
-    [{ text: ui.special_request, callback_data: "product_special_request" }]
-  ];
-
-  for (const product of products) {
-    rows.push([{ text: `${product.name}: ${formatPrice(product.price)}`, callback_data: `product_select_${product.id}` }]);
-  }
-
-  rows.push([{ text: ui.basket, callback_data: "basket_view" }]);
-  return { inline_keyboard: rows };
-}
-
-function getProductCategoriesKeyboard(categories, hasUncategorized, language = "en") {
-  const ui = getCustomerProductUiText(language);
-  const rows = categories.map((category) => [
-    { text: category.name, callback_data: `product_category_${category.id}` }
-  ]);
-
-  if (hasUncategorized) {
-    rows.push([{ text: ui.uncategorized_products, callback_data: "product_category_uncategorized" }]);
-  }
-
-  rows.push([{ text: ui.back_to_products, callback_data: "product_back_to_products" }]);
-  return { inline_keyboard: rows };
-}
-
-function getProductsInCategoryKeyboard(products, language = "en") {
-  const ui = getCustomerProductUiText(language);
-  const rows = products.map((product) => [
-    { text: `${product.name}: ${formatPrice(product.price)}`, callback_data: `product_select_${product.id}` }
-  ]);
-
-  rows.push([{ text: ui.back_to_products, callback_data: "product_back_to_products" }]);
-  rows.push([{ text: ui.basket, callback_data: "basket_view" }]);
-  return { inline_keyboard: rows };
-}
-
-async function sendProductMenu(env, chatId, language = "en") {
-  const ui = getCustomerProductUiText(language);
-  const products = await getActiveProducts(env);
-
-  if (!products.length) {
-    await sendTelegramMessage(env, chatId, ui.no_products_available);
-    return;
-  }
-
-  await sendTelegramMessage(env, chatId, ui.available_products, getProductMenuKeyboard(products, language));
-}
-
-async function isProductListRequestText(text) {
-  return isCloseMatch(normalizeText(text), PRODUCT_KEYWORDS);
-}
-
-
-function getCartUiText(language = "en") {
-  const texts = {
-    en: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} is in basket.`,
-      need_anything_else: "Do you need anything else or do you want to check out?",
-      continue_shopping: "Continue shopping",
-      modify_basket: "Modify basket",
-      checkout: "Checkout",
-      basket_empty: "Your basket is empty.",
-      your_basket: "Your basket:",
-      remove: "Remove",
-      change_amount: "Change amount",
-      increase: "+",
-      decrease: "-",
-      clear_basket: "Clear basket",
-      change_quantity: "Change amount",
-      enter_new_quantity: "Please enter the new amount.",
-      basket_quantity_updated: "Basket amount updated.",
-      item_removed: "Item removed from basket.",
-      item_updated: "Basket updated.",
-      checkout_next_stage: "Checkout delivery selection will be added in the next step."
-    },
-    de: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} ist im Warenkorb.`,
-      need_anything_else: "Brauchen Sie noch etwas oder möchten Sie zur Kasse gehen?",
-      continue_shopping: "Weiter einkaufen",
-      modify_basket: "Warenkorb ändern",
-      checkout: "Zur Kasse",
-      basket_empty: "Ihr Warenkorb ist leer.",
-      your_basket: "Ihr Warenkorb:",
-      remove: "Entfernen",
-      change_amount: "Menge ändern",
-      increase: "+",
-      decrease: "-",
-      clear_basket: "Warenkorb leeren",
-      change_quantity: "Menge ändern",
-      enter_new_quantity: "Bitte geben Sie die neue Menge ein.",
-      basket_quantity_updated: "Warenkorbmenge aktualisiert.",
-      item_removed: "Artikel aus dem Warenkorb entfernt.",
-      item_updated: "Warenkorb aktualisiert.",
-      checkout_next_stage: "Die Lieferauswahl für den Checkout wird im nächsten Schritt hinzugefügt."
-    },
-    tr: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} sepete eklendi.`,
-      need_anything_else: "Başka bir şey ister misiniz yoksa ödeme/teslimat aşamasına geçmek ister misiniz?",
-      continue_shopping: "Alışverişe devam et",
-      modify_basket: "Sepeti düzenle",
-      checkout: "Checkout",
-      basket_empty: "Sepetiniz boş.",
-      your_basket: "Sepetiniz:",
-      remove: "Kaldır",
-      change_amount: "Miktarı değiştir",
-      increase: "+",
-      decrease: "-",
-      clear_basket: "Sepeti temizle",
-      change_quantity: "Adedi değiştir",
-      enter_new_quantity: "Lütfen yeni adedi yazın.",
-      basket_quantity_updated: "Sepet adedi güncellendi.",
-      item_removed: "Ürün sepetten kaldırıldı.",
-      item_updated: "Sepet güncellendi.",
-      checkout_next_stage: "Checkout teslimat seçimi bir sonraki adımda eklenecek."
-    },
-    ar: {
-      added_to_basket: (name, quantity) => `تمت إضافة ${name} x ${quantity} إلى السلة.`,
-      need_anything_else: "هل تحتاج شيئاً آخر أم تريد إتمام الطلب؟",
-      continue_shopping: "متابعة التسوق",
-      modify_basket: "تعديل السلة",
-      checkout: "إتمام الطلب",
-      basket_empty: "سلتك فارغة.",
-      your_basket: "سلتك:",
-      remove: "إزالة",
-      change_amount: "تغيير الكمية",
-      increase: "+",
-      decrease: "-",
-      clear_basket: "تفريغ السلة",
-      item_removed: "تمت إزالة المنتج من السلة.",
-      item_updated: "تم تحديث السلة.",
-      checkout_next_stage: "سيتم إضافة اختيار التوصيل في الخطوة التالية."
-    },
-    ru: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} добавлено в корзину.`,
-      need_anything_else: "Нужно что-то ещё или хотите перейти к оформлению?",
-      continue_shopping: "Продолжить покупки",
-      modify_basket: "Изменить корзину",
-      checkout: "Оформить заказ",
-      basket_empty: "Ваша корзина пуста.",
-      your_basket: "Ваша корзина:",
-      remove: "Удалить",
-      change_amount: "Изменить количество",
-      increase: "+",
-      decrease: "-",
-      clear_basket: "Очистить корзину",
-      change_quantity: "Изменить количество",
-      enter_new_quantity: "Пожалуйста, введите новое количество.",
-      basket_quantity_updated: "Количество в корзине обновлено.",
-      item_removed: "Товар удалён из корзины.",
-      item_updated: "Корзина обновлена.",
-      checkout_next_stage: "Выбор доставки для оформления будет добавлен на следующем шаге."
-    }
-  };
-
-  return texts[safeLang(language)] || texts.en;
-}
-
-async function getOrCreateActiveCart(env, customerId) {
-  let cart = await env.DB.prepare(
-    "SELECT * FROM shopping_carts WHERE customer_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"
-  ).bind(customerId).first();
-
-  if (cart) return cart;
-
-  const inserted = await env.DB.prepare(
-    "INSERT INTO shopping_carts (customer_id, status) VALUES (?, 'active') RETURNING *"
-  ).bind(customerId).first();
-
-  return inserted;
-}
-
-async function getActiveCart(env, customerId) {
-  return env.DB.prepare(
-    "SELECT * FROM shopping_carts WHERE customer_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"
-  ).bind(customerId).first();
-}
-
-async function addProductToBasket(env, customerId, product, quantity = 1) {
-  quantity = Number(quantity);
-  if (!Number.isFinite(quantity) || quantity < 1) quantity = 1;
-  quantity = Math.floor(quantity);
-
-  const cart = await getOrCreateActiveCart(env, customerId);
-  const existing = await env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE cart_id = ? AND product_id = ? AND item_type = 'product'"
-  ).bind(cart.id, product.id).first();
-
-  const qty = Math.max(1, Number(quantity || 1));
-
-  if (existing) {
-    await env.DB.prepare(
-      "UPDATE shopping_cart_items SET quantity = quantity + ? WHERE id = ?"
-    ).bind(qty, existing.id).run();
-  } else {
-    await env.DB.prepare(
-      "INSERT INTO shopping_cart_items (cart_id, product_id, item_type, name, quantity, price_snapshot) VALUES (?, ?, 'product', ?, ?, ?)"
-    ).bind(cart.id, product.id, product.name, qty, product.price).run();
-  }
-
-  await env.DB.prepare(
-    "UPDATE shopping_carts SET updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-  ).bind(cart.id).run();
-
-  return cart;
-}
-
-async function getCartItems(env, customerId) {
-  const cart = await getActiveCart(env, customerId);
-  if (!cart) return { cart: null, items: [] };
-
-  const result = await env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE cart_id = ? ORDER BY id ASC"
-  ).bind(cart.id).all();
-
-  return { cart, items: result.results };
-}
-
-function formatBasketText(items, language = "en") {
-  const ui = getCartUiText(language);
-
-  if (!items.length) return ui.basket_empty;
-
-  const lines = items.map((item, index) => {
-    const price = item.price_snapshot !== null && item.price_snapshot !== undefined
-      ? ` - ${formatPrice(item.price_snapshot)}`
-      : "";
-    return `${index + 1}. ${item.name} x ${item.quantity}${price}`;
-  });
-
-  return `${ui.your_basket}\n${lines.join("\n")}`;
-}
-
-function getAfterAddToBasketKeyboard(language = "en") {
-  const ui = getCartUiText(language);
-  return {
-    inline_keyboard: [
-      [{ text: ui.continue_shopping, callback_data: "product_back_to_products" }],
-      [{ text: ui.modify_basket, callback_data: "basket_view" }],
-      [{ text: ui.checkout, callback_data: "basket_checkout" }]
-    ]
-  };
-}
-
-function getBasketKeyboard(items, language = "en") {
-  const ui = getCartUiText(language);
-  const rows = [];
-
-  for (const item of items) {
-    rows.push([
-      { text: `${ui.change_quantity} ${item.name}`, callback_data: `basket_change_${item.id}` }
-    ]);
-    rows.push([
-      { text: `${ui.remove} ${item.name}`, callback_data: `basket_remove_${item.id}` }
-    ]);
-  }
-
-  rows.push([{ text: ui.continue_shopping, callback_data: "product_back_to_products" }]);
-  rows.push([{ text: ui.checkout, callback_data: "basket_checkout" }]);
-  rows.push([{ text: ui.clear_basket, callback_data: "basket_clear" }]);
-
-  return { inline_keyboard: rows };
-}
-
-async function sendBasketView(env, customer, chatId) {
-  const language = customer.preferred_language || customer.language || "en";
-  const { items } = await getCartItems(env, customer.id);
-  await sendTelegramMessage(env, chatId, formatBasketText(items, language), getBasketKeyboard(items, language));
-}
-
-async function sendAddedToBasket(env, customer, chatId, product, quantity) {
-  const language = customer.preferred_language || customer.language || "en";
-  const ui = getCartUiText(language);
-
-  const replyText = [
-    ui.added_to_basket(product.name, quantity),
-    "",
-    ui.need_anything_else
-  ].join("\n");
-
-  await sendTelegramMessage(env, chatId, replyText, getAfterAddToBasketKeyboard(language));
-}
-
-function getAskProductQuantityText(language = "en", productName = "") {
-  const replies = {
-    en: `How many ${productName || "items"} do you want?`,
-    de: `Wie viele ${productName || "Artikel"} möchten Sie?`,
-    tr: `${productName || "Ürün"} kaç adet istiyorsunuz?`,
-    ar: `كم عدد ${productName || "المنتج"} الذي تريده؟`,
-    ru: `Сколько ${productName || "товаров"} вы хотите?`
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getInvalidProductQuantityText(language = "en") {
-  const replies = {
-    en: "Please send a valid quantity, for example: 1, 2, 3.",
-    de: "Bitte senden Sie eine gültige Menge, zum Beispiel: 1, 2, 3.",
-    tr: "Lütfen geçerli bir adet gönderin, örnek: 1, 2, 3.",
-    ar: "يرجى إرسال كمية صحيحة، مثال: 1، 2، 3.",
-    ru: "Пожалуйста, отправьте корректное количество, например: 1, 2, 3."
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-async function setPendingProductQuantity(env, customerId, product, incomingText = "") {
-  await setSetting(
-    env,
-    `pending_product_quantity_${customerId}`,
-    JSON.stringify({
-      product_id: product.id,
-      product_name: product.name,
-      product_price: product.price,
-      incoming_text: incomingText
-    })
-  );
-}
-
-async function getPendingProductQuantity(env, customerId) {
-  const raw = await getSetting(env, `pending_product_quantity_${customerId}`);
-  if (!raw) return null;
-
-  try {
-    return JSON.parse(raw);
-  } catch (_) {
-    return null;
-  }
-}
-
-async function clearPendingProductQuantity(env, customerId) {
-  await setSetting(env, `pending_product_quantity_${customerId}`, "");
-}
-
-async function handleProductRequestFromText(env, customer, chatId, incomingText, language) {
-  const matchedProduct = await getMatchingProduct(env, incomingText);
-
-  if (!matchedProduct) {
-    return false;
-  }
-
-  const quantity = extractQuantity(incomingText);
-
-  if (!quantity || Number(quantity) < 1) {
-    await setPendingProductQuantity(env, customer.id, matchedProduct, incomingText);
-    await setCustomerState(env, customer.id, "awaiting_product_quantity");
-
-    const askText = getAskProductQuantityText(language, matchedProduct.name);
-    await saveMessage(env, customer.id, "outgoing", askText, language);
-    await sendTelegramMessage(env, chatId, askText);
-    return true;
-  }
-
-  await addProductToBasket(env, customer.id, matchedProduct, quantity);
-  await sendAddedToBasket(env, customer, chatId, matchedProduct, quantity);
-  return true;
-}
-
-async function setPendingBasketQuantityChange(env, customerId, cartItemId) {
-  await setSetting(env, `pending_basket_quantity_item_${customerId}`, String(cartItemId));
-}
-
-async function getPendingBasketQuantityChange(env, customerId) {
-  const value = await getSetting(env, `pending_basket_quantity_item_${customerId}`);
-  return Number(value || 0);
-}
-
-async function clearPendingBasketQuantityChange(env, customerId) {
-  await setSetting(env, `pending_basket_quantity_item_${customerId}`, "");
-}
-
-async function getCartItemForCustomer(env, customerId, itemId) {
-  const cart = await getOrCreateActiveCart(env, customerId);
-  return env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
-  ).bind(itemId, cart.id).first();
-}
-
-async function handleBasketSelection(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-  const ui = getCartUiText(language);
-  const data = callbackQuery.data;
-
-  if (data === "basket_view") {
-    await sendBasketView(env, customer, callbackQuery.message.chat.id);
-    return;
-  }
-
-  if (data === "basket_checkout") {
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.checkout_next_stage);
-    return;
-  }
-
-  const { cart } = await getCartItems(env, customer.id);
-  if (!cart) {
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.basket_empty);
-    return;
-  }
-
-  if (data === "basket_clear") {
-    await env.DB.prepare("DELETE FROM shopping_cart_items WHERE cart_id = ?").bind(cart.id).run();
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.basket_empty);
-    return;
-  }
-
-  const itemId = Number(
-    data
-      .replace("basket_remove_", "")
-      .replace("basket_increase_", "")
-      .replace("basket_decrease_", "")
-  );
-
-  const item = await env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
-  ).bind(itemId, cart.id).first();
-
-  if (!item) {
-    await sendBasketView(env, customer, callbackQuery.message.chat.id);
-    return;
-  }
-
-  if (data.startsWith("basket_remove_")) {
-    await env.DB.prepare("DELETE FROM shopping_cart_items WHERE id = ?").bind(itemId).run();
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.item_removed);
-    await sendBasketView(env, customer, callbackQuery.message.chat.id);
-    return;
-  }
-
-  if (data.startsWith("basket_increase_")) {
-    await env.DB.prepare("UPDATE shopping_cart_items SET quantity = quantity + 1 WHERE id = ?").bind(itemId).run();
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.item_updated);
-    await sendBasketView(env, customer, callbackQuery.message.chat.id);
-    return;
-  }
-
-  if (data.startsWith("basket_decrease_")) {
-    if (Number(item.quantity) <= 1) {
-      await env.DB.prepare("DELETE FROM shopping_cart_items WHERE id = ?").bind(itemId).run();
-    } else {
-      await env.DB.prepare("UPDATE shopping_cart_items SET quantity = quantity - 1 WHERE id = ?").bind(itemId).run();
-    }
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.item_updated);
-    await sendBasketView(env, customer, callbackQuery.message.chat.id);
-  }
-}
-
-async function handleProductMenuSelection(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-  const ui = getCustomerProductUiText(language);
-  const data = callbackQuery.data;
-
-  if (data === "basket_view") {
-    await sendBasketView(env, customer, callbackQuery.message.chat.id);
-    return;
-  }
-
-  if (data === "product_back_to_products") {
-    await sendProductMenu(env, callbackQuery.message.chat.id, language);
-    return;
-  }
-
-  if (data === "product_show_categories") {
-    const categories = await getActiveProductCategories(env);
-    const uncategorized = await getActiveUncategorizedProducts(env);
-
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      ui.choose_category,
-      getProductCategoriesKeyboard(categories, uncategorized.length > 0, language)
-    );
-    return;
-  }
-
-  if (data === "product_category_uncategorized") {
-    const products = await getActiveUncategorizedProducts(env);
-
-    if (!products.length) {
-      await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.no_products_in_category);
-      return;
-    }
-
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      ui.uncategorized_products,
-      getProductsInCategoryKeyboard(products, language)
-    );
-    return;
-  }
-
-  if (data.startsWith("product_category_")) {
-    const categoryId = Number(data.replace("product_category_", ""));
-    const products = await getActiveProductsByCategory(env, categoryId);
-
-    if (!products.length) {
-      await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.no_products_in_category);
-      return;
-    }
-
-    await sendTelegramMessage(
-      env,
-      callbackQuery.message.chat.id,
-      ui.available_products,
-      getProductsInCategoryKeyboard(products, language)
-    );
-    return;
-  }
-
-  if (data === "product_special_request") {
-    await setCustomerState(env, customer.id, "awaiting_special_request");
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.type_special_request);
-    return;
-  }
-
-  if (data.startsWith("product_select_")) {
-    const productId = Number(data.replace("product_select_", ""));
-    const product = await env.DB.prepare(
-      "SELECT id, name, price, is_active FROM products WHERE id = ? AND is_active = 1"
-    ).bind(productId).first();
-
-    if (!product) {
-      await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.no_products_available);
-      return;
-    }
-
-    const quantity = 1;
-    await addProductToBasket(env, customer.id, product, quantity);
-    await sendAddedToBasket(env, customer, callbackQuery.message.chat.id, product, quantity);
-  }
-}
-
 async function formatProductListReply(env, language) {
   const products = await getActiveProducts(env);
-  const ui = getCustomerProductUiText(language);
-
   if (!products.length) {
-    return ui.no_products_available;
+    return "No active products are available right now.";
   }
 
+  const headers = {
+    en: "Available products:",
+    de: "Verfügbare Produkte:",
+    tr: "Mevcut ürünler:",
+    ar: "المنتجات المتوفرة:",
+    ru: "Доступные товары:"
+  };
+
   const lines = products.map((product) => `- ${product.name}: ${formatPrice(product.price)}`);
-  return `${ui.available_products}\n${lines.join("\n")}`;
+  return `${headers[safeLang(language)] || headers.en}\n${lines.join("\n")}`;
 }
 
 function formatSingleProductReply(product, language) {
@@ -3733,223 +2887,6 @@ async function forwardProductRequest(env, customer, incomingText, productName, q
   await sendTelegramMessage(env, adminChatId, text, getAdminReplyKeyboard(customer.id));
 }
 
-async function getCustomerRequest(env, requestId) {
-  return env.DB.prepare(
-    "SELECT * FROM customer_requests WHERE id = ?"
-  ).bind(requestId).first();
-}
-
-async function getPreferredCustomerLocation(env, customerId) {
-  return env.DB.prepare(
-    `SELECT *
-     FROM customer_locations
-     WHERE customer_id = ? AND is_preferred = 1
-     ORDER BY datetime(created_at) DESC, id DESC
-     LIMIT 1`
-  ).bind(customerId).first();
-}
-
-async function updateRequestLocation(env, requestId, locationLabel, latitude = null, longitude = null, googleMapsLink = null) {
-  await env.DB.prepare(
-    `UPDATE customer_requests
-     SET location_label = ?, latitude = ?, longitude = ?, google_maps_link = ?
-     WHERE id = ?`
-  ).bind(locationLabel, latitude, longitude, googleMapsLink, requestId).run();
-}
-
-async function getFulfillmentSettings(env) {
-  return {
-    allowPreferred: (await getSetting(env, "allow_preferred_customer_location") || "on") === "on",
-    allowNew: (await getSetting(env, "allow_new_customer_location") || "on") === "on",
-    allowPickup: (await getSetting(env, "allow_customer_pickup") || "on") === "on"
-  };
-}
-
-function getProductFulfillmentPrompt(language = "en", productName = "") {
-  const replies = {
-    en: `How would you like to receive ${productName || "the product"}?`,
-    de: `Wie möchten Sie ${productName || "das Produkt"} erhalten?`,
-    tr: `${productName || "Ürünü"} nasıl teslim almak istersiniz?`,
-    ar: `كيف تريد استلام ${productName || "المنتج"}؟`,
-    ru: `Как вы хотите получить ${productName || "товар"}?`
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getProductFulfillmentUnavailableText(language = "en") {
-  const replies = {
-    en: "No delivery option is currently available. Admin will contact you.",
-    de: "Derzeit ist keine Lieferoption verfügbar. Der Admin wird Sie kontaktieren.",
-    tr: "Şu anda teslimat seçeneği mevcut değil. Admin sizinle iletişime geçecek.",
-    ar: "لا يوجد خيار توصيل متاح حالياً. ستتواصل الإدارة معك.",
-    ru: "Сейчас нет доступного варианта доставки. Админ свяжется с вами."
-  };
-
-  return replies[safeLang(language)] || replies.en;
-}
-
-function getProductFulfillmentKeyboard(requestId, options) {
-  const rows = [];
-
-  if (options.allowPreferred && options.hasPreferredLocation) {
-    rows.push([{ text: "Use preferred location", callback_data: `product_fulfillment_preferred_${requestId}` }]);
-  }
-
-  if (options.allowNew) {
-    rows.push([{ text: "Enter new location", callback_data: `product_fulfillment_new_${requestId}` }]);
-  }
-
-  if (options.allowPickup) {
-    rows.push([{ text: "Collect from our location", callback_data: `product_fulfillment_pickup_${requestId}` }]);
-  }
-
-  rows.push([{ text: "Contact admin", callback_data: "option_admin" }]);
-
-  return { inline_keyboard: rows };
-}
-
-async function forwardProductRequestWithFulfillment(env, customer, request, fulfillmentLabel, googleMapsLink = null) {
-  const adminChatId = await getAdminChatId(env);
-  if (!adminChatId) return;
-
-  const text = [
-    "Product request:",
-    "",
-    `Customer: ${customer.full_name || ""}`,
-    `Telegram ID: ${customer.telegram_user_id}`,
-    `Product: ${request.item_name || ""}`,
-    `Quantity: ${request.quantity || "Not specified"}`,
-    `Fulfillment: ${fulfillmentLabel || "Not selected"}`,
-    googleMapsLink ? `Map: ${googleMapsLink}` : "",
-    `Message: ${request.request_text || ""}`
-  ].filter(Boolean).join("\n");
-
-  const keyboard = googleMapsLink
-    ? getDeliveryAdminKeyboard(request.id, customer.id, googleMapsLink)
-    : getAdminReplyKeyboard(customer.id);
-
-  await sendTelegramMessage(env, adminChatId, text, keyboard);
-}
-
-async function sendProductFulfillmentChoiceOrFallback(env, customer, chatId, requestId, product, quantity, incomingText, productReply) {
-  const language = customer.preferred_language || customer.language || "en";
-  const settings = await getFulfillmentSettings(env);
-  const preferredLocation = await getPreferredCustomerLocation(env, customer.id);
-
-  const options = {
-    allowPreferred: settings.allowPreferred,
-    allowNew: settings.allowNew,
-    allowPickup: settings.allowPickup,
-    hasPreferredLocation: Boolean(preferredLocation)
-  };
-
-  const hasAnyOption =
-    (options.allowPreferred && options.hasPreferredLocation)
-    || options.allowNew
-    || options.allowPickup;
-
-  if (!hasAnyOption) {
-    await forwardProductRequest(env, customer, incomingText, product.name, quantity);
-    await sendTelegramMessage(
-      env,
-      chatId,
-      `${productReply}\n\n${getProductFulfillmentUnavailableText(language)}`
-    );
-    return true;
-  }
-
-  await sendTelegramMessage(
-    env,
-    chatId,
-    `${productReply}\n\n${getProductFulfillmentPrompt(language, product.name)}`,
-    getProductFulfillmentKeyboard(requestId, options)
-  );
-
-  return true;
-}
-
-async function handleProductFulfillmentSelection(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-  const data = callbackQuery.data;
-
-  const requestId = Number(
-    data
-      .replace("product_fulfillment_preferred_", "")
-      .replace("product_fulfillment_new_", "")
-      .replace("product_fulfillment_pickup_", "")
-  );
-
-  const request = await getCustomerRequest(env, requestId);
-
-  if (!request || Number(request.customer_id) !== Number(customer.id)) {
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, "Product request was not found.");
-    return;
-  }
-
-  if (data.startsWith("product_fulfillment_preferred_")) {
-    const preferredLocation = await getPreferredCustomerLocation(env, customer.id);
-
-    if (!preferredLocation) {
-      await sendTelegramMessage(env, callbackQuery.message.chat.id, "No preferred location saved yet. Please enter a new location.");
-      await setSetting(env, `pending_product_fulfillment_request_${customer.id}`, String(requestId));
-      await setCustomerState(env, customer.id, "awaiting_typed_address");
-      await sendTelegramMessage(env, callbackQuery.message.chat.id, t("type_address", language));
-      return;
-    }
-
-    const locationLabel = preferredLocation.description || "Preferred customer location";
-    await updateRequestLocation(
-      env,
-      requestId,
-      locationLabel,
-      preferredLocation.latitude,
-      preferredLocation.longitude,
-      preferredLocation.google_maps_link
-    );
-
-    const updatedRequest = await getCustomerRequest(env, requestId);
-    await forwardProductRequestWithFulfillment(
-      env,
-      customer,
-      updatedRequest,
-      `Preferred customer location: ${locationLabel}`,
-      preferredLocation.google_maps_link
-    );
-
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, "Order sent with your preferred location.");
-    return;
-  }
-
-  if (data.startsWith("product_fulfillment_new_")) {
-    await setSetting(env, `pending_product_fulfillment_request_${customer.id}`, String(requestId));
-    await setCustomerState(env, customer.id, "awaiting_typed_address");
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, t("type_address", language));
-    return;
-  }
-
-  if (data.startsWith("product_fulfillment_pickup_")) {
-    await updateRequestLocation(env, requestId, "Customer pickup from business location", null, null, null);
-
-    const updatedRequest = await getCustomerRequest(env, requestId);
-    await forwardProductRequestWithFulfillment(
-      env,
-      customer,
-      updatedRequest,
-      "Customer will collect from our location",
-      null
-    );
-
-    await sendMeetingPointChoiceOrDirect(
-      env,
-      customer,
-      callbackQuery.message.chat.id,
-      "Customer selected pickup for product request"
-    );
-  }
-}
-
 async function forwardLocationNeeded(env, customer, incomingText) {
   const adminChatId = await getAdminChatId(env);
   if (!adminChatId) return;
@@ -4281,10 +3218,9 @@ async function getAiUsageStats(env) {
 }
 
 async function getAdminData(env) {
-  const [customers, products, productCategories, meetingPoints, aliasMap] = await Promise.all([
+  const [customers, products, meetingPoints, aliasMap] = await Promise.all([
     env.DB.prepare("SELECT * FROM customers ORDER BY last_seen_at DESC").all(),
     getAllProducts(env),
-    getAllProductCategories(env),
     getAllMeetingPoints(env),
     getProductAliasMap(env)
   ]);
@@ -4292,7 +3228,6 @@ async function getAdminData(env) {
   return {
     customers: customers.results,
     products,
-    productCategories,
     meetingPoints,
     learnedPatterns: await getLearnedPatternsForAdmin(env),
     aiUsageStats: await getAiUsageStats(env),
@@ -4317,53 +3252,20 @@ async function getAdminData(env) {
 }
 
 function renderAdminDashboard(data, section = "dashboard") {
-  const ui = { ...i18nAdmin(data.settings.admin_view_language), ...getProductCategoryUiText(data.settings.admin_view_language), ...getAdminGeneralExtraUiText(data.settings.admin_view_language) };
+  const ui = i18nAdmin(data.settings.admin_view_language);
   const adminText = ADMIN_TEXTS[data.settings.admin_view_language] || ADMIN_TEXTS.en;
 
-  const productCategoryOptions = (selectedId = "") => [
-    `<option value="">${escapeHtml(ui.no_category)}</option>`,
-    ...(data.productCategories || []).map((category) =>
-      `<option value="${category.id}" ${String(selectedId || "") === String(category.id) ? "selected" : ""}>${escapeHtml(category.name)}${category.is_active ? "" : " (inactive)"}</option>`
-    )
-  ].join("");
-
   const productRows = data.products.map((product) => `
-    <tr
-      data-product-id="${product.id}"
-      data-product-name="${escapeHtml(product.name)}"
-      data-product-aliases="${escapeHtml((data.productAliasMap[product.id] || []).join(" "))}"
-      data-product-price="${escapeHtml(product.price)}"
-      data-product-active="${product.is_active ? "active" : "inactive"}"
-      data-product-category="${escapeHtml(product.category_id || "")}"
-    >
+    <tr>
       <form action="/admin/products/${product.id}/update" method="post">
         <td>${product.id}</td>
         <td><input type="text" name="name" value="${escapeHtml(product.name)}" required></td>
         <td><input type="number" step="0.01" name="price" value="${escapeHtml(product.price)}" required></td>
-        <td>
-          <select name="category_id">
-            ${productCategoryOptions(product.category_id)}
-          </select>
-        </td>
         <td><textarea name="aliases" rows="2" cols="40">${escapeHtml((data.productAliasMap[product.id] || []).join(", "))}</textarea></td>
         <td><input type="checkbox" name="is_active" ${product.is_active ? "checked" : ""}></td>
         <td><button type="submit">${ui.save}</button>
       </form>
       <form action="/admin/products/${product.id}/delete" method="post" style="display:inline;">
-        <button type="submit">${ui.delete}</button>
-      </form></td>
-    </tr>
-  `).join("");
-
-  const productCategoryRows = (data.productCategories || []).map((category) => `
-    <tr>
-      <form action="/admin/product-categories/${category.id}/update" method="post">
-        <td>${category.id}</td>
-        <td><input type="text" name="name" value="${escapeHtml(category.name)}" required></td>
-        <td><input type="checkbox" name="is_active" ${category.is_active ? "checked" : ""}></td>
-        <td><button type="submit">${ui.save}</button>
-      </form>
-      <form action="/admin/product-categories/${category.id}/delete" method="post" style="display:inline;">
         <button type="submit">${ui.delete}</button>
       </form></td>
     </tr>
@@ -4432,9 +3334,6 @@ function renderAdminDashboard(data, section = "dashboard") {
         >
           ${ui.message_customer || "Message Customer"}
         </button>
-        <form action="/admin/customers/${customer.id}/delete" method="post" style="display:inline;" onsubmit="return confirm('Delete customer?');">
-          <button type="submit" class="danger-button">${ui.delete || "Delete"}</button>
-        </form>
       </td>
     </tr>
   `).join("");
@@ -4562,15 +3461,15 @@ ${section === "dashboard" ? `
 
 <hr>
 
-<h2>${ui.delivery_cities}</h2>
+<h2>Delivery Cities</h2>
 <form action="/admin/settings/delivery-cities" method="post">
-  <p class="admin-info-text">${ui.delivery_cities_help}</p>
+  <p class="admin-info-text">Address suggestions are limited to these cities. Default city is Berlin.</p>
 
-  <label>${ui.allowed_cities}</label><br>
+  <label>Allowed cities</label><br>
   <textarea name="allowed_delivery_cities" rows="3" cols="80">${escapeHtml((data.settings.allowed_delivery_cities || ["Berlin"]).join(", "))}</textarea>
-  <p>${ui.allowed_cities_example}</p>
+  <p>Enter cities separated by commas. Example: Berlin, Potsdam</p>
 
-  <button type="submit">${ui.save_delivery_cities}</button>
+  <button type="submit">Save Delivery Cities</button>
 </form>
 
 
@@ -4598,7 +3497,7 @@ ${section === "dashboard" ? `
   </label>
 
   <p class="admin-info-text">
-    ${ui.ai_response_mode_help}
+    The bot always checks buttons, menu numbers, products, locations, addresses, working hours, and admin commands first. OpenAI is used only if the app cannot handle the message.
   </p>
 
   <label for="ai-custom-instructions">${ui.ai_project_instructions}</label>
@@ -4608,11 +3507,11 @@ ${section === "dashboard" ? `
     name="ai_custom_instructions"
     rows="5"
     cols="80"
-    placeholder="${ui.ai_project_placeholder}"
+    placeholder="Extra business rules for AI fallback."
   >${escapeHtml(data.settings.ai_custom_instructions || "")}</textarea>
 
   <p class="admin-info-text">
-    ${ui.ai_project_context_help}
+    These instructions are added dynamically to OpenAI calls together with live products, prices, meeting points, working hours, customer history, and app capabilities.
   </p>
 
   <button type="submit">${ui.save_ai_response_mode}</button>
@@ -4713,15 +3612,6 @@ ${section === "products" ? `
       </select>
     </div>
 
-    <div class="products-field-force">
-      <label for="product-search-category">${ui.category}</label>
-      <select id="product-search-category" onchange="filterProductsTable()">
-        <option value="">${ui.all_categories}</option>
-        <option value="__none__">${ui.uncategorized}</option>
-        ${(data.productCategories || []).map((category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`).join("")}
-      </select>
-    </div>
-
     <p>${ui.fuzzy_cutoff_note}</p>
     <button type="button" onclick="clearProductsFilter()">${ui.clear_filters}</button>
   </section>
@@ -4740,51 +3630,15 @@ ${section === "products" ? `
         <input type="number" step="0.01" id="new-product-price" name="price" required>
       </div>
 
-      <div class="products-field-force">
-        <label for="new-product-category">${ui.category}</label>
-        <select id="new-product-category" name="category_id">
-          ${productCategoryOptions("")}
-        </select>
-      </div>
-
       <button type="submit">${ui.create_product}</button>
     </form>
   </section>
 </div>
 
 <table id="products-table" border="1" cellpadding="10">
-  <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.price}</th><th>${ui.category}</th><th>${ui.aliases}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
+  <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.price}</th><th>${ui.aliases}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
   ${productRows}
 </table>
-
-<hr>
-
-<h2>${ui.categories}</h2>
-
-<div class="products-top-layout-force">
-  <section class="products-panel-force">
-    <h3>${ui.add_category}</h3>
-
-    <form action="/admin/product-categories" method="post">
-      <div class="products-field-force">
-        <label for="new-category-name">${ui.category_name}</label>
-        <input type="text" id="new-category-name" name="name" required>
-      </div>
-
-      <button type="submit">${ui.create_category}</button>
-    </form>
-  </section>
-
-  <section class="products-panel-force">
-    <h3>${ui.categories}</h3>
-
-    <table border="1" cellpadding="10">
-      <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
-      ${productCategoryRows}
-    </table>
-  </section>
-</div>
-
 <hr>
 ` : ""}
 
@@ -5157,58 +4011,60 @@ function parseProductPrice(value) {
 }
 
 function filterProductsTable() {
-  const idFilter = normalizeSearchText(document.getElementById("product-search-id")?.value || "");
-  const textFilter = normalizeSearchText(document.getElementById("product-search-text")?.value || "");
-  const activeFilter = document.getElementById("product-search-active")?.value || "";
-  const categoryFilter = document.getElementById("product-search-category")?.value || "";
-  const minPrice = Number(document.getElementById("product-price-min")?.value || "");
-  const maxPrice = Number(document.getElementById("product-price-max")?.value || "");
+  const table = document.getElementById("products-table");
 
-  document.querySelectorAll("#products-table tr[data-product-id]").forEach((row) => {
-    const id = normalizeSearchText(row.dataset.productId || "");
-    const name = normalizeSearchText(row.dataset.productName || "");
-    const aliases = normalizeSearchText(row.dataset.productAliases || "");
-    const active = row.dataset.productActive || "";
-    const category = row.dataset.productCategory || "";
-    const price = Number(row.dataset.productPrice || 0);
+  if (!table) return;
 
-    const idMatches = !idFilter || id.includes(idFilter);
-    const textMatches =
-      !textFilter
-      || name.includes(textFilter)
-      || aliases.includes(textFilter)
-      || fuzzyIncludes(name, textFilter)
-      || fuzzyIncludes(aliases, textFilter);
+  const idQuery = normalizeSearchText(document.getElementById("product-search-id")?.value);
+  const textQuery = document.getElementById("product-search-text")?.value || "";
+  const priceMin = parseProductPrice(document.getElementById("product-price-min")?.value);
+  const priceMax = parseProductPrice(document.getElementById("product-price-max")?.value);
+  const activeStatus = document.getElementById("product-search-active")?.value || "";
+  const cutoff = 80;
 
-    const activeMatches = !activeFilter || active === activeFilter;
-    const categoryMatches =
-      !categoryFilter
-      || (categoryFilter === "__none__" && !category)
-      || category === categoryFilter;
+  Array.from(table.tBodies[0]?.rows || table.rows).forEach((row, index) => {
+    if (index === 0 && row.querySelector("th")) return;
 
-    const minMatches = !minPrice || price >= minPrice;
-    const maxMatches = !maxPrice || price <= maxPrice;
+    const id = normalizeSearchText(rowCellText(row, 0));
+    const name = rowCellText(row, 1);
+    const price = parseProductPrice(rowCellText(row, 2));
+    const aliases = rowCellText(row, 3);
+    const active = normalizeSearchText(rowCellText(row, 4));
 
-    row.style.display = idMatches && textMatches && activeMatches && categoryMatches && minMatches && maxMatches
-      ? ""
-      : "none";
+    const idMatches = !idQuery || id === idQuery;
+    const activeMatches = !activeStatus || active === activeStatus;
+    const fuzzyMatches = !textQuery || Math.max(
+      fuzzyScore(textQuery, name),
+      fuzzyScore(textQuery, aliases)
+    ) >= cutoff;
+
+    const minMatches = priceMin === null || (price !== null && price >= priceMin);
+    const maxMatches = priceMax === null || (price !== null && price <= priceMax);
+
+    row.style.display = (
+      idMatches
+      && activeMatches
+      && fuzzyMatches
+      && minMatches
+      && maxMatches
+    ) ? "" : "none";
   });
 }
 
 function clearProductsFilter() {
-  const fields = [
+  const ids = [
     "product-search-id",
     "product-search-text",
     "product-price-min",
     "product-price-max",
-    "product-search-active",
-    "product-search-category"
+    "product-search-active"
   ];
 
-  for (const id of fields) {
-    const field = document.getElementById(id);
-    if (field) field.value = "";
-  }
+  ids.forEach((id) => {
+    const element = document.getElementById(id);
+
+    if (element) element.value = "";
+  });
 
   filterProductsTable();
 }
@@ -5337,20 +4193,18 @@ async function handleCreateProduct(request, env) {
   const form = await request.formData();
   const name = String(form.get("name") || "").trim();
   const price = Number(form.get("price") || 0);
-  const categoryIdRaw = String(form.get("category_id") || "").trim();
-  const categoryId = categoryIdRaw ? Number(categoryIdRaw) : null;
 
   if (name && price > 0) {
     const inserted = await env.DB.prepare(
-      "INSERT INTO products (name, price, category_id, is_active) VALUES (?, ?, ?, 1) RETURNING id"
-    ).bind(name, price, categoryId).first();
+      "INSERT INTO products (name, price, is_active) VALUES (?, ?, 1) RETURNING id"
+    ).bind(name, price).first();
 
     if (inserted && inserted.id) {
       await syncAutoAliases(env, inserted.id, name);
     }
   }
 
-  return redirectResponse("/admin/products");
+  return redirectResponse("/admin");
 }
 
 async function handleUpdateProduct(request, env, productId) {
@@ -5359,22 +4213,16 @@ async function handleUpdateProduct(request, env, productId) {
   const price = Number(form.get("price") || 0);
   const aliases = String(form.get("aliases") || "");
   const isActive = form.get("is_active") ? 1 : 0;
-  const categoryIdRaw = String(form.get("category_id") || "").trim();
-  const categoryId = categoryIdRaw ? Number(categoryIdRaw) : null;
 
   if (name && price > 0) {
-    await env.DB.prepare(
-      "UPDATE products SET name = ?, price = ?, category_id = ?, is_active = ? WHERE id = ?"
-    ).bind(name, price, categoryId, isActive, productId).run();
-
+    await env.DB.prepare("UPDATE products SET name = ?, price = ?, is_active = ? WHERE id = ?").bind(name, price, isActive, productId).run();
     if (aliases.trim()) {
       await replaceManualAliases(env, productId, aliases);
     } else {
       await syncAutoAliases(env, productId, name);
     }
   }
-
-  return redirectResponse("/admin/products");
+  return redirectResponse("/admin");
 }
 
 async function handleDeleteProduct(env, productId) {
@@ -5386,46 +4234,7 @@ async function handleDeleteProduct(env, productId) {
     "DELETE FROM products WHERE id = ?"
   ).bind(productId).run();
 
-  return redirectResponse("/admin/products");
-}
-
-async function handleCreateProductCategory(request, env) {
-  const form = await request.formData();
-  const name = String(form.get("name") || "").trim();
-
-  if (name) {
-    await env.DB.prepare(
-      "INSERT OR IGNORE INTO product_categories (name, is_active) VALUES (?, 1)"
-    ).bind(name).run();
-  }
-
-  return redirectResponse("/admin/products");
-}
-
-async function handleUpdateProductCategory(request, env, categoryId) {
-  const form = await request.formData();
-  const name = String(form.get("name") || "").trim();
-  const isActive = form.get("is_active") ? 1 : 0;
-
-  if (name) {
-    await env.DB.prepare(
-      "UPDATE product_categories SET name = ?, is_active = ? WHERE id = ?"
-    ).bind(name, isActive, categoryId).run();
-  }
-
-  return redirectResponse("/admin/products");
-}
-
-async function handleDeleteProductCategory(env, categoryId) {
-  await env.DB.prepare(
-    "UPDATE products SET category_id = NULL WHERE category_id = ?"
-  ).bind(categoryId).run();
-
-  await env.DB.prepare(
-    "DELETE FROM product_categories WHERE id = ?"
-  ).bind(categoryId).run();
-
-  return redirectResponse("/admin/products");
+  return redirectResponse("/admin");
 }
 
 async function handleCreateMeetingPoint(request, env) {
@@ -5976,42 +4785,6 @@ showCustomerDetailTab("structured-requests");
 </script>
 </body>
 </html>`);
-}
-
-async function handleDeleteCustomer(env, customerId) {
-  const customer = await env.DB.prepare(
-    "SELECT * FROM customers WHERE id = ?"
-  ).bind(customerId).first();
-
-  if (!customer) {
-    return redirectResponse("/admin/customers");
-  }
-
-  await env.DB.prepare(
-    "DELETE FROM messages WHERE customer_id = ?"
-  ).bind(customerId).run();
-
-  await env.DB.prepare(
-    "DELETE FROM customer_requests WHERE customer_id = ?"
-  ).bind(customerId).run();
-
-  await env.DB.prepare(
-    "DELETE FROM customer_locations WHERE customer_id = ?"
-  ).bind(customerId).run();
-
-  await env.DB.prepare(
-    `DELETE FROM app_settings
-     WHERE key IN (?, ?)`
-  ).bind(
-    `address_search_results_${customerId}`,
-    `pending_product_fulfillment_request_${customerId}`
-  ).run();
-
-  await env.DB.prepare(
-    "DELETE FROM customers WHERE id = ?"
-  ).bind(customerId).run();
-
-  return redirectResponse("/admin/customers");
 }
 
 async function handleSendCustomerReply(request, env, customerId) {
@@ -6627,100 +5400,7 @@ async function handleTelegramTextMessage(env, message) {
 
   await saveMessage(env, customer.id, "incoming", incomingText, detectedLanguage);
 
-  if (customer.conversation_state === "awaiting_basket_quantity") {
-    const language = customer.preferred_language || customer.language || "en";
-    const ui = getCartUiText(language);
-    const itemId = await getPendingBasketQuantityChange(env, customer.id);
-    const quantity = extractQuantity(incomingText);
-
-    if (!itemId) {
-      await clearPendingBasketQuantityChange(env, customer.id);
-      await setCustomerState(env, customer.id, null);
-      await sendTelegramMessage(env, message.chat.id, getInvalidProductQuantityText(language));
-      return;
-    }
-
-    const item = await getCartItemForCustomer(env, customer.id, itemId);
-
-    if (!item) {
-      await clearPendingBasketQuantityChange(env, customer.id);
-      await setCustomerState(env, customer.id, null);
-      await sendTelegramMessage(env, message.chat.id, ui.empty_basket);
-      return;
-    }
-
-    if (!quantity || Number(quantity) < 1) {
-      await sendTelegramMessage(env, message.chat.id, getInvalidProductQuantityText(language));
-      return;
-    }
-
-    await env.DB.prepare(
-      "UPDATE shopping_cart_items SET quantity = ? WHERE id = ?"
-    ).bind(Math.floor(Number(quantity)), itemId).run();
-
-    await clearPendingBasketQuantityChange(env, customer.id);
-    await setCustomerState(env, customer.id, null);
-
-    await sendTelegramMessage(env, message.chat.id, ui.basket_quantity_updated);
-    await sendBasketView(env, customer, message.chat.id);
-    return;
-  }
-
-  if (customer.conversation_state === "awaiting_product_quantity") {
-    const language = customer.preferred_language || customer.language || "en";
-    const pendingProduct = await getPendingProductQuantity(env, customer.id);
-    const quantity = extractQuantity(incomingText);
-
-    if (!pendingProduct || !pendingProduct.product_id) {
-      await clearPendingProductQuantity(env, customer.id);
-      await setCustomerState(env, customer.id, null);
-      const replyText = getInvalidProductQuantityText(language);
-      await saveMessage(env, customer.id, "outgoing", replyText, language);
-      await sendTelegramMessage(env, message.chat.id, replyText);
-      return;
-    }
-
-    if (!quantity || Number(quantity) < 1) {
-      const replyText = getInvalidProductQuantityText(language);
-      await saveMessage(env, customer.id, "outgoing", replyText, language);
-      await sendTelegramMessage(env, message.chat.id, replyText);
-      return;
-    }
-
-    const product = await env.DB.prepare(
-      "SELECT id, name, price, is_active FROM products WHERE id = ? AND is_active = 1"
-    ).bind(pendingProduct.product_id).first();
-
-    if (!product) {
-      await clearPendingProductQuantity(env, customer.id);
-      await setCustomerState(env, customer.id, null);
-      const replyText = getInvalidProductQuantityText(language);
-      await saveMessage(env, customer.id, "outgoing", replyText, language);
-      await sendTelegramMessage(env, message.chat.id, replyText);
-      return;
-    }
-
-    await addProductToBasket(env, customer.id, product, quantity);
-    await clearPendingProductQuantity(env, customer.id);
-    await setCustomerState(env, customer.id, null);
-    await sendAddedToBasket(env, customer, message.chat.id, product, quantity);
-    return;
-  }
-
-  if (
-    !["awaiting_product_quantity", "awaiting_basket_quantity", "awaiting_special_request"].includes(customer.conversation_state || "")
-    && await handleProductRequestFromText(env, customer, message.chat.id, incomingText, customer.preferred_language || customer.language || "en")
-  ) {
-    return;
-  }
-
   if (customer.conversation_state === "awaiting_typed_address") {
-    const language = customer.preferred_language || customer.language || "en";
-
-    if (await handleProductRequestFromText(env, customer, message.chat.id, incomingText, language)) {
-      return;
-    }
-
     const allowedCities = await getAllowedDeliveryCities(env);
     const unsupportedCity = detectUnsupportedDeliveryCity(incomingText, allowedCities);
 
@@ -6744,20 +5424,6 @@ async function handleTelegramTextMessage(env, message) {
     const replyText = t("address_not_found", customer.preferred_language || "en");
     await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
     await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
-    return;
-  }
-
-  if (customer.conversation_state === "awaiting_special_request") {
-    const language = customer.preferred_language || customer.language || "en";
-    const ui = getCustomerProductUiText(language);
-
-    await setCustomerState(env, customer.id, null);
-    await logCustomerRequest(env, customer.id, "special_product_request", incomingText, 1, "Special request");
-    await forwardUnresolvedMessage(env, customer, `Special product request: ${incomingText}`);
-
-    const replyText = ui.special_request_received;
-    await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-    await sendTelegramMessage(env, message.chat.id, replyText);
     return;
   }
 
@@ -6788,21 +5454,9 @@ async function handleTelegramTextMessage(env, message) {
     } else if (selectedMenuOption.reply_trigger === "CHOOSE_MEETING_POINT") {
       await sendMeetingPointChoiceOrDirect(env, customer, message.chat.id, "Customer selected get my location");
       return;
-    } else if (selectedMenuOption.reply_trigger === "products") {
-      await sendProductMenu(env, message.chat.id, replyLanguage);
-      return;
     } else {
       replyText = await getRuleBasedReply(env, selectedMenuOption.reply_trigger, replyLanguage);
     }
-  }
-
-  if (replyText === null && await isProductListRequestText(incomingText)) {
-    await sendProductMenu(env, message.chat.id, replyLanguage);
-    return;
-  }
-
-  if (replyText === null && await handleProductRequestFromText(env, customer, message.chat.id, incomingText, replyLanguage)) {
-    return;
   }
 
   if (replyText === null && looksLikeAddress(incomingText)) {
@@ -6846,9 +5500,8 @@ async function handleTelegramTextMessage(env, message) {
       const quantity = extractQuantity(incomingText);
 
       if (matchedProduct) {
-        await addProductToBasket(env, customer.id, matchedProduct, quantity);
-        await sendAddedToBasket(env, customer, message.chat.id, matchedProduct, quantity);
-        return;
+        await logCustomerRequest(env, customer.id, "product_specific", incomingText, quantity, matchedProduct.name);
+        await forwardProductRequest(env, customer, incomingText, matchedProduct.name, quantity);
       }
     }
   }
@@ -6922,10 +5575,6 @@ async function handleTelegramCommand(env, message, customer, text) {
   const command = parts[0].split("@")[0];
 
   if (command === "/start") {
-    await setCustomerState(env, customer.id, null);
-    await setSetting(env, `pending_product_quantity_${customer.id}`, "");
-    await setSetting(env, `pending_basket_quantity_item_${customer.id}`, "");
-    await setSetting(env, `pending_product_fulfillment_request_${customer.id}`, "");
     await sendTelegramMessage(env, message.chat.id, "CRM Delivery Bot is running.");
     return;
   }
@@ -7045,56 +5694,6 @@ async function handleAddressSelection(env, callbackQuery) {
   const locationLabel = selected.address;
 
   await setCustomerState(env, customer.id, null);
-
-  const pendingProductRequestId = Number(await getSetting(env, `pending_product_fulfillment_request_${customer.id}`) || 0);
-
-  if (pendingProductRequestId) {
-    const request = await getCustomerRequest(env, pendingProductRequestId);
-
-    if (request && Number(request.customer_id) === Number(customer.id)) {
-      const customerLocationId = await saveCustomerLocation(
-        env,
-        customer.id,
-        "typed_address",
-        locationLabel,
-        latitude,
-        longitude,
-        googleMapsLink,
-        0
-      );
-
-      await updateRequestLocation(
-        env,
-        pendingProductRequestId,
-        locationLabel,
-        latitude,
-        longitude,
-        googleMapsLink
-      );
-
-      await setSetting(env, `pending_product_fulfillment_request_${customer.id}`, "");
-
-      const updatedRequest = await getCustomerRequest(env, pendingProductRequestId);
-      await saveMessage(env, customer.id, "incoming", locationLabel, customer.preferred_language, "typed_address_location");
-
-      await forwardProductRequestWithFulfillment(
-        env,
-        customer,
-        updatedRequest,
-        `New customer location: ${locationLabel}`,
-        googleMapsLink
-      );
-
-      await sendTelegramMessage(
-        env,
-        callbackQuery.message.chat.id,
-        getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
-        getSetPreferredLocationKeyboard(customerLocationId)
-      );
-
-      return;
-    }
-  }
 
   const requestId = await logCustomerRequest(
     env,
@@ -7221,7 +5820,9 @@ async function handleOptionSelection(env, callbackQuery) {
     return;
   }
 
-  await sendProductMenu(env, callbackQuery.message.chat.id, customer.preferred_language || "en");
+  const replyText = await formatProductListReply(env, customer.preferred_language || "en");
+  await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText);
+  await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
 }
 
 async function handleDeliveryEtaSelection(env, callbackQuery) {
@@ -7300,8 +5901,6 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
 async function handleCallbackQuery(env, callbackQuery) {
   await answerCallbackQuery(env, callbackQuery.id);
 
-  if (callbackQuery.data.startsWith("basket_")) return handleBasketSelection(env, callbackQuery);
-  if (callbackQuery.data.startsWith("product_fulfillment_")) return handleProductFulfillmentSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("preferred_location_")) return handlePreferredLocationSelection(env, callbackQuery);
   if (callbackQuery.data === "cancel_location_entry") return handleCancelLocationEntry(env, callbackQuery);
   if (callbackQuery.data.startsWith("address_select_")) return handleAddressSelection(env, callbackQuery);
@@ -7372,8 +5971,6 @@ async function routeRequest(request, env) {
   if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env);
   if ((url.pathname === "/admin/ai" || url.pathname === "/admin/ai/") && request.method === "GET") return handleAdminAiPage(env);
   if ((url.pathname === "/admin/customers" || url.pathname === "/admin/customers/") && request.method === "GET") return handleAdminCustomersPage(env);
-  const customerDelete = url.pathname.match(/^\/admin\/customers\/(\d+)\/delete$/);
-  if (customerDelete && request.method === "POST") return handleDeleteCustomer(env, Number(customerDelete[1]));
   if (url.pathname === "/admin/logout" && request.method === "POST") return handleAdminLogout();
   if (url.pathname === "/admin/change-password" && request.method === "GET") return handleChangePasswordPage();
   if (url.pathname === "/admin/change-password" && request.method === "POST") return handleChangePassword(request, env);
@@ -7393,13 +5990,6 @@ async function routeRequest(request, env) {
   if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
 
   if (url.pathname === "/admin/products" && request.method === "POST") return handleCreateProduct(request, env);
-
-  if (url.pathname === "/admin/product-categories" && request.method === "POST") return handleCreateProductCategory(request, env);
-  const productCategoryUpdate = url.pathname.match(/^\/admin\/product-categories\/(\d+)\/update$/);
-  if (productCategoryUpdate && request.method === "POST") return handleUpdateProductCategory(request, env, Number(productCategoryUpdate[1]));
-  const productCategoryDelete = url.pathname.match(/^\/admin\/product-categories\/(\d+)\/delete$/);
-  if (productCategoryDelete && request.method === "POST") return handleDeleteProductCategory(env, Number(productCategoryDelete[1]));
-
   const productUpdate = url.pathname.match(/^\/admin\/products\/(\d+)\/update$/);
   if (productUpdate && request.method === "POST") return handleUpdateProduct(request, env, Number(productUpdate[1]));
   const productDelete = url.pathname.match(/^\/admin\/products\/(\d+)\/delete$/);
