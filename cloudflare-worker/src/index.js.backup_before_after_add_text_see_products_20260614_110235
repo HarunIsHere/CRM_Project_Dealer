@@ -2866,8 +2866,8 @@ function getCartUiText(language = "en") {
   const texts = {
     en: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} is in basket.`,
-      need_anything_else: "Do you need anything else or do you want to check out? You can send a product name to continue shopping or choose an option below.",
-      continue_shopping: "See products",
+      need_anything_else: "Do you need anything else or do you want to check out?",
+      continue_shopping: "Products or type name",
       modify_basket: "Modify basket",
       checkout: "Checkout",
       basket_empty: "Your basket is empty.",
@@ -2887,7 +2887,7 @@ function getCartUiText(language = "en") {
     de: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} ist im Warenkorb.`,
       need_anything_else: "Brauchen Sie noch etwas oder möchten Sie zur Kasse gehen?",
-      continue_shopping: "Produkte anzeigen",
+      continue_shopping: "Produkte oder Name schreiben",
       modify_basket: "Warenkorb ändern",
       checkout: "Zur Kasse",
       basket_empty: "Ihr Warenkorb ist leer.",
@@ -2906,8 +2906,8 @@ function getCartUiText(language = "en") {
     },
     tr: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} sepete eklendi.`,
-      need_anything_else: "Başka bir şey ister misiniz yoksa ödeme/teslimat aşamasına geçmek ister misiniz? Alışverişe devam etmek için ürün adı yazabilir veya aşağıdan bir seçenek seçebilirsiniz.",
-      continue_shopping: "Ürünleri gör",
+      need_anything_else: "Başka bir şey ister misiniz yoksa ödeme/teslimat aşamasına geçmek ister misiniz?",
+      continue_shopping: "Ürünler veya ürün adı yaz",
       modify_basket: "Sepeti düzenle",
       checkout: "Checkout",
       basket_empty: "Sepetiniz boş.",
@@ -2927,7 +2927,7 @@ function getCartUiText(language = "en") {
     ar: {
       added_to_basket: (name, quantity) => `تمت إضافة ${name} x ${quantity} إلى السلة.`,
       need_anything_else: "هل تحتاج شيئاً آخر أم تريد إتمام الطلب؟",
-      continue_shopping: "عرض المنتجات",
+      continue_shopping: "المنتجات أو اكتب الاسم",
       modify_basket: "تعديل السلة",
       checkout: "إتمام الطلب",
       basket_empty: "سلتك فارغة.",
@@ -2944,7 +2944,7 @@ function getCartUiText(language = "en") {
     ru: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} добавлено в корзину.`,
       need_anything_else: "Нужно что-то ещё или хотите перейти к оформлению?",
-      continue_shopping: "Показать товары",
+      continue_shopping: "Товары или введите имя",
       modify_basket: "Изменить корзину",
       checkout: "Оформить заказ",
       basket_empty: "Ваша корзина пуста.",
