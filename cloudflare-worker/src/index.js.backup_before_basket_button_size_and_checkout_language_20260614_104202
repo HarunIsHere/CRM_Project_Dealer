@@ -2867,7 +2867,7 @@ function getCartUiText(language = "en") {
     en: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} is in basket.`,
       need_anything_else: "Do you need anything else or do you want to check out?",
-      continue_shopping: "Products or type name",
+      continue_shopping: "Products / type name or quantity",
       modify_basket: "Modify basket",
       checkout: "Checkout",
       basket_empty: "Your basket is empty.",
@@ -2887,7 +2887,7 @@ function getCartUiText(language = "en") {
     de: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} ist im Warenkorb.`,
       need_anything_else: "Brauchen Sie noch etwas oder möchten Sie zur Kasse gehen?",
-      continue_shopping: "Produkte oder Name schreiben",
+      continue_shopping: "Produkte / Name oder Menge schreiben",
       modify_basket: "Warenkorb ändern",
       checkout: "Zur Kasse",
       basket_empty: "Ihr Warenkorb ist leer.",
@@ -2907,7 +2907,7 @@ function getCartUiText(language = "en") {
     tr: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} sepete eklendi.`,
       need_anything_else: "Başka bir şey ister misiniz yoksa ödeme/teslimat aşamasına geçmek ister misiniz?",
-      continue_shopping: "Ürünler veya ürün adı yaz",
+      continue_shopping: "Ürünler / ürün adı veya adet yaz",
       modify_basket: "Sepeti düzenle",
       checkout: "Checkout",
       basket_empty: "Sepetiniz boş.",
@@ -2927,7 +2927,7 @@ function getCartUiText(language = "en") {
     ar: {
       added_to_basket: (name, quantity) => `تمت إضافة ${name} x ${quantity} إلى السلة.`,
       need_anything_else: "هل تحتاج شيئاً آخر أم تريد إتمام الطلب؟",
-      continue_shopping: "المنتجات أو اكتب الاسم",
+      continue_shopping: "المنتجات / اكتب الاسم أو الكمية",
       modify_basket: "تعديل السلة",
       checkout: "إتمام الطلب",
       basket_empty: "سلتك فارغة.",
@@ -2944,7 +2944,7 @@ function getCartUiText(language = "en") {
     ru: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} добавлено в корзину.`,
       need_anything_else: "Нужно что-то ещё или хотите перейти к оформлению?",
-      continue_shopping: "Товары или введите имя",
+      continue_shopping: "Товары / введите имя или кол-во",
       modify_basket: "Изменить корзину",
       checkout: "Оформить заказ",
       basket_empty: "Ваша корзина пуста.",
@@ -3063,7 +3063,7 @@ function getAfterAddToBasketKeyboard(language = "en") {
   const ui = getCartUiText(language);
   return {
     inline_keyboard: [
-      [{ text: ui.continue_shopping, callback_data: "basket_continue" }],
+      [{ text: ui.continue_shopping, callback_data: "product_back_to_products" }],
       [{ text: ui.modify_basket, callback_data: "basket_view" }],
       [{ text: ui.checkout, callback_data: "basket_checkout" }]
     ]
@@ -3092,7 +3092,7 @@ function getBasketKeyboard(items, language = "en") {
   }
 
   rows.push([
-    { text: ui.continue_shopping, callback_data: "basket_continue" },
+    { text: ui.continue_shopping, callback_data: "product_back_to_products" },
     { text: ui.checkout, callback_data: "basket_checkout" },
     { text: ui.clear_basket, callback_data: "basket_clear" }
   ]);
@@ -3232,11 +3232,6 @@ async function handleBasketSelection(env, callbackQuery) {
   const ui = getCartUiText(language);
   const data = callbackQuery.data;
 
-  if (data === "basket_continue") {
-    await sendProductMenu(env, callbackQuery.message.chat.id, language);
-    return;
-  }
-
   if (data === "basket_view") {
     await sendBasketView(env, customer, callbackQuery.message.chat.id);
     return;
@@ -3254,7 +3249,7 @@ async function handleBasketSelection(env, callbackQuery) {
 
     await setCustomerState(env, customer.id, "awaiting_typed_address");
     await saveMessage(env, customer.id, "outgoing", replyText, language);
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getAddressNotFoundKeyboard(language));
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getAddressNotFoundKeyboard());
     return;
   }
 
@@ -3587,35 +3582,11 @@ function getAddressChoicesKeyboard(results) {
   return { inline_keyboard: rows };
 }
 
-function getAddressNotFoundKeyboard(language = "en") {
-  const texts = {
-    en: {
-      contact_admin: "Contact admin to describe location",
-      cancel: "Cancel location entry"
-    },
-    de: {
-      contact_admin: "Admin kontaktieren und Ort beschreiben",
-      cancel: "Standorteingabe abbrechen"
-    },
-    tr: {
-      contact_admin: "Konumu tarif etmek için adminle iletişime geç",
-      cancel: "Konum girişini iptal et"
-    },
-    ar: {
-      contact_admin: "تواصل مع المسؤول لوصف الموقع",
-      cancel: "إلغاء إدخال الموقع"
-    },
-    ru: {
-      contact_admin: "Связаться с админом и описать локацию",
-      cancel: "Отменить ввод локации"
-    }
-  };
-  const ui = texts[safeLang(language)] || texts.en;
-
+function getAddressNotFoundKeyboard() {
   return {
     inline_keyboard: [
-      [{ text: ui.contact_admin, callback_data: "location_contact_admin" }],
-      [{ text: ui.cancel, callback_data: "location_cancel" }]
+      [{ text: "Contact admin to describe location", callback_data: "option_admin" }],
+      [{ text: "Cancel location entry", callback_data: "cancel_location_entry" }]
     ]
   };
 }
@@ -6806,7 +6777,7 @@ async function handleTelegramTextMessage(env, message) {
     if (unsupportedCity) {
       const replyText = getUnsupportedCityReply(customer.preferred_language || "en", allowedCities);
       await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-      await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard(language));
+      await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
       return;
     }
 
@@ -6822,7 +6793,7 @@ async function handleTelegramTextMessage(env, message) {
 
     const replyText = t("address_not_found", customer.preferred_language || "en");
     await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard(language));
+    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
     return;
   }
 
@@ -6891,7 +6862,7 @@ async function handleTelegramTextMessage(env, message) {
     if (unsupportedCity) {
       replyText = getUnsupportedCityReply(customer.preferred_language || "en", allowedCities);
       await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-      await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard(language));
+      await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
       return;
     }
 
@@ -6908,7 +6879,7 @@ async function handleTelegramTextMessage(env, message) {
 
     replyText = t("address_not_found", customer.preferred_language || "en");
     await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard(language));
+    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
     return;
   }
 
@@ -6935,7 +6906,7 @@ async function handleTelegramTextMessage(env, message) {
   if (replyText === null && looksLikeAddress(incomingText)) {
     replyText = t("address_not_found", customer.preferred_language || "en");
     await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
-    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard(language));
+    await sendTelegramMessage(env, message.chat.id, replyText, getAddressNotFoundKeyboard());
     return;
   }
 
