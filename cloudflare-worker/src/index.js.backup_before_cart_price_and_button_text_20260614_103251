@@ -2867,7 +2867,7 @@ function getCartUiText(language = "en") {
     en: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} is in basket.`,
       need_anything_else: "Do you need anything else or do you want to check out?",
-      continue_shopping: "Products / type name or quantity",
+      continue_shopping: "Continue shopping",
       modify_basket: "Modify basket",
       checkout: "Checkout",
       basket_empty: "Your basket is empty.",
@@ -2887,7 +2887,7 @@ function getCartUiText(language = "en") {
     de: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} ist im Warenkorb.`,
       need_anything_else: "Brauchen Sie noch etwas oder möchten Sie zur Kasse gehen?",
-      continue_shopping: "Produkte / Name oder Menge schreiben",
+      continue_shopping: "Weiter einkaufen",
       modify_basket: "Warenkorb ändern",
       checkout: "Zur Kasse",
       basket_empty: "Ihr Warenkorb ist leer.",
@@ -2907,7 +2907,7 @@ function getCartUiText(language = "en") {
     tr: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} sepete eklendi.`,
       need_anything_else: "Başka bir şey ister misiniz yoksa ödeme/teslimat aşamasına geçmek ister misiniz?",
-      continue_shopping: "Ürünler / ürün adı veya adet yaz",
+      continue_shopping: "Alışverişe devam et",
       modify_basket: "Sepeti düzenle",
       checkout: "Checkout",
       basket_empty: "Sepetiniz boş.",
@@ -2927,7 +2927,7 @@ function getCartUiText(language = "en") {
     ar: {
       added_to_basket: (name, quantity) => `تمت إضافة ${name} x ${quantity} إلى السلة.`,
       need_anything_else: "هل تحتاج شيئاً آخر أم تريد إتمام الطلب؟",
-      continue_shopping: "المنتجات / اكتب الاسم أو الكمية",
+      continue_shopping: "متابعة التسوق",
       modify_basket: "تعديل السلة",
       checkout: "إتمام الطلب",
       basket_empty: "سلتك فارغة.",
@@ -2944,7 +2944,7 @@ function getCartUiText(language = "en") {
     ru: {
       added_to_basket: (name, quantity) => `${name} x ${quantity} добавлено в корзину.`,
       need_anything_else: "Нужно что-то ещё или хотите перейти к оформлению?",
-      continue_shopping: "Товары / введите имя или кол-во",
+      continue_shopping: "Продолжить покупки",
       modify_basket: "Изменить корзину",
       checkout: "Оформить заказ",
       basket_empty: "Ваша корзина пуста.",
@@ -3031,32 +3031,14 @@ function formatBasketText(items, language = "en") {
 
   if (!items.length) return ui.basket_empty;
 
-  let total = 0;
-
   const lines = items.map((item, index) => {
-    const quantity = Number(item.quantity || 1);
-    const unitPrice = Number(item.price_snapshot || 0);
-    const lineTotal = unitPrice * quantity;
-
-    if (unitPrice) total += lineTotal;
-
-    const price = unitPrice
-      ? ` - ${formatPrice(unitPrice)} x ${quantity} = ${formatPrice(lineTotal)}`
+    const price = item.price_snapshot !== null && item.price_snapshot !== undefined
+      ? ` - ${formatPrice(item.price_snapshot)}`
       : "";
-
-    return `${index + 1}. ${item.name} x ${quantity}${price}`;
+    return `${index + 1}. ${item.name} x ${item.quantity}${price}`;
   });
 
-  const totalTexts = {
-    en: "Total",
-    de: "Gesamt",
-    tr: "Toplam",
-    ar: "المجموع",
-    ru: "Итого"
-  };
-  const totalLabel = totalTexts[safeLang(language)] || totalTexts.en;
-
-  return `${ui.your_basket}\n${lines.join("\n")}\n\n${totalLabel}: ${formatPrice(total)}`;
+  return `${ui.your_basket}\n${lines.join("\n")}`;
 }
 
 function getAfterAddToBasketKeyboard(language = "en") {
@@ -3110,17 +3092,11 @@ async function sendAddedToBasket(env, customer, chatId, product, quantity) {
   const language = customer.preferred_language || customer.language || "en";
   const ui = getCartUiText(language);
 
-  const amount = Math.max(1, Math.floor(Number(quantity || 1)));
-  const unitPrice = Number(product.price || 0);
-  const totalPrice = unitPrice * amount;
-  const priceLine = unitPrice ? `${formatPrice(unitPrice)} x ${amount} = ${formatPrice(totalPrice)}` : "";
-
   const replyText = [
-    ui.added_to_basket(product.name, amount),
-    priceLine,
+    ui.added_to_basket(product.name, quantity),
     "",
     ui.need_anything_else
-  ].filter((line) => line !== "").join("\n");
+  ].join("\n");
 
   await sendTelegramMessage(env, chatId, replyText, getAfterAddToBasketKeyboard(language));
 }
