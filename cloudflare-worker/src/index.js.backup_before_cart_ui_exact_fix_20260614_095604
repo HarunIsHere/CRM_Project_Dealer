@@ -3054,30 +3054,20 @@ function getAfterAddToBasketKeyboard(language = "en") {
 
 function getBasketKeyboard(items, language = "en") {
   const ui = getCartUiText(language);
-  const lang = safeLang(language);
-  const actionText = {
-    en: { change: "Change qty", remove: "Remove qty" },
-    de: { change: "Menge ändern", remove: "Menge entfernen" },
-    tr: { change: "Adedi değiştir", remove: "Adedi kaldır" },
-    ar: { change: "تغيير الكمية", remove: "حذف الكمية" },
-    ru: { change: "Изменить кол-во", remove: "Удалить кол-во" }
-  }[lang] || { change: "Change qty", remove: "Remove qty" };
-
   const rows = [];
 
-  for (const [index, item] of items.entries()) {
-    const rowNumber = index + 1;
+  for (const item of items) {
     rows.push([
-      { text: `${rowNumber}. ${actionText.change} ${item.name}`, callback_data: `basket_change_${item.id}` },
-      { text: `${rowNumber}. ${actionText.remove} ${item.name}`, callback_data: `basket_remove_${item.id}` }
+      { text: `${ui.change_quantity} ${item.name}`, callback_data: `basket_change_${item.id}` }
+    ]);
+    rows.push([
+      { text: `${ui.remove} ${item.name}`, callback_data: `basket_remove_${item.id}` }
     ]);
   }
 
-  rows.push([
-    { text: ui.continue_shopping, callback_data: "product_back_to_products" },
-    { text: ui.checkout, callback_data: "basket_checkout" },
-    { text: ui.clear_basket, callback_data: "basket_clear" }
-  ]);
+  rows.push([{ text: ui.continue_shopping, callback_data: "product_back_to_products" }]);
+  rows.push([{ text: ui.checkout, callback_data: "basket_checkout" }]);
+  rows.push([{ text: ui.clear_basket, callback_data: "basket_clear" }]);
 
   return { inline_keyboard: rows };
 }
@@ -3101,18 +3091,13 @@ async function sendAddedToBasket(env, customer, chatId, product, quantity) {
   await sendTelegramMessage(env, chatId, replyText, getAfterAddToBasketKeyboard(language));
 }
 
-function getAskProductQuantityText(language = "en", product = "") {
-  const productName = typeof product === "string" ? product : product.name;
-  const productPrice = typeof product === "string" ? null : product.price;
-  const priceText = productPrice !== null && productPrice !== undefined ? ` - ${formatPrice(productPrice)}` : "";
-  const displayName = `${productName || "Ürün"}${priceText}`;
-
+function getAskProductQuantityText(language = "en", productName = "") {
   const replies = {
-    en: `${displayName}: how many pieces do you want?`,
-    de: `${displayName}: wie viele Stück möchten Sie?`,
-    tr: `${displayName}: kaç adet istiyorsunuz?`,
-    ar: `${displayName}: كم قطعة تريد؟`,
-    ru: `${displayName}: сколько штук вы хотите?`
+    en: `How many ${productName || "items"} do you want?`,
+    de: `Wie viele ${productName || "Artikel"} möchten Sie?`,
+    tr: `${productName || "Ürün"} kaç adet istiyorsunuz?`,
+    ar: `كم عدد ${productName || "المنتج"} الذي تريده؟`,
+    ru: `Сколько ${productName || "товаров"} вы хотите?`
   };
 
   return replies[safeLang(language)] || replies.en;
@@ -3171,7 +3156,7 @@ async function handleProductRequestFromText(env, customer, chatId, incomingText,
     await setPendingProductQuantity(env, customer.id, matchedProduct, incomingText);
     await setCustomerState(env, customer.id, "awaiting_product_quantity");
 
-    const askText = getAskProductQuantityText(language, matchedProduct);
+    const askText = getAskProductQuantityText(language, matchedProduct.name);
     await saveMessage(env, customer.id, "outgoing", askText, language);
     await sendTelegramMessage(env, chatId, askText);
     return true;
@@ -3214,18 +3199,7 @@ async function handleBasketSelection(env, callbackQuery) {
   }
 
   if (data === "basket_checkout") {
-    const checkoutTexts = {
-      en: "Checkout started. Please type your delivery address or describe where we should deliver.",
-      de: "Checkout gestartet. Bitte geben Sie Ihre Lieferadresse ein oder beschreiben Sie den Lieferort.",
-      tr: "Checkout başladı. Lütfen teslimat adresinizi yazın veya teslimatı nereye yapmamız gerektiğini tarif edin.",
-      ar: "بدأ الدفع. يرجى كتابة عنوان التوصيل أو وصف مكان التوصيل.",
-      ru: "Оформление начато. Напишите адрес доставки или опишите, куда доставить."
-    };
-    const replyText = checkoutTexts[safeLang(language)] || checkoutTexts.en;
-
-    await setCustomerState(env, customer.id, "awaiting_typed_address");
-    await saveMessage(env, customer.id, "outgoing", replyText, language);
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getAddressNotFoundKeyboard());
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.checkout_next_stage);
     return;
   }
 
