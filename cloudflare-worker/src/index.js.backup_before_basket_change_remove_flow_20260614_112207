@@ -3074,28 +3074,28 @@ function getBasketKeyboard(items, language = "en") {
   const ui = getCartUiText(language);
   const lang = safeLang(language);
   const actionText = {
-    en: "Change/remove",
-    de: "Ändern/entfernen",
-    tr: "Değiştir/kaldır",
-    ar: "تغيير/حذف",
-    ru: "Изменить/удалить"
-  }[lang] || "Change/remove";
+    en: { change: "Change qty", remove: "Remove qty" },
+    de: { change: "Menge ändern", remove: "Menge entfernen" },
+    tr: { change: "Adedi değiştir", remove: "Adedi kaldır" },
+    ar: { change: "تغيير الكمية", remove: "حذف الكمية" },
+    ru: { change: "Изменить кол-во", remove: "Удалить кол-во" }
+  }[lang] || { change: "Change qty", remove: "Remove qty" };
 
   const rows = [];
 
   for (const [index, item] of items.entries()) {
     const rowNumber = index + 1;
     rows.push([
-      {
-        text: `${rowNumber}. ${actionText} ${item.name}`,
-        callback_data: `basket_action_${item.id}`
-      }
+      { text: `${rowNumber}. ${actionText.change} ${item.name}`, callback_data: `basket_change_${item.id}` },
+      { text: `${rowNumber}. ${actionText.remove} ${item.name}`, callback_data: `basket_remove_${item.id}` }
     ]);
   }
 
-  rows.push([{ text: ui.continue_shopping, callback_data: "basket_continue" }]);
-  rows.push([{ text: ui.checkout, callback_data: "basket_checkout" }]);
-  rows.push([{ text: ui.clear_basket, callback_data: "basket_clear" }]);
+  rows.push([
+    { text: ui.continue_shopping, callback_data: "basket_continue" },
+    { text: ui.checkout, callback_data: "basket_checkout" },
+    { text: ui.clear_basket, callback_data: "basket_clear" }
+  ]);
 
   return { inline_keyboard: rows };
 }
@@ -3231,17 +3231,14 @@ async function handleBasketSelection(env, callbackQuery) {
   const language = customer.preferred_language || customer.language || "en";
   const ui = getCartUiText(language);
   const data = callbackQuery.data;
-  const chatId = callbackQuery.message.chat.id;
 
   if (data === "basket_continue") {
-    await sendProductMenu(env, chatId, language);
+    await sendProductMenu(env, callbackQuery.message.chat.id, language);
     return;
   }
 
-  if (data === "basket_view" || data === "basket_back") {
-    await clearPendingBasketQuantityChange(env, customer.id);
-    await setCustomerState(env, customer.id, null);
-    await sendBasketView(env, customer, chatId);
+  if (data === "basket_view") {
+    await sendBasketView(env, customer, callbackQuery.message.chat.id);
     return;
   }
 
@@ -3257,80 +3254,60 @@ async function handleBasketSelection(env, callbackQuery) {
 
     await setCustomerState(env, customer.id, "awaiting_typed_address");
     await saveMessage(env, customer.id, "outgoing", replyText, language);
-    await sendTelegramMessage(env, chatId, replyText, getAddressNotFoundKeyboard(language));
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getAddressNotFoundKeyboard(language));
     return;
   }
 
   const { cart } = await getCartItems(env, customer.id);
   if (!cart) {
-    await sendTelegramMessage(env, chatId, ui.basket_empty);
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.basket_empty);
     return;
   }
 
   if (data === "basket_clear") {
     await env.DB.prepare("DELETE FROM shopping_cart_items WHERE cart_id = ?").bind(cart.id).run();
-    await clearPendingBasketQuantityChange(env, customer.id);
-    await setCustomerState(env, customer.id, null);
-    await sendTelegramMessage(env, chatId, ui.basket_empty);
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.basket_empty);
     return;
   }
 
-  if (data.startsWith("basket_action_")) {
-    const itemId = Number(data.replace("basket_action_", ""));
-    const item = await getCartItemForCustomer(env, customer.id, itemId);
+  const itemId = Number(
+    data
+      .replace("basket_remove_", "")
+      .replace("basket_increase_", "")
+      .replace("basket_decrease_", "")
+  );
 
-    if (!item) {
-      await sendTelegramMessage(env, chatId, ui.basket_empty);
-      return;
-    }
+  const item = await env.DB.prepare(
+    "SELECT * FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
+  ).bind(itemId, cart.id).first();
 
-    await setPendingBasketQuantityChange(env, customer.id, itemId);
-    await setCustomerState(env, customer.id, "awaiting_basket_quantity");
-
-    const actionTexts = {
-      en: `Type the new amount for ${item.name}, or remove it below.`,
-      de: `Geben Sie die neue Menge für ${item.name} ein oder entfernen Sie es unten.`,
-      tr: `${item.name} için yeni adedi yazın veya aşağıdan kaldırın.`,
-      ar: `اكتب الكمية الجديدة لـ ${item.name} أو احذفها من الأسفل.`,
-      ru: `Введите новое количество для ${item.name} или удалите ниже.`
-    };
-    const removeTexts = {
-      en: `Remove ${item.name}`,
-      de: `${item.name} entfernen`,
-      tr: `${item.name} kaldır`,
-      ar: `حذف ${item.name}`,
-      ru: `Удалить ${item.name}`
-    };
-    const backTexts = {
-      en: "Back to basket",
-      de: "Zurück zum Warenkorb",
-      tr: "Sepete dön",
-      ar: "العودة إلى السلة",
-      ru: "Назад в корзину"
-    };
-    const lang = safeLang(language);
-
-    await sendTelegramMessage(env, chatId, actionTexts[lang] || actionTexts.en, {
-      inline_keyboard: [
-        [{ text: removeTexts[lang] || removeTexts.en, callback_data: `basket_remove_${item.id}` }],
-        [{ text: backTexts[lang] || backTexts.en, callback_data: "basket_back" }]
-      ]
-    });
+  if (!item) {
+    await sendBasketView(env, customer, callbackQuery.message.chat.id);
     return;
   }
 
   if (data.startsWith("basket_remove_")) {
-    const itemId = Number(data.replace("basket_remove_", ""));
-    await env.DB.prepare("DELETE FROM shopping_cart_items WHERE id = ? AND cart_id = ?")
-      .bind(itemId, cart.id)
-      .run();
-
-    await clearPendingBasketQuantityChange(env, customer.id);
-    await setCustomerState(env, customer.id, null);
-
-    await sendTelegramMessage(env, chatId, ui.item_removed);
-    await sendBasketView(env, customer, chatId);
+    await env.DB.prepare("DELETE FROM shopping_cart_items WHERE id = ?").bind(itemId).run();
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.item_removed);
+    await sendBasketView(env, customer, callbackQuery.message.chat.id);
     return;
+  }
+
+  if (data.startsWith("basket_increase_")) {
+    await env.DB.prepare("UPDATE shopping_cart_items SET quantity = quantity + 1 WHERE id = ?").bind(itemId).run();
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.item_updated);
+    await sendBasketView(env, customer, callbackQuery.message.chat.id);
+    return;
+  }
+
+  if (data.startsWith("basket_decrease_")) {
+    if (Number(item.quantity) <= 1) {
+      await env.DB.prepare("DELETE FROM shopping_cart_items WHERE id = ?").bind(itemId).run();
+    } else {
+      await env.DB.prepare("UPDATE shopping_cart_items SET quantity = quantity - 1 WHERE id = ?").bind(itemId).run();
+    }
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.item_updated);
+    await sendBasketView(env, customer, callbackQuery.message.chat.id);
   }
 }
 
