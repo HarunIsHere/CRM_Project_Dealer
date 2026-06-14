@@ -3093,10 +3093,8 @@ function getBasketKeyboard(items, language = "en") {
     ]);
   }
 
-  rows.push([
-    { text: ui.continue_shopping, callback_data: "basket_continue" },
-    { text: ui.checkout, callback_data: "basket_checkout" }
-  ]);
+  rows.push([{ text: ui.continue_shopping, callback_data: "basket_continue" }]);
+  rows.push([{ text: ui.checkout, callback_data: "basket_checkout" }]);
   rows.push([{ text: ui.clear_basket, callback_data: "basket_clear" }]);
 
   return { inline_keyboard: rows };
