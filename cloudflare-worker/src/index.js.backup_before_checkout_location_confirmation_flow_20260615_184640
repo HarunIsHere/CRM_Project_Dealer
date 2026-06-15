@@ -3351,7 +3351,19 @@ async function handleBasketSelection(env, callbackQuery) {
   }
 
   if (data === "basket_checkout") {
-    await sendCheckoutPrompt(env, customer, chatId);
+    const checkoutTexts = {
+      en: "Checkout started. Please type your delivery address or describe where we should deliver.",
+      de: "Checkout gestartet. Bitte geben Sie Ihre Lieferadresse ein oder beschreiben Sie den Lieferort.",
+      tr: "Checkout başladı. Lütfen teslimat adresinizi yazın veya teslimatı nereye yapmamız gerektiğini tarif edin.",
+      ar: "بدأ الدفع. يرجى كتابة عنوان التوصيل أو وصف مكان التوصيل.",
+      ru: "Оформление начато. Напишите адрес доставки или опишите, куда доставить."
+    };
+    const replyText = checkoutTexts[safeLang(language)] || checkoutTexts.en;
+
+    await setCustomerState(env, customer.id, "awaiting_typed_address");
+    await setActiveCartOrderStatus(env, customer.id, "waiting_location");
+    await saveMessage(env, customer.id, "outgoing", replyText, language);
+    await sendTelegramMessage(env, chatId, replyText, getCheckoutLocationKeyboard(language));
     return;
   }
 
@@ -3714,108 +3726,6 @@ function getAddressChoicesKeyboard(results) {
 
 function getAddressNotFoundKeyboard(language = "en") {
   return getCheckoutLocationKeyboard(language);
-}
-
-function getBackToCheckoutText(language = "en") {
-  return {
-    en: "Back to checkout",
-    de: "Zurück zum Checkout",
-    tr: "Checkout'a dön",
-    ar: "العودة إلى الدفع",
-    ru: "Назад к оформлению"
-  }[safeLang(language)] || "Back to checkout";
-}
-
-function getApproveLocationText(language = "en") {
-  return {
-    en: "Approve delivery at this location",
-    de: "Lieferung an diesem Standort bestätigen",
-    tr: "Bu konumda teslimatı onayla",
-    ar: "تأكيد التوصيل في هذا الموقع",
-    ru: "Подтвердить доставку в эту локацию"
-  }[safeLang(language)] || "Approve delivery at this location";
-}
-
-function getLocationDescriptionPrompt(language = "en") {
-  return {
-    en: "Please type your location description.",
-    de: "Bitte beschreiben Sie Ihren Standort.",
-    tr: "Lütfen konumunuzu tarif edin.",
-    ar: "يرجى كتابة وصف موقعك.",
-    ru: "Пожалуйста, опишите вашу локацию."
-  }[safeLang(language)] || "Please type your location description.";
-}
-
-function getLocationDescriptionReceivedText(language = "en") {
-  return {
-    en: "Location description received. We will prepare your order for delivery.",
-    de: "Standortbeschreibung erhalten. Wir bereiten Ihre Bestellung zur Lieferung vor.",
-    tr: "Konum tarifi alındı. Siparişinizi teslimat için hazırlayacağız.",
-    ar: "تم استلام وصف الموقع. سنجهز طلبك للتوصيل.",
-    ru: "Описание локации получено. Мы подготовим ваш заказ к доставке."
-  }[safeLang(language)] || "Location description received. We will prepare your order for delivery.";
-}
-
-function getOurLocationApprovalPrompt(point, language = "en") {
-  const intro = {
-    en: "Please approve delivery at our location:",
-    de: "Bitte bestätigen Sie die Lieferung an unserem Standort:",
-    tr: "Lütfen konumumuzda teslimatı onaylayın:",
-    ar: "يرجى تأكيد التوصيل في موقعنا:",
-    ru: "Пожалуйста, подтвердите доставку в нашей локации:"
-  }[safeLang(language)] || "Please approve delivery at our location:";
-
-  return [
-    intro,
-    "",
-    point.name,
-    point.address,
-    point.google_maps_link
-  ].filter(Boolean).join("\n");
-}
-
-function getOurLocationApprovedText(language = "en") {
-  return {
-    en: "Location approved. We will prepare your order for delivery at our location.",
-    de: "Standort bestätigt. Wir bereiten Ihre Bestellung zur Lieferung an unserem Standort vor.",
-    tr: "Konum onaylandı. Siparişinizi konumumuzda teslimat için hazırlayacağız.",
-    ar: "تم تأكيد الموقع. سنجهز طلبك للتوصيل في موقعنا.",
-    ru: "Локация подтверждена. Мы подготовим ваш заказ к доставке в нашей локации."
-  }[safeLang(language)] || "Location approved. We will prepare your order for delivery at our location.";
-}
-
-function getMeetingPointApprovalKeyboard(pointId, language = "en") {
-  return {
-    inline_keyboard: [
-      [{ text: getApproveLocationText(language), callback_data: `meeting_point_approve_${pointId}` }],
-      [{ text: getBackToCheckoutText(language), callback_data: "location_back_checkout" }]
-    ]
-  };
-}
-
-function getBackToCheckoutKeyboard(language = "en") {
-  return {
-    inline_keyboard: [
-      [{ text: getBackToCheckoutText(language), callback_data: "location_back_checkout" }]
-    ]
-  };
-}
-
-async function sendCheckoutPrompt(env, customer, chatId) {
-  const language = customer.preferred_language || customer.language || "en";
-  const checkoutTexts = {
-    en: "Checkout started. Please type your delivery address or describe where we should deliver.",
-    de: "Checkout gestartet. Bitte geben Sie Ihre Lieferadresse ein oder beschreiben Sie den Lieferort.",
-    tr: "Checkout başladı. Lütfen teslimat adresinizi yazın veya teslimatı nereye yapmamız gerektiğini tarif edin.",
-    ar: "بدأ الدفع. يرجى كتابة عنوان التوصيل أو وصف مكان التوصيل.",
-    ru: "Оформление начато. Напишите адрес доставки или опишите، куда доставить."
-  };
-  const replyText = checkoutTexts[safeLang(language)] || checkoutTexts.en;
-
-  await setCustomerState(env, customer.id, "awaiting_typed_address");
-  await setActiveCartOrderStatus(env, customer.id, "waiting_location");
-  await saveMessage(env, customer.id, "outgoing", replyText, language);
-  await sendTelegramMessage(env, chatId, replyText, getCheckoutLocationKeyboard(language));
 }
 
 function getDeliveryAdminKeyboard(requestId, customerId, googleMapsLink, clickedValues = new Set(), lastValue = null) {
@@ -6760,26 +6670,25 @@ async function handleResetPassword(request, env) {
 
 async function sendMeetingPointChoiceOrDirect(env, customer, chatId, incomingText) {
   const points = await getActiveMeetingPoints(env);
-  const language = customer.preferred_language || customer.language || "en";
 
   if (!points.length) {
-    const replyText = t("no_active_locations", language);
+    const replyText = t("no_active_locations", customer.preferred_language || "en");
     await forwardLocationNeeded(env, customer, incomingText);
-    await sendTelegramMessage(env, chatId, replyText, getBackToCheckoutKeyboard(language));
+    await sendTelegramMessage(env, chatId, replyText);
     await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
     return;
   }
 
   if (points.length === 1) {
     const point = points[0];
-    const replyText = getOurLocationApprovalPrompt(point, language);
+    const replyText = formatSelectedMeetingPointReply(point, customer.preferred_language || "en");
     await logCustomerRequest(env, customer.id, "location", incomingText, null, point.name, point.address, null, null, point.google_maps_link);
-    await sendTelegramMessage(env, chatId, replyText, getMeetingPointApprovalKeyboard(point.id, language));
+    await sendTelegramMessage(env, chatId, replyText);
     await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
     return;
   }
 
-  const replyText = t("choose_location", language);
+  const replyText = t("choose_location", customer.preferred_language || "en");
   await sendTelegramMessage(env, chatId, replyText, getMeetingPointChoiceKeyboard(points));
   await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
 }
@@ -7321,25 +7230,6 @@ async function handleTelegramTextMessage(env, message) {
     return;
   }
 
-  if (customer.conversation_state === "awaiting_location_description") {
-    const language = customer.preferred_language || customer.language || "en";
-    const description = incomingText.trim();
-
-    await setCustomerState(env, customer.id, null);
-    await setActiveCartOrderStatus(env, customer.id, "ready_to_delivery", {
-      delivery_location_label: description,
-      delivery_note: "customer_location_description"
-    });
-
-    await logCustomerRequest(env, customer.id, "delivery_location", description, null, "location_description", description, null, null, null);
-    await forwardUnresolvedMessage(env, customer, `Customer location description: ${description}`);
-
-    const replyText = getLocationDescriptionReceivedText(language);
-    await saveMessage(env, customer.id, "outgoing", replyText, language);
-    await sendTelegramMessage(env, message.chat.id, replyText);
-    return;
-  }
-
   if (customer.conversation_state === "awaiting_typed_address") {
     const language = customer.preferred_language || customer.language || "en";
 
@@ -7626,50 +7516,6 @@ async function handlePreferredLocationSelection(env, callbackQuery) {
   }
 }
 
-async function handleBackToCheckout(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  await sendCheckoutPrompt(env, customer, callbackQuery.message.chat.id);
-}
-
-async function handleLocationContactAdmin(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-
-  await setCustomerState(env, customer.id, "awaiting_location_description");
-  await setActiveCartOrderStatus(env, customer.id, "waiting_location");
-  await logCustomerRequest(env, customer.id, "location_description_started", "Customer selected contact admin to describe location");
-  await forwardUnresolvedMessage(env, customer, "Customer selected: Contact admin to describe location");
-
-  const replyText = getLocationDescriptionPrompt(language);
-  await saveMessage(env, customer.id, "outgoing", replyText, language);
-  await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getBackToCheckoutKeyboard(language));
-}
-
-async function handleMeetingPointApproval(env, callbackQuery) {
-  const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
-  const pointId = Number(callbackQuery.data.replace("meeting_point_approve_", ""));
-  const point = await env.DB.prepare("SELECT * FROM meeting_points WHERE id = ? AND is_active = 1").bind(pointId).first();
-
-  if (!point) {
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, t("no_active_locations", language), getBackToCheckoutKeyboard(language));
-    return;
-  }
-
-  await setCustomerState(env, customer.id, null);
-  await setActiveCartOrderStatus(env, customer.id, "ready_to_delivery", {
-    delivery_location_label: point.name || point.address,
-    delivery_google_maps_link: point.google_maps_link,
-    delivery_note: "our_meeting_point_approved"
-  });
-
-  await logCustomerRequest(env, customer.id, "location", "Customer approved delivery at our location", null, point.name, point.address, null, null, point.google_maps_link);
-
-  const replyText = getOurLocationApprovedText(language);
-  await saveMessage(env, customer.id, "outgoing", replyText, language);
-  await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText);
-}
-
 async function handleCancelLocationEntry(env, callbackQuery) {
   const customer = await upsertCustomer(env, callbackQuery.from);
   const language = customer.preferred_language || customer.language || "en";
@@ -7809,22 +7655,25 @@ async function handleAddressSelection(env, callbackQuery) {
 
 async function handleMeetingPointSelection(env, callbackQuery) {
   const customer = await upsertCustomer(env, callbackQuery.from);
-  const language = customer.preferred_language || customer.language || "en";
   const pointId = Number(callbackQuery.data.replace("meeting_point_select_", ""));
   const point = await env.DB.prepare("SELECT * FROM meeting_points WHERE id = ? AND is_active = 1").bind(pointId).first();
 
   if (!point) {
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, t("no_active_locations", language), getBackToCheckoutKeyboard(language));
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, t("no_active_locations", customer.preferred_language || "en"));
     return;
   }
 
-  const replyText = getOurLocationApprovalPrompt(point, language);
+  await setCustomerState(env, customer.id, null);
+  await setActiveCartOrderStatus(env, customer.id, "ready_to_delivery", {
+    delivery_location_label: point.name || point.address,
+    delivery_google_maps_link: point.google_maps_link,
+    delivery_note: "our_meeting_point"
+  });
+  const replyText = formatSelectedMeetingPointReply(point, customer.preferred_language || "en");
 
-  await setCustomerState(env, customer.id, "awaiting_typed_address");
-  await setActiveCartOrderStatus(env, customer.id, "waiting_location");
-  await logCustomerRequest(env, customer.id, "location", "Customer selected meeting point, waiting approval", null, point.name, point.address, null, null, point.google_maps_link);
-  await saveMessage(env, customer.id, "outgoing", replyText, language);
-  await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getMeetingPointApprovalKeyboard(point.id, language));
+  await logCustomerRequest(env, customer.id, "location", "Customer selected meeting point", null, point.name, point.address, null, null, point.google_maps_link);
+  await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
+  await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText);
 }
 
 async function handleAdminReplySelection(env, callbackQuery) {
@@ -7982,10 +7831,6 @@ async function handleCallbackQuery(env, callbackQuery) {
 
   if (callbackQuery.data.startsWith("basket_")) return handleBasketSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("product_fulfillment_")) return handleProductFulfillmentSelection(env, callbackQuery);
-  if (callbackQuery.data === "location_contact_admin") return handleLocationContactAdmin(env, callbackQuery);
-  if (callbackQuery.data === "location_cancel") return handleCancelLocationEntry(env, callbackQuery);
-  if (callbackQuery.data === "location_back_checkout") return handleBackToCheckout(env, callbackQuery);
-  if (callbackQuery.data.startsWith("meeting_point_approve_")) return handleMeetingPointApproval(env, callbackQuery);
   if (callbackQuery.data.startsWith("preferred_location_")) return handlePreferredLocationSelection(env, callbackQuery);
   if (callbackQuery.data === "location_show_meeting_points") {
     const customer = await upsertCustomer(env, callbackQuery.from);
