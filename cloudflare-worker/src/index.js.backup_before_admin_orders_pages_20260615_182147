@@ -4648,8 +4648,6 @@ function renderAdminDashboard(data, section = "dashboard") {
 <div class="page-actions">
   <a href="/admin"><button type="button">${ui.general}</button></a>
   <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
-  <a href="/admin/orders"><button type="button">Orders</button></a>
-  <a href="/admin/closedorders"><button type="button">Closed Orders</button></a>
   <a href="/admin/products"><button type="button">${ui.products}</button></a>
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
   <a href="/admin/ai"><button type="button">AI Info</button></a>
@@ -5502,331 +5500,6 @@ async function searchLocation() {
 }
 
 
-
-function getOrderStatusLabel(status) {
-  return {
-    in_progress: "In progress",
-    waiting_location: "Waiting location",
-    ready_to_delivery: "Ready to delivery",
-    on_the_way: "On the way",
-    not_delivered: "Not delivered",
-    delivered: "Delivered"
-  }[status] || status;
-}
-
-function getOrderStatusOptions(selectedStatus) {
-  const statuses = [
-    "in_progress",
-    "waiting_location",
-    "ready_to_delivery",
-    "on_the_way",
-    "not_delivered",
-    "delivered"
-  ];
-
-  return statuses.map((status) =>
-    `<option value="${status}" ${status === selectedStatus ? "selected" : ""}>${getOrderStatusLabel(status)}</option>`
-  ).join("");
-}
-
-function formatOrderItemsText(itemsText) {
-  if (!itemsText) return "";
-  try {
-    const items = JSON.parse(itemsText);
-    return items.map((item) => {
-      const quantity = Number(item.quantity || 1);
-      const price = Number(item.price_snapshot || 0);
-      const total = price * quantity;
-      return `${item.name} x ${quantity}${price ? ` (${formatPrice(price)} x ${quantity} = ${formatPrice(total)})` : ""}`;
-    }).join("<br>");
-  } catch (error) {
-    return "";
-  }
-}
-
-async function getOrdersContext(env, closed = false) {
-  const rows = await env.DB.prepare(`
-    SELECT
-      c.id,
-      c.customer_id,
-      c.status,
-      c.order_status,
-      c.delivery_location_label,
-      c.delivery_google_maps_link,
-      c.delivery_note,
-      c.delivered_at,
-      c.closed_at,
-      c.admin_status_note,
-      c.created_at,
-      c.updated_at,
-      customers.full_name,
-      customers.username,
-      customers.telegram_user_id,
-      customers.preferred_language,
-      COUNT(i.id) AS item_count,
-      COALESCE(SUM(COALESCE(i.price_snapshot, 0) * COALESCE(i.quantity, 1)), 0) AS total_amount,
-      json_group_array(
-        json_object(
-          'id', i.id,
-          'name', i.name,
-          'quantity', i.quantity,
-          'price_snapshot', i.price_snapshot
-        )
-      ) AS items_json
-    FROM shopping_carts c
-    JOIN customers ON customers.id = c.customer_id
-    LEFT JOIN shopping_cart_items i ON i.cart_id = c.id
-    WHERE ${closed ? "c.order_status = 'delivered'" : "c.order_status != 'delivered'"}
-    GROUP BY c.id
-    HAVING item_count > 0
-    ORDER BY c.updated_at DESC
-  `).all();
-
-  return rows.results || [];
-}
-
-function renderOrdersNav(ui) {
-  return `<div class="page-actions">
-  <a href="/admin"><button type="button">${ui.general}</button></a>
-  <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
-  <a href="/admin/orders"><button type="button">Orders</button></a>
-  <a href="/admin/closedorders"><button type="button">Closed Orders</button></a>
-  <a href="/admin/products"><button type="button">${ui.products}</button></a>
-  <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
-  <a href="/admin/ai"><button type="button">AI Info</button></a>
-  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
-</div>`;
-}
-
-function renderOrdersTable(orders, closed = false) {
-  const rows = orders.map((order) => {
-    const customerLabel = order.full_name || order.username || order.telegram_user_id || "";
-    const mapLink = order.delivery_google_maps_link
-      ? `<br><a href="${escapeHtml(order.delivery_google_maps_link)}" target="_blank">Open map</a>`
-      : "";
-
-    const statusCell = closed ? `
-      ${escapeHtml(getOrderStatusLabel(order.order_status))}
-      <form action="/admin/orders/${order.id}/return" method="post" style="display:inline;">
-        <button type="submit">Return as not delivered</button>
-      </form>
-    ` : `
-      <form action="/admin/orders/${order.id}/status" method="post">
-        <select name="order_status">
-          ${getOrderStatusOptions(order.order_status || "in_progress")}
-        </select>
-        <input type="text" name="admin_status_note" value="${escapeHtml(order.admin_status_note || "")}" placeholder="Optional admin note">
-        <button type="submit">Update</button>
-      </form>
-      <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
-        <button type="submit">Delivered</button>
-      </form>
-    `;
-
-    return `<tr>
-      <td>${escapeHtml(order.id)}</td>
-      <td>${escapeHtml(customerLabel)}<br><small>${escapeHtml(order.telegram_user_id || "")}</small></td>
-      <td>${escapeHtml(getOrderStatusLabel(order.order_status || "in_progress"))}</td>
-      <td>${formatOrderItemsText(order.items_json)}</td>
-      <td>${escapeHtml(formatPrice(order.total_amount || 0))}</td>
-      <td>${escapeHtml(order.delivery_location_label || "")}${mapLink}</td>
-      <td>${escapeHtml(order.created_at || "")}<br>${escapeHtml(order.updated_at || "")}</td>
-      <td>${statusCell}</td>
-    </tr>`;
-  }).join("");
-
-  return `<table border="1" cellpadding="10">
-    <tr>
-      <th>Order ID</th>
-      <th>Customer</th>
-      <th>Status</th>
-      <th>Items</th>
-      <th>Total</th>
-      <th>Location</th>
-      <th>Created / Updated</th>
-      <th>Action</th>
-    </tr>
-    ${rows}
-  </table>`;
-}
-
-async function handleAdminOrdersPage(env) {
-  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
-  const orders = await getOrdersContext(env, false);
-
-  return htmlResponse(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Orders</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/static/admin.css">
-</head>
-<body>
-<div class="admin-header">
-  <h1>Orders</h1>
-  <div class="header-actions">
-    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
-    <a href="/admin/change-password"><button type="button">${ui.change_password}</button></a>
-  </div>
-</div>
-<hr><hr>
-${renderOrdersNav(ui)}
-<hr><hr>
-<h2>Orders</h2>
-${renderOrdersTable(orders, false)}
-</body>
-</html>`);
-}
-
-async function handleAdminClosedOrdersPage(env) {
-  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
-  const orders = await getOrdersContext(env, true);
-
-  return htmlResponse(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Closed Orders</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="/static/admin.css">
-</head>
-<body>
-<div class="admin-header">
-  <h1>Closed Orders</h1>
-  <div class="header-actions">
-    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
-    <a href="/admin/change-password"><button type="button">${ui.change_password}</button></a>
-  </div>
-</div>
-<hr><hr>
-${renderOrdersNav(ui)}
-<hr><hr>
-<h2>Closed Orders</h2>
-${renderOrdersTable(orders, true)}
-</body>
-</html>`);
-}
-
-async function getOrderById(env, orderId) {
-  return env.DB.prepare(`
-    SELECT c.*, customers.telegram_user_id, customers.preferred_language, customers.language
-    FROM shopping_carts c
-    JOIN customers ON customers.id = c.customer_id
-    WHERE c.id = ?
-  `).bind(orderId).first();
-}
-
-function getOrderStatusCustomerMessage(status, language = "en") {
-  const messages = {
-    in_progress: {
-      en: "Your order is back in progress. You can send a product name to continue shopping or choose an option below.",
-      de: "Ihre Bestellung ist wieder in Bearbeitung. Sie können einen Produktnamen senden oder unten eine Option wählen.",
-      tr: "Siparişiniz tekrar devam ediyor. Alışverişe devam etmek için ürün adı yazabilir veya aşağıdan bir seçenek seçebilirsiniz.",
-      ar: "عاد طلبك إلى قيد التنفيذ. يمكنك إرسال اسم منتج للمتابعة أو اختيار خيار بالأسفل.",
-      ru: "Ваш заказ снова в процессе. Вы можете отправить название товара или выбрать вариант ниже."
-    },
-    waiting_location: {
-      en: "Please type your delivery address or describe where we should deliver.",
-      de: "Bitte geben Sie Ihre Lieferadresse ein oder beschreiben Sie den Lieferort.",
-      tr: "Lütfen teslimat adresinizi yazın veya teslimatı nereye yapmamız gerektiğini tarif edin.",
-      ar: "يرجى كتابة عنوان التوصيل أو وصف مكان التوصيل.",
-      ru: "Напишите адрес доставки или опишите, куда доставить."
-    },
-    ready_to_delivery: {
-      en: "Your order location is confirmed. We will prepare it for delivery.",
-      de: "Ihr Standort ist bestätigt. Wir bereiten die Lieferung vor.",
-      tr: "Sipariş konumunuz onaylandı. Teslimat için hazırlayacağız.",
-      ar: "تم تأكيد موقع الطلب. سنجهزه للتوصيل.",
-      ru: "Локация заказа подтверждена. Мы подготовим доставку."
-    },
-    on_the_way: {
-      en: "Your order is on the way.",
-      de: "Ihre Bestellung ist unterwegs.",
-      tr: "Siparişiniz yolda.",
-      ar: "طلبك في الطريق.",
-      ru: "Ваш заказ в пути."
-    },
-    not_delivered: {
-      en: "Your order was marked as not delivered. Please contact admin or choose an option below.",
-      de: "Ihre Bestellung wurde als nicht geliefert markiert. Bitte kontaktieren Sie den Admin oder wählen Sie unten eine Option.",
-      tr: "Siparişiniz teslim edilmedi olarak işaretlendi. Lütfen adminle iletişime geçin veya aşağıdan bir seçenek seçin.",
-      ar: "تم تحديد طلبك كغير مُسلّم. يرجى التواصل مع المسؤول أو اختيار خيار بالأسفل.",
-      ru: "Ваш заказ отмечен как не доставленный. Свяжитесь с админом или выберите вариант ниже."
-    },
-    delivered: {
-      en: "Your order was marked as delivered. Thank you.",
-      de: "Ihre Bestellung wurde als geliefert markiert. Danke.",
-      tr: "Siparişiniz teslim edildi olarak işaretlendi. Teşekkürler.",
-      ar: "تم تحديد طلبك كمُسلّم. شكراً.",
-      ru: "Ваш заказ отмечен как доставленный. Спасибо."
-    }
-  };
-  const lang = safeLang(language);
-  return (messages[status] && (messages[status][lang] || messages[status].en)) || messages.in_progress.en;
-}
-
-async function notifyCustomerForOrderStatus(env, order, status) {
-  const language = order.preferred_language || order.language || "en";
-  const text = getOrderStatusCustomerMessage(status, language);
-
-  let keyboard = null;
-  if (status === "in_progress") keyboard = getBasketKeyboard((await getCartItems(env, order.customer_id)).items || [], language);
-  if (status === "waiting_location") keyboard = getCheckoutLocationKeyboard(language);
-  if (status === "not_delivered") keyboard = getMenuKeyboard(language);
-
-  await sendTelegramMessage(env, order.telegram_user_id, text, keyboard);
-  await saveMessage(env, order.customer_id, "outgoing", text, language, "order_status");
-}
-
-async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
-  const order = await getOrderById(env, orderId);
-  if (!order) return;
-
-  const deliveredAt = status === "delivered" ? new Date().toISOString() : null;
-  const closedAt = status === "delivered" ? new Date().toISOString() : null;
-
-  await env.DB.prepare(`
-    UPDATE shopping_carts
-    SET order_status = ?,
-        admin_status_note = ?,
-        delivered_at = CASE WHEN ? = 'delivered' THEN ? ELSE delivered_at END,
-        closed_at = CASE WHEN ? = 'delivered' THEN ? ELSE NULL END,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(status, note || null, status, deliveredAt, status, closedAt, orderId).run();
-
-  await notifyCustomerForOrderStatus(env, order, status);
-}
-
-async function handleAdminUpdateOrderStatus(request, env, orderId) {
-  const form = await request.formData();
-  const status = String(form.get("order_status") || "in_progress");
-  const note = String(form.get("admin_status_note") || "").trim();
-  await updateOrderStatusByAdmin(env, orderId, status, note);
-  return redirectResponse(status === "delivered" ? "/admin/closedorders" : "/admin/orders");
-}
-
-async function handleAdminMarkOrderDelivered(env, orderId) {
-  await updateOrderStatusByAdmin(env, orderId, "delivered", "");
-  return redirectResponse("/admin/closedorders");
-}
-
-async function handleAdminReturnClosedOrder(env, orderId) {
-  const order = await getOrderById(env, orderId);
-  if (!order) return redirectResponse("/admin/closedorders");
-
-  await env.DB.prepare(`
-    UPDATE shopping_carts
-    SET order_status = 'not_delivered',
-        delivered_at = NULL,
-        closed_at = NULL,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(orderId).run();
-
-  await notifyCustomerForOrderStatus(env, order, "not_delivered");
-  return redirectResponse("/admin/orders");
-}
-
 async function handleAdminProductsPage(env) {
   return htmlResponse(renderAdminDashboard(await getAdminData(env), "products"));
 }
@@ -6192,8 +5865,6 @@ async function handleOpenRequestsPage(env) {
 <div class="page-actions">
   <a href="/admin"><button type="button">${ui.general}</button></a>
   <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
-  <a href="/admin/orders"><button type="button">Orders</button></a>
-  <a href="/admin/closedorders"><button type="button">Closed Orders</button></a>
   <a href="/admin/products"><button type="button">${ui.products}</button></a>
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
   <a href="/admin/ai"><button type="button">AI Info</button></a>
@@ -7794,7 +7465,6 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
     etaValue = "No delivery";
     replyText = t("no_delivery", customer.preferred_language || "en");
     await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE id = ?").bind(requestId).run();
-    await setActiveCartOrderStatus(env, customer.id, "not_delivered");
   } else {
     etaValue = etaText;
     const replies = {
@@ -7806,7 +7476,6 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
     };
     replyText = replies[safeLang(customer.preferred_language)] || replies.en;
     await env.DB.prepare("UPDATE customer_requests SET status = 'in_progress' WHERE id = ?").bind(requestId).run();
-    await setActiveCartOrderStatus(env, customer.id, "on_the_way");
   }
 
   clickedValues.add(etaValue);
@@ -7901,8 +7570,6 @@ async function routeRequest(request, env) {
   }
 
   if ((url.pathname === "/admin" || url.pathname === "/admin/") && request.method === "GET") return handleAdminHome(env);
-  if ((url.pathname === "/admin/orders" || url.pathname === "/admin/orders/") && request.method === "GET") return handleAdminOrdersPage(env);
-  if ((url.pathname === "/admin/closedorders" || url.pathname === "/admin/closedorders/") && request.method === "GET") return handleAdminClosedOrdersPage(env);
   if ((url.pathname === "/admin/products" || url.pathname === "/admin/products/") && request.method === "GET") return handleAdminProductsPage(env);
   if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env);
   if ((url.pathname === "/admin/ai" || url.pathname === "/admin/ai/") && request.method === "GET") return handleAdminAiPage(env);
@@ -7926,15 +7593,6 @@ async function routeRequest(request, env) {
   if (url.pathname === "/admin/settings/delivery-cities" && request.method === "POST") return handleUpdateDeliveryCities(request, env);
   if (url.pathname === "/admin/settings/admin-language" && request.method === "POST") return handleUpdateAdminLanguage(request, env);
   if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
-
-  const orderStatusUpdate = url.pathname.match(/^\/admin\/orders\/(\d+)\/status$/);
-  if (orderStatusUpdate && request.method === "POST") return handleAdminUpdateOrderStatus(request, env, Number(orderStatusUpdate[1]));
-
-  const orderDelivered = url.pathname.match(/^\/admin\/orders\/(\d+)\/delivered$/);
-  if (orderDelivered && request.method === "POST") return handleAdminMarkOrderDelivered(env, Number(orderDelivered[1]));
-
-  const orderReturn = url.pathname.match(/^\/admin\/orders\/(\d+)\/return$/);
-  if (orderReturn && request.method === "POST") return handleAdminReturnClosedOrder(env, Number(orderReturn[1]));
 
   if (url.pathname === "/admin/products" && request.method === "POST") return handleCreateProduct(request, env);
 
