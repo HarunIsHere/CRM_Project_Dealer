@@ -7585,15 +7585,6 @@ async function handleTelegramCommand(env, message, customer, text) {
     return;
   }
 
-  if (command === "/o") {
-    if (!(await isActiveAdmin(env, message.chat.id))) {
-      await sendTelegramMessage(env, message.chat.id, "You are not allowed to view orders.");
-      return;
-    }
-    await sendTelegramAdminOrdersList(env, message.chat.id);
-    return;
-  }
-
   if (command === "/setadmin") {
     const code = parts[1] || "";
     if (code !== env.ADMIN_SETUP_CODE) {
@@ -7846,142 +7837,6 @@ async function handleMeetingPointSelection(env, callbackQuery) {
   await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getMeetingPointApprovalKeyboard(point.id, language));
 }
 
-async function getTelegramActionableOrders(env) {
-  const rows = await env.DB.prepare(`
-    SELECT
-      c.id,
-      c.customer_id,
-      c.order_status,
-      c.delivery_location_label,
-      c.delivery_google_maps_link,
-      c.delivery_note,
-      c.updated_at,
-      customers.full_name,
-      customers.username,
-      customers.telegram_user_id,
-      COUNT(i.id) AS item_count,
-      COALESCE(SUM(COALESCE(i.price_snapshot, 0) * COALESCE(i.quantity, 1)), 0) AS total_amount,
-      json_group_array(
-        json_object(
-          'name', i.name,
-          'quantity', i.quantity,
-          'price_snapshot', i.price_snapshot
-        )
-      ) AS items_json
-    FROM shopping_carts c
-    JOIN customers ON customers.id = c.customer_id
-    LEFT JOIN shopping_cart_items i ON i.cart_id = c.id
-    WHERE
-      c.order_status = 'on_the_way'
-      OR (
-        c.order_status = 'ready_to_delivery'
-        AND c.delivery_note IN ('our_meeting_point', 'our_meeting_point_approved')
-      )
-    GROUP BY c.id
-    HAVING item_count > 0
-    ORDER BY
-      CASE c.order_status
-        WHEN 'on_the_way' THEN 1
-        WHEN 'ready_to_delivery' THEN 2
-        ELSE 3
-      END,
-      datetime(c.updated_at) DESC
-  `).all();
-
-  return rows.results || [];
-}
-
-function formatTelegramOrderItems(itemsJson) {
-  try {
-    const items = JSON.parse(itemsJson || "[]").filter((item) => item.name);
-    return items.map((item) => {
-      const quantity = Number(item.quantity || 1);
-      return `${item.name} x ${quantity}`;
-    }).join(", ");
-  } catch (error) {
-    return "";
-  }
-}
-
-function formatTelegramAdminOrdersText(orders) {
-  if (!orders.length) {
-    return "No on-the-way or pickup-ready orders.";
-  }
-
-  const lines = ["Closable orders:", ""];
-
-  for (const order of orders) {
-    const customerLabel = order.full_name || order.username || order.telegram_user_id || "Unknown";
-    const itemsText = formatTelegramOrderItems(order.items_json);
-    const statusText = getOrderStatusLabel(order.order_status || "in_progress");
-
-    lines.push(`#${order.id} - ${statusText}`);
-    lines.push(`Customer: ${customerLabel}`);
-    lines.push(`Items: ${itemsText}`);
-    lines.push(`Total: ${formatPrice(order.total_amount || 0)}`);
-
-    if (order.delivery_location_label) {
-      lines.push(`Location: ${order.delivery_location_label}`);
-    }
-
-    if (order.delivery_google_maps_link) {
-      lines.push(`Map: ${order.delivery_google_maps_link}`);
-    }
-
-    lines.push("");
-  }
-
-  return lines.join("\n").trim();
-}
-
-function getTelegramAdminOrdersKeyboard(orders) {
-  if (!orders.length) return null;
-
-  return {
-    inline_keyboard: orders.map((order) => [
-      {
-        text: `Delivered #${order.id}`,
-        callback_data: `admin_order_delivered_${order.id}`
-      }
-    ])
-  };
-}
-
-async function sendTelegramAdminOrdersList(env, chatId) {
-  const orders = await getTelegramActionableOrders(env);
-  await sendTelegramMessage(
-    env,
-    chatId,
-    formatTelegramAdminOrdersText(orders),
-    getTelegramAdminOrdersKeyboard(orders)
-  );
-}
-
-async function handleAdminOrderDeliveredSelection(env, callbackQuery) {
-  if (!(await isActiveAdmin(env, callbackQuery.from.id))) {
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, "You are not allowed to update orders.");
-    return;
-  }
-
-  const orderId = Number(callbackQuery.data.replace("admin_order_delivered_", ""));
-  await updateOrderStatusByAdmin(env, orderId, "delivered", "Marked delivered from Telegram /o");
-
-  const orders = await getTelegramActionableOrders(env);
-  await editMessageReplyMarkup(
-    env,
-    callbackQuery.message.chat.id,
-    callbackQuery.message.message_id,
-    getTelegramAdminOrdersKeyboard(orders) || { inline_keyboard: [] }
-  );
-
-  await sendTelegramMessage(
-    env,
-    callbackQuery.message.chat.id,
-    formatTelegramAdminOrdersText(orders),
-    getTelegramAdminOrdersKeyboard(orders)
-  );
-}
-
 async function handleAdminReplySelection(env, callbackQuery) {
   if (!(await isActiveAdmin(env, callbackQuery.from.id))) {
     await sendTelegramMessage(env, callbackQuery.message.chat.id, "You are not allowed to use admin reply.");
@@ -8150,7 +8005,6 @@ async function handleCallbackQuery(env, callbackQuery) {
   if (callbackQuery.data.startsWith("address_select_")) return handleAddressSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("meeting_point_select_")) return handleMeetingPointSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("delivery_")) return handleDeliveryEtaSelection(env, callbackQuery);
-  if (callbackQuery.data.startsWith("admin_order_delivered_")) return handleAdminOrderDeliveredSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("admin_reply_")) return handleAdminReplySelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("language_")) return handleLanguageSelection(env, callbackQuery);
 
