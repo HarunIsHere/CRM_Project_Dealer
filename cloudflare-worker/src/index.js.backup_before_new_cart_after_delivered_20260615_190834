@@ -2967,33 +2967,23 @@ function getCartUiText(language = "en") {
 }
 
 async function getOrCreateActiveCart(env, customerId) {
-  let cart = await env.DB.prepare(`
-    SELECT * FROM shopping_carts
-    WHERE customer_id = ?
-      AND status = 'active'
-      AND COALESCE(order_status, 'in_progress') != 'delivered'
-    ORDER BY id DESC
-    LIMIT 1
-  `).bind(customerId).first();
+  let cart = await env.DB.prepare(
+    "SELECT * FROM shopping_carts WHERE customer_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"
+  ).bind(customerId).first();
 
   if (cart) return cart;
 
   const inserted = await env.DB.prepare(
-    "INSERT INTO shopping_carts (customer_id, status, order_status) VALUES (?, 'active', 'in_progress') RETURNING *"
+    "INSERT INTO shopping_carts (customer_id, status) VALUES (?, 'active') RETURNING *"
   ).bind(customerId).first();
 
   return inserted;
 }
 
 async function getActiveCart(env, customerId) {
-  return env.DB.prepare(`
-    SELECT * FROM shopping_carts
-    WHERE customer_id = ?
-      AND status = 'active'
-      AND COALESCE(order_status, 'in_progress') != 'delivered'
-    ORDER BY id DESC
-    LIMIT 1
-  `).bind(customerId).first();
+  return env.DB.prepare(
+    "SELECT * FROM shopping_carts WHERE customer_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"
+  ).bind(customerId).first();
 }
 
 async function addProductToBasket(env, customerId, product, quantity = 1) {
