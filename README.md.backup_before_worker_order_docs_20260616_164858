@@ -6,14 +6,6 @@ Production admin URL:
 
     https://crm.ayartuerk.me/admin/
 
-Orders URL:
-
-    https://crm.ayartuerk.me/admin/orders
-
-Closed Orders URL:
-
-    https://crm.ayartuerk.me/admin/closedorders
-
 Open Requests URL:
 
     https://crm.ayartuerk.me/admin/openrequests/
@@ -80,19 +72,7 @@ The old local FastAPI + SQLite + Cloudflare Tunnel version is deprecated. The ac
 - Manual product alias editing from admin dashboard
 - Product fuzzy matching
 - Product admin page with add/update/delete controls
-- Product categories
 - Quantity extraction from customer messages
-- Shopping basket/cart flow
-- Basket view with item totals and order total
-- Basket item quantity change/remove flow
-- Checkout flow from basket
-- Order status tracking from basket to delivery/closure
-- Admin Orders page
-- Admin Closed Orders page
-- Admin can change order status from web dashboard
-- Admin can mark delivered orders from web dashboard
-- Admin can return closed orders back to active order list as not delivered
-- Telegram admin `/o` command for closable orders
 - Product request notifications to admin
 - Admin reply button in Telegram notifications
 - Admin can reply to customers directly through Telegram bot
@@ -139,14 +119,6 @@ Open Requests:
 
     https://crm.ayartuerk.me/admin/openrequests/
 
-Orders:
-
-    https://crm.ayartuerk.me/admin/orders
-
-Closed Orders:
-
-    https://crm.ayartuerk.me/admin/closedorders
-
 Products:
 
     https://crm.ayartuerk.me/admin/products
@@ -189,19 +161,6 @@ Admin web shortcut command:
     /w
 
 Only the active admin Telegram receiver can use this command.
-
-Admin closable-orders command:
-
-    /o
-
-Only the active admin Telegram receiver can use this command.
-
-`/o` lists orders that can be quickly closed from Telegram:
-
-- all orders with status `on_the_way`
-- orders with status `ready_to_delivery` only when the customer chose/approved one of our own meeting points
-
-Each listed order has a `Delivered #<order_id>` button. Pressing it marks only that order as `delivered`, moves it to Closed Orders, notifies the customer, and refreshes the Telegram order list.
 
 Superadmin takeover command:
 
@@ -290,9 +249,6 @@ Current migration files:
     cloudflare-worker/migrations/0001_initial_schema.sql
     cloudflare-worker/migrations/0002_ai_learning_patterns.sql
     cloudflare-worker/migrations/0003_customer_locations.sql
-    cloudflare-worker/migrations/0004_product_categories_cart_orders.sql
-    cloudflare-worker/migrations/0005_shopping_cart.sql
-    cloudflare-worker/migrations/0006_order_status_fields.sql
 
 Main tables:
 
@@ -300,25 +256,11 @@ Main tables:
 - customers
 - messages
 - products
-- product_categories
 - product_aliases
 - meeting_points
 - customer_requests
 - learned_patterns
 - customer_locations
-- shopping_carts
-- shopping_cart_items
-
-`shopping_carts` is also the order-status base. It tracks basket/order lifecycle with:
-
-- `status`
-- `order_status`
-- `delivery_location_label`
-- `delivery_google_maps_link`
-- `delivery_note`
-- `delivered_at`
-- `closed_at`
-- `admin_status_note`
 
 ## Authentication
 
@@ -367,7 +309,7 @@ Blocked:
 - typed address
 - customer shared location
 
-## Product and basket logic
+## Product logic
 
 Product list requests are allowed even outside working hours.
 
@@ -382,15 +324,13 @@ Specific product requests are detected through:
 - spelling variants
 - fuzzy matching
 
-Product request / basket behavior:
+Product request notifications include:
 
-1. Customer sends a product name or alias.
-2. If no quantity is detected, bot asks for quantity.
-3. When quantity is known, product is added to the customer's active basket.
-4. Bot replies with unit price, quantity, line total, basket options, and checkout option.
-5. Basket view shows products, quantities, per-line totals, and order total.
-6. Customer can continue shopping, checkout, clear basket, or edit/remove an item.
-7. After a delivered order, new product messages create a new basket/order instead of reopening the delivered one.
+- customer name
+- Telegram ID
+- requested product
+- quantity
+- original message
 
 ## Product aliases
 
@@ -440,119 +380,6 @@ If the customer clearly enters another city, the bot replies that delivery is no
 
 - Contact admin to describe location
 - Cancel location entry
-
-## Order statuses
-
-Order statuses are stored in `shopping_carts.order_status`.
-
-Statuses:
-
-- `in_progress`
-- `waiting_location`
-- `ready_to_delivery`
-- `on_the_way`
-- `not_delivered`
-- `delivered`
-
-Status flow:
-
-1. `in_progress`
-   - starts when customer adds the first item to the basket
-   - remains while there is at least one item in the basket and checkout has not progressed
-
-2. `waiting_location`
-   - starts when customer presses checkout
-   - customer can type address, contact admin to describe location, see our meeting points, or cancel location entry
-
-3. `ready_to_delivery`
-   - starts after customer chooses or confirms a location
-   - typed address, Telegram shared location, free-text location description, and approved meeting-point pickup can all lead here
-
-4. `on_the_way`
-   - starts when admin sends an ETA
-
-5. `not_delivered`
-   - starts when admin selects no delivery or returns a closed order to active list
-
-6. `delivered`
-   - starts when admin marks order delivered
-   - delivered orders move from `/admin/orders` to `/admin/closedorders`
-
-## Admin Orders page
-
-Orders page:
-
-    /admin/orders
-
-Shows non-delivered orders with:
-
-- order ID
-- customer
-- status
-- items
-- total
-- location/map
-- created/updated time
-- status update controls
-- delivered button
-
-Admin can change order status from this page. When status is changed, the customer receives a matching multilingual message and relevant next-step buttons when applicable.
-
-## Closed Orders page
-
-Closed Orders page:
-
-    /admin/closedorders
-
-Shows delivered orders with the full order information.
-
-Closed orders can be returned to the active Orders page. Returning a closed order changes its status to `not_delivered` and notifies the customer.
-
-## Checkout location flow
-
-Checkout starts from the basket.
-
-Customer receives options to:
-
-- type delivery address
-- contact admin to describe location
-- see our locations
-- cancel location entry
-
-Typed address flow:
-
-1. Customer types address.
-2. System searches locations through Nominatim.
-3. Search is restricted to allowed delivery cities.
-4. If a postal code is present, results must match that postal code.
-5. German street typo variants are corrected before fallback search.
-6. Bot shows up to 7 address choices.
-7. Customer selects one.
-8. Location is stored in `customer_locations`.
-9. Order becomes `ready_to_delivery`.
-10. Bot asks whether to save it as preferred location.
-11. Admin receives clickable Google Maps location.
-
-Contact-admin location description flow:
-
-1. Customer presses Contact admin to describe location.
-2. Bot asks customer to type location description.
-3. Open request is created.
-4. Admin receives the description.
-5. Order becomes `ready_to_delivery` after customer sends the description.
-
-Our-location / meeting-point flow:
-
-1. Customer presses See our locations.
-2. Bot shows active meeting points or directly shows the only active meeting point.
-3. Customer must approve delivery/pickup at our location.
-4. After approval, order becomes `ready_to_delivery` with `delivery_note = our_meeting_point_approved`.
-5. These pickup-ready orders are visible through admin Telegram `/o`.
-
-Cancel location entry:
-
-- customer returns to `in_progress`
-- order remains active
 
 ## Location and delivery logic
 
@@ -658,26 +485,15 @@ Customer Locations tab shows:
 - preferred status
 - created time
 
-## Development notes
+## Known active development items
 
-Current active implementation:
+Next planned work:
 
-    cloudflare-worker/src/index.js
-
-Deployment target:
-
-    crm-delivery-worker
-
-D1 database:
-
-    crm-delivery-db
-
-Current known cleanup item:
-
-- backup files under `cloudflare-worker/src/index.js.backup_*` are kept during development and can be cleaned later when stable.
-
-Potential future work:
-
+- product-order delivery choice flow:
+  - use preferred location
+  - enter new location
+  - collect from our location
+- customer order approval button
+- order closed / added-order handling
+- admin approval for added orders
 - stronger full fuzzy matching for addresses if local street datasets are added later
-- optional analytics dashboard
-- optional richer order filtering/search on admin order pages
