@@ -16,6 +16,7 @@ Production URLs:
     Orders: https://crm.ayartuerk.me/admin/orders
     Closed Orders: https://crm.ayartuerk.me/admin/closedorders
     Open Requests: https://crm.ayartuerk.me/admin/openrequests/
+    Superadmin: https://crm.ayartuerk.me/admin/superadmin
     Telegram webhook: https://crm.ayartuerk.me/telegram/webhook
 
 Bot:
@@ -60,8 +61,8 @@ README:
   - Arabic
   - Russian
 - When adding or changing customer-facing text/buttons, update all supported languages.
-- Admin UI can be English-only unless the existing UI already has localized labels nearby.
-- Do not remove backup files unless explicitly instructed.
+- Preserve multilingual admin web-page text/buttons when the page already supports admin-view language, especially English, German, Turkish, Arabic, and Russian.
+- Do not create or keep new backup files in Git. Temporary backup files may be created locally during patching, but remove them before committing.
 - Do not delete deprecated old backend files unless explicitly instructed.
 - Do not change Telegram bot token, Worker name, D1 binding, or custom domain route unless explicitly instructed.
 
@@ -115,6 +116,7 @@ Active orders:
 Closed delivered orders:
 
     /admin/closedorders
+    /admin/superadmin
 
 Admin Telegram quick command:
 
@@ -154,9 +156,49 @@ Mirror branch used during Worker development:
 
     cloudflare-worker-d1
 
+Current solo-developer branch rule:
+
+- `main`, `cloudflare-worker-d1`, and `worker-next` should stay identical for now.
+- Push confirmed production updates to all 3 branches.
+- No pull request workflow is needed while Harun is the only developer.
+- When a team member joins, `worker-next` can become the active development branch and `main` stays production/stable.
+
 After local changes:
 
     git add -A
     git commit -m "<clear message>"
     git push origin main
     git push origin main:cloudflare-worker-d1
+    git push origin main:worker-next
+
+
+## Superadmin
+
+Superadmin web page:
+
+    /admin/superadmin
+
+Superadmin can:
+
+- view env-protected admin/superadmin accounts
+- create database-backed admins
+- create database-backed superadmins
+- deny/grant access for database-backed admins
+- delete database-backed credentials
+- view website login/action audit logs from the last 30 days
+
+Do not allow the currently logged-in superadmin to deny or delete their own access.
+
+Audit logs are stored in `admin_audit_logs` and old logs are deleted during admin page access.
+
+## Open Requests timing
+
+Open Requests should list admin-actionable items only.
+
+For customer choosing our meeting point/location:
+
+- asking for location must show the approval prompt but must not create an Open Request yet
+- Open Request should be created only after the customer presses "Approve delivery at this location"
+- only admin clears Open Requests with Done or All Done
+
+For customer delivery location messages sent to admin, include the customer's basket directly in the Telegram admin notification before ETA buttons.

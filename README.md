@@ -18,6 +18,10 @@ Open Requests URL:
 
     https://crm.ayartuerk.me/admin/openrequests/
 
+Superadmin URL:
+
+    https://crm.ayartuerk.me/admin/superadmin
+
 Bot:
 
     Delivery Bot
@@ -122,6 +126,9 @@ The old local FastAPI + SQLite + Cloudflare Tunnel version is deprecated. The ac
 - Change password page
 - Forgot password flow with 5-digit Telegram reset code
 - Superadmin web login
+- Superadmin admin-management page
+- Superadmin can create, deny/grant access, and delete database-backed admin credentials
+- Superadmin audit logs for website login/action data, kept for 30 days
 - Superadmin Telegram takeover command
 - Responsive admin UI for desktop and mobile
 
@@ -162,6 +169,10 @@ AI Info:
 Customers:
 
     https://crm.ayartuerk.me/admin/customers
+
+Superadmin:
+
+    https://crm.ayartuerk.me/admin/superadmin
 
 Customer detail pages:
 
@@ -293,6 +304,7 @@ Current migration files:
     cloudflare-worker/migrations/0004_product_categories_cart_orders.sql
     cloudflare-worker/migrations/0005_shopping_cart.sql
     cloudflare-worker/migrations/0006_order_status_fields.sql
+    cloudflare-worker/migrations/0007_admin_users_and_audit_logs.sql
 
 Main tables:
 
@@ -308,6 +320,8 @@ Main tables:
 - customer_locations
 - shopping_carts
 - shopping_cart_items
+- admin_users
+- admin_audit_logs
 
 `shopping_carts` is also the order-status base. It tracks basket/order lifecycle with:
 
@@ -339,6 +353,27 @@ Changed admin password is stored as a database setting:
     admin_password_override
 
 If no override exists, the app uses `ADMIN_PASSWORD` from Worker secrets.
+
+Superadmin page:
+
+    /admin/superadmin
+
+Superadmin can manage database-backed admin credentials:
+
+- create admin
+- create superadmin
+- deny/grant access
+- delete credential
+
+Env-protected admin accounts are visible but not editable/deletable from the web UI.
+
+The currently logged-in superadmin cannot deny or delete their own access.
+
+Website login/action audit logs are stored in:
+
+    admin_audit_logs
+
+Only the last 30 days are kept. Older records are deleted during admin page access.
 
 ## Working hours
 
@@ -537,7 +572,7 @@ Contact-admin location description flow:
 
 1. Customer presses Contact admin to describe location.
 2. Bot asks customer to type location description.
-3. Open request is created.
+3. Open request is created when the customer sends the description.
 4. Admin receives the description.
 5. Order becomes `ready_to_delivery` after customer sends the description.
 
@@ -546,8 +581,9 @@ Our-location / meeting-point flow:
 1. Customer presses See our locations.
 2. Bot shows active meeting points or directly shows the only active meeting point.
 3. Customer must approve delivery/pickup at our location.
-4. After approval, order becomes `ready_to_delivery` with `delivery_note = our_meeting_point_approved`.
-5. These pickup-ready orders are visible through admin Telegram `/o`.
+4. No Open Request is created before approval.
+5. After approval, Open Request is created, order becomes `ready_to_delivery`, and `delivery_note = our_meeting_point_approved`.
+6. These pickup-ready orders are visible through admin Telegram `/o`.
 
 Cancel location entry:
 
@@ -613,7 +649,7 @@ Customer shared Telegram location flow:
 3. Bot asks whether to save it as preferred location.
 4. Admin receives clickable Google Maps location.
 
-Admin receives delivery ETA buttons.
+Admin receives the customer's basket directly in the Telegram delivery-location notification, followed by location/map and delivery ETA buttons.
 
 When admin clicks an ETA button, customer receives an automatic message.
 
@@ -636,6 +672,10 @@ Partial AJAX endpoint:
     /admin/open-requests
 
 Open Requests page uses AJAX refresh and does not reload the whole page.
+
+Open Requests are admin-actionable rows only. For our-location / meeting-point flow, the row is created only after the customer approves delivery at that location. Asking for location alone should not create an Open Request.
+
+Individual Done and All Done both mark matching requests as `done` and keep the admin on `/admin/openrequests/`.
 
 ## Customer detail page
 
@@ -674,7 +714,7 @@ D1 database:
 
 Current known cleanup item:
 
-- backup files under `cloudflare-worker/src/index.js.backup_*` are kept during development and can be cleaned later when stable.
+- Do not commit temporary backup files. Remove `cloudflare-worker/src/index.js.backup_*` before committing.
 
 Potential future work:
 

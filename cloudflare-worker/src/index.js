@@ -2421,7 +2421,141 @@ function getAdminGeneralExtraUiText(language = "en") {
     }
   };
 
-  return texts[safeLang(language)] || texts.en;
+  const selected = texts[safeLang(language)] || texts.en;
+  const superadminTexts = {
+    en: {
+      superadmin: "Superadmin",
+      admin_management: "Admin Management",
+      create_admin: "Create Admin",
+      username: "Username",
+      password: "Password",
+      role: "Role",
+      active: "Active",
+      inactive: "Inactive",
+      source: "Source",
+      created_at: "Created",
+      last_login_at: "Last Login",
+      activate: "Activate",
+      deactivate: "Deactivate",
+      grant_access: "Grant access",
+      deny_access: "Deny access",
+      delete_credential: "Delete credential",
+      audit_logs: "Website Login and Action Data",
+      action_type: "Action",
+      action_detail: "Details",
+      path: "Path",
+      method: "Method",
+      ip: "IP",
+      user_agent: "User Agent",
+      last_30_days_only: "Only the last 30 days are kept. Older logs are deleted during admin page access."
+    },
+    de: {
+      superadmin: "Superadmin",
+      admin_management: "Admin-Verwaltung",
+      create_admin: "Admin erstellen",
+      username: "Benutzername",
+      password: "Passwort",
+      role: "Rolle",
+      active: "Aktiv",
+      inactive: "Inaktiv",
+      source: "Quelle",
+      created_at: "Erstellt",
+      last_login_at: "Letzte Anmeldung",
+      activate: "Aktivieren",
+      deactivate: "Deaktivieren",
+      grant_access: "Zugriff erlauben",
+      deny_access: "Zugriff entziehen",
+      delete_credential: "Zugangsdaten löschen",
+      audit_logs: "Website-Anmeldungen und Aktionen",
+      action_type: "Aktion",
+      action_detail: "Details",
+      path: "Pfad",
+      method: "Methode",
+      ip: "IP",
+      user_agent: "User Agent",
+      last_30_days_only: "Nur die letzten 30 Tage werden gespeichert. Ältere Logs werden beim Zugriff auf die Admin-Seiten gelöscht."
+    },
+    tr: {
+      superadmin: "Süperadmin",
+      admin_management: "Admin Yönetimi",
+      create_admin: "Admin Oluştur",
+      username: "Kullanıcı adı",
+      password: "Şifre",
+      role: "Rol",
+      active: "Aktif",
+      inactive: "Pasif",
+      source: "Kaynak",
+      created_at: "Oluşturuldu",
+      last_login_at: "Son Giriş",
+      activate: "Aktifleştir",
+      deactivate: "Pasifleştir",
+      grant_access: "Erişim ver",
+      deny_access: "Erişimi kaldır",
+      delete_credential: "Giriş bilgisini sil",
+      audit_logs: "Web Sitesi Giriş ve İşlem Kayıtları",
+      action_type: "İşlem",
+      action_detail: "Detay",
+      path: "Yol",
+      method: "Metot",
+      ip: "IP",
+      user_agent: "User Agent",
+      last_30_days_only: "Sadece son 30 gün saklanır. Eski kayıtlar admin sayfalarına erişimde silinir."
+    },
+    ar: {
+      superadmin: "المشرف الأعلى",
+      admin_management: "إدارة المشرفين",
+      create_admin: "إنشاء مشرف",
+      username: "اسم المستخدم",
+      password: "كلمة المرور",
+      role: "الدور",
+      active: "نشط",
+      inactive: "غير نشط",
+      source: "المصدر",
+      created_at: "تاريخ الإنشاء",
+      last_login_at: "آخر تسجيل دخول",
+      activate: "تفعيل",
+      deactivate: "تعطيل",
+      grant_access: "منح الوصول",
+      deny_access: "إلغاء الوصول",
+      delete_credential: "حذف بيانات الدخول",
+      audit_logs: "بيانات تسجيل الدخول وإجراءات الموقع",
+      action_type: "الإجراء",
+      action_detail: "التفاصيل",
+      path: "المسار",
+      method: "الطريقة",
+      ip: "IP",
+      user_agent: "User Agent",
+      last_30_days_only: "يتم الاحتفاظ بآخر 30 يوماً فقط. يتم حذف السجلات الأقدم عند فتح صفحات الإدارة."
+    },
+    ru: {
+      superadmin: "Суперадмин",
+      admin_management: "Управление админами",
+      create_admin: "Создать админа",
+      username: "Имя пользователя",
+      password: "Пароль",
+      role: "Роль",
+      active: "Активен",
+      inactive: "Неактивен",
+      source: "Источник",
+      created_at: "Создан",
+      last_login_at: "Последний вход",
+      activate: "Активировать",
+      deactivate: "Деактивировать",
+      grant_access: "Дать доступ",
+      deny_access: "Запретить доступ",
+      delete_credential: "Удалить учётные данные",
+      audit_logs: "Входы на сайт и действия",
+      action_type: "Действие",
+      action_detail: "Детали",
+      path: "Путь",
+      method: "Метод",
+      ip: "IP",
+      user_agent: "User Agent",
+      last_30_days_only: "Хранятся только последние 30 дней. Старые записи удаляются при открытии админ-страниц."
+    }
+  };
+
+  return { ...selected, ...(superadminTexts[safeLang(language)] || superadminTexts.en) };
 }
 
 function getProductCategoryUiText(language = "en") {
@@ -4257,11 +4391,18 @@ async function forwardCustomerLocationToAdmin(env, customer, requestId, location
   const adminChatId = await getAdminChatId(env);
   if (!adminChatId) return;
 
+  const language = customer.preferred_language || customer.language || "en";
+  const { items } = await getCartItems(env, customer.id);
+  const basketText = items.length ? formatBasketText(items, language) : "Basket: empty";
+
   const text = [
     "Customer delivery location:",
     "",
     `Customer: ${customer.full_name || ""}`,
     `Telegram ID: ${customer.telegram_user_id}`,
+    "",
+    basketText,
+    "",
     `Location: ${locationLabel}`,
     `Map: ${googleMapsLink}`
   ].join("\n");
@@ -4347,9 +4488,10 @@ async function hmacSign(secret, data) {
   return base64UrlEncode(new Uint8Array(signature));
 }
 
-async function createAdminToken(env, username) {
+async function createAdminToken(env, username, role = "admin") {
   const payload = {
     sub: username,
+    role,
     scope: "admin",
     exp: Math.floor(Date.now() / 1000) + 43200
   };
@@ -4374,29 +4516,182 @@ async function verifyAdminToken(env, token) {
   if (payload.scope !== "admin") return false;
   if (payload.exp < Math.floor(Date.now() / 1000)) return false;
 
-  const allowed = [env.ADMIN_USERNAME];
-  if (env.SUPERADMIN_USERNAME) allowed.push(env.SUPERADMIN_USERNAME);
+  const username = String(payload.sub || "");
+  if (!username) return false;
 
-  return allowed.includes(payload.sub);
+  if (env.SUPERADMIN_USERNAME && username === env.SUPERADMIN_USERNAME) {
+    payload.role = "superadmin";
+    payload.is_superadmin = true;
+    return payload;
+  }
+
+  if (username === env.ADMIN_USERNAME) {
+    payload.role = "admin";
+    payload.is_superadmin = false;
+    return payload;
+  }
+
+  const dbAdmin = await env.DB.prepare(
+    "SELECT username, role, is_active FROM admin_users WHERE username = ?"
+  ).bind(username).first();
+
+  if (!dbAdmin || Number(dbAdmin.is_active) !== 1) return false;
+
+  payload.role = dbAdmin.role || "admin";
+  payload.is_superadmin = dbAdmin.role === "superadmin";
+  return payload;
 }
 
 async function getCurrentAdminPassword(env) {
   return await getSetting(env, "admin_password_override") || env.ADMIN_PASSWORD;
 }
 
+async function hashAdminPassword(env, password) {
+  const secret = env.ADMIN_JWT_SECRET || "fallback-secret";
+  const input = `${secret}:${password}`;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function authenticateAdmin(env, username, password) {
   if (username === env.ADMIN_USERNAME && password === await getCurrentAdminPassword(env)) {
-    return true;
+    return { username, role: "admin", is_superadmin: false, source: "env" };
   }
+
   if (env.SUPERADMIN_USERNAME && env.SUPERADMIN_PASSWORD && username === env.SUPERADMIN_USERNAME && password === env.SUPERADMIN_PASSWORD) {
-    return true;
+    return { username, role: "superadmin", is_superadmin: true, source: "env" };
   }
-  return false;
+
+  const dbAdmin = await env.DB.prepare(
+    "SELECT * FROM admin_users WHERE username = ? AND is_active = 1"
+  ).bind(username).first();
+
+  if (dbAdmin && dbAdmin.password_hash === await hashAdminPassword(env, password)) {
+    await env.DB.prepare(
+      "UPDATE admin_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ).bind(dbAdmin.id).run();
+
+    return {
+      username: dbAdmin.username,
+      role: dbAdmin.role || "admin",
+      is_superadmin: dbAdmin.role === "superadmin",
+      source: "db"
+    };
+  }
+
+  return null;
+}
+
+async function getAdminSession(request, env) {
+  const token = parseCookies(request)[ADMIN_COOKIE_NAME];
+  const payload = await verifyAdminToken(env, token);
+  if (!payload) return null;
+
+  return {
+    username: payload.sub,
+    role: payload.role || "admin",
+    is_superadmin: payload.is_superadmin === true
+  };
 }
 
 async function requireAdmin(request, env) {
-  const token = parseCookies(request)[ADMIN_COOKIE_NAME];
-  return verifyAdminToken(env, token);
+  return Boolean(await getAdminSession(request, env));
+}
+
+async function cleanupOldAdminAuditLogs(env) {
+  await env.DB.prepare(
+    "DELETE FROM admin_audit_logs WHERE created_at < datetime('now', '-30 days')"
+  ).run();
+}
+
+async function logAdminAction(env, request, session, actionType, actionDetail = "") {
+  const url = new URL(request.url);
+  const ip = request.headers.get("cf-connecting-ip") || "";
+  const userAgent = request.headers.get("user-agent") || "";
+
+  await env.DB.prepare(
+    `
+    INSERT INTO admin_audit_logs (
+      admin_username,
+      admin_role,
+      action_type,
+      action_detail,
+      path,
+      method,
+      ip,
+      user_agent
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `
+  ).bind(
+    session?.username || "",
+    session?.role || "",
+    actionType,
+    actionDetail,
+    url.pathname,
+    request.method,
+    ip,
+    userAgent
+  ).run();
+}
+
+async function getAdminUsersForSuperadmin(env) {
+  const rows = await env.DB.prepare(
+    "SELECT id, username, role, is_active, created_at, last_login_at FROM admin_users ORDER BY username"
+  ).all();
+
+  const envAdmins = [];
+
+  if (env.SUPERADMIN_USERNAME) {
+    envAdmins.push({
+      id: "env-superadmin",
+      username: env.SUPERADMIN_USERNAME,
+      role: "superadmin",
+      is_active: 1,
+      created_at: "env",
+      last_login_at: "",
+      source: "env",
+      protected: true
+    });
+  }
+
+  if (env.ADMIN_USERNAME) {
+    envAdmins.push({
+      id: "env-admin",
+      username: env.ADMIN_USERNAME,
+      role: "admin",
+      is_active: 1,
+      created_at: "env",
+      last_login_at: "",
+      source: "env",
+      protected: true
+    });
+  }
+
+  return [
+    ...envAdmins,
+    ...(rows.results || []).map((row) => ({
+      ...row,
+      source: "db",
+      protected: false
+    }))
+  ];
+}
+
+async function getAdminAuditLogs(env) {
+  await cleanupOldAdminAuditLogs(env);
+
+  const rows = await env.DB.prepare(
+    `
+    SELECT *
+    FROM admin_audit_logs
+    WHERE created_at >= datetime('now', '-30 days')
+    ORDER BY created_at DESC
+    LIMIT 500
+    `
+  ).all();
+
+  return rows.results || [];
 }
 
 async function handleLoginPage(error = null) {
@@ -4429,11 +4724,17 @@ async function handleAdminLogin(request, env) {
   const username = String(form.get("username") || "");
   const password = String(form.get("password") || "");
 
-  if (!(await authenticateAdmin(env, username, password))) {
+  const auth = await authenticateAdmin(env, username, password);
+
+  if (!auth) {
+    await logAdminAction(env, request, { username, role: "" }, "admin_login_failed", username);
     return handleLoginPage("Invalid username or password.");
   }
 
-  const token = await createAdminToken(env, username);
+  await cleanupOldAdminAuditLogs(env);
+  await logAdminAction(env, request, auth, "admin_login_success", auth.source || "");
+
+  const token = await createAdminToken(env, auth.username, auth.role);
   return new Response(null, {
     status: 303,
     headers: {
@@ -4605,6 +4906,7 @@ async function getAdminData(env) {
 
 function renderAdminDashboard(data, section = "dashboard") {
   const ui = { ...i18nAdmin(data.settings.admin_view_language), ...getProductCategoryUiText(data.settings.admin_view_language), ...getAdminGeneralExtraUiText(data.settings.admin_view_language) };
+  const superadminNav = data.session?.is_superadmin ? `<a href="/admin/superadmin"><button type="button">${ui.superadmin}</button></a>` : "";
   const adminText = ADMIN_TEXTS[data.settings.admin_view_language] || ADMIN_TEXTS.en;
 
   const productCategoryOptions = (selectedId = "") => [
@@ -4754,6 +5056,7 @@ function renderAdminDashboard(data, section = "dashboard") {
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
   <a href="/admin/ai"><button type="button">AI Info</button></a>
   <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
+  ${superadminNav}
 </div>
 <hr><hr>
 
@@ -5685,7 +5988,8 @@ async function getOrdersContext(env, closed = false) {
   return rows.results || [];
 }
 
-function renderOrdersNav(ui) {
+function renderOrdersNav(ui, session = null) {
+  const superadminNav = session?.is_superadmin ? `<a href="/admin/superadmin"><button type="button">${ui.superadmin}</button></a>` : "";
   return `<div class="page-actions">
   <a href="/admin"><button type="button">${ui.general}</button></a>
   <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
@@ -5695,6 +5999,7 @@ function renderOrdersNav(ui) {
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
   <a href="/admin/ai"><button type="button">AI Info</button></a>
   <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
+  ${superadminNav}
 </div>`;
 }
 
@@ -5750,8 +6055,9 @@ function renderOrdersTable(orders, closed = false) {
   </table>`;
 }
 
-async function handleAdminOrdersPage(env) {
-  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
+async function handleAdminOrdersPage(env, session = null) {
+  const language = await getSetting(env, "admin_view_language") || "en";
+  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language) };
   const orders = await getOrdersContext(env, false);
 
   return htmlResponse(`<!DOCTYPE html>
@@ -5770,7 +6076,7 @@ async function handleAdminOrdersPage(env) {
   </div>
 </div>
 <hr><hr>
-${renderOrdersNav(ui)}
+${renderOrdersNav(ui, session)}
 <hr><hr>
 <h2>Orders</h2>
 ${renderOrdersTable(orders, false)}
@@ -5778,8 +6084,9 @@ ${renderOrdersTable(orders, false)}
 </html>`);
 }
 
-async function handleAdminClosedOrdersPage(env) {
-  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
+async function handleAdminClosedOrdersPage(env, session = null) {
+  const language = await getSetting(env, "admin_view_language") || "en";
+  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language) };
   const orders = await getOrdersContext(env, true);
 
   return htmlResponse(`<!DOCTYPE html>
@@ -5798,7 +6105,7 @@ async function handleAdminClosedOrdersPage(env) {
   </div>
 </div>
 <hr><hr>
-${renderOrdersNav(ui)}
+${renderOrdersNav(ui, session)}
 <hr><hr>
 <h2>Closed Orders</h2>
 ${renderOrdersTable(orders, true)}
@@ -5943,8 +6250,202 @@ async function handleAdminCustomersPage(env) {
   return htmlResponse(renderAdminDashboard(await getAdminData(env), "customers"));
 }
 
-async function handleAdminHome(env) {
-  return htmlResponse(renderAdminDashboard(await getAdminData(env)));
+async function handleAdminHome(env, session = null) {
+  const data = await getAdminData(env);
+  data.session = session;
+  return htmlResponse(renderAdminDashboard(data));
+}
+
+async function handleAdminSuperadminPage(env, session) {
+  const language = await getSetting(env, "admin_view_language") || "en";
+  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language) };
+  const admins = await getAdminUsersForSuperadmin(env);
+  const logs = await getAdminAuditLogs(env);
+
+  const adminRows = admins.map((admin) => {
+    const isCurrentSessionAdmin = admin.username === session?.username;
+    const canToggleAccess = !admin.protected && !isCurrentSessionAdmin;
+    const accessButtonLabel = Number(admin.is_active) === 1 ? ui.deny_access : ui.grant_access;
+
+    return `
+    <tr>
+      <td>${escapeHtml(admin.username)}</td>
+      <td>${escapeHtml(admin.role)}</td>
+      <td>${Number(admin.is_active) === 1 ? escapeHtml(ui.active) : escapeHtml(ui.inactive)}</td>
+      <td>${escapeHtml(admin.source || "")}</td>
+      <td>${escapeHtml(admin.created_at || "")}</td>
+      <td>${escapeHtml(admin.last_login_at || "")}</td>
+      <td>
+        ${canToggleAccess ? `
+          <form action="/admin/superadmin/admins/${admin.id}/toggle" method="post" style="display:inline;">
+            <button type="submit">${escapeHtml(accessButtonLabel)}</button>
+          </form>
+          <form action="/admin/superadmin/admins/${admin.id}/delete" method="post" style="display:inline;">
+            <button type="submit" onclick="return confirm('Delete this admin credential?')">${escapeHtml(ui.delete_credential)}</button>
+          </form>
+        ` : ""}
+      </td>
+    </tr>
+  `;
+  }).join("");
+
+  const logRows = logs.map((log) => `
+    <tr>
+      <td>${escapeHtml(log.created_at || "")}</td>
+      <td>${escapeHtml(log.admin_username || "")}</td>
+      <td>${escapeHtml(log.admin_role || "")}</td>
+      <td>${escapeHtml(log.action_type || "")}</td>
+      <td>${escapeHtml(log.action_detail || "")}</td>
+      <td>${escapeHtml(log.method || "")}</td>
+      <td>${escapeHtml(log.path || "")}</td>
+      <td>${escapeHtml(log.ip || "")}</td>
+      <td>${escapeHtml(log.user_agent || "")}</td>
+    </tr>
+  `).join("");
+
+  return htmlResponse(`<!DOCTYPE html>
+<html>
+<head>
+  <title>${escapeHtml(ui.superadmin)}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+<div class="admin-header">
+  <h1>${escapeHtml(ui.superadmin)}</h1>
+  <div class="header-actions">
+    <form action="/admin/logout" method="post"><button type="submit">${escapeHtml(ui.logout)}</button></form>
+    <a href="/admin/change-password"><button type="button">${escapeHtml(ui.change_password)}</button></a>
+  </div>
+</div>
+<hr><hr>
+${renderOrdersNav(ui, session)}
+<hr><hr>
+
+<h2>${escapeHtml(ui.admin_management)}</h2>
+<table>
+  <tr>
+    <th>${escapeHtml(ui.username)}</th>
+    <th>${escapeHtml(ui.role)}</th>
+    <th>${escapeHtml(ui.active)}</th>
+    <th>${escapeHtml(ui.source)}</th>
+    <th>${escapeHtml(ui.created_at)}</th>
+    <th>${escapeHtml(ui.last_login_at)}</th>
+    <th></th>
+  </tr>
+  ${adminRows}
+</table>
+
+<h2>${escapeHtml(ui.create_admin)}</h2>
+<form action="/admin/superadmin/admins" method="post">
+  <label>${escapeHtml(ui.username)}</label><br>
+  <input type="text" name="username" required>
+  <br><br>
+  <label>${escapeHtml(ui.password)}</label><br>
+  <input type="password" name="password" required>
+  <br><br>
+  <label>${escapeHtml(ui.role)}</label><br>
+  <select name="role">
+    <option value="admin">admin</option>
+    <option value="superadmin">superadmin</option>
+  </select>
+  <br><br>
+  <button type="submit">${escapeHtml(ui.create_admin)}</button>
+</form>
+
+<h2>${escapeHtml(ui.audit_logs)}</h2>
+<p class="admin-info-text">${escapeHtml(ui.last_30_days_only)}</p>
+<table>
+  <tr>
+    <th>${escapeHtml(ui.created_at)}</th>
+    <th>${escapeHtml(ui.username)}</th>
+    <th>${escapeHtml(ui.role)}</th>
+    <th>${escapeHtml(ui.action_type)}</th>
+    <th>${escapeHtml(ui.action_detail)}</th>
+    <th>${escapeHtml(ui.method)}</th>
+    <th>${escapeHtml(ui.path)}</th>
+    <th>${escapeHtml(ui.ip)}</th>
+    <th>${escapeHtml(ui.user_agent)}</th>
+  </tr>
+  ${logRows}
+</table>
+</body>
+</html>`);
+}
+
+async function handleSuperadminCreateAdmin(request, env, session) {
+  const form = await request.formData();
+  const username = String(form.get("username") || "").trim();
+  const password = String(form.get("password") || "");
+  const roleInput = String(form.get("role") || "admin");
+  const role = roleInput === "superadmin" ? "superadmin" : "admin";
+
+  if (!username || !password) return redirectResponse("/admin/superadmin");
+
+  await env.DB.prepare(
+    `
+    INSERT INTO admin_users (username, password_hash, role, is_active)
+    VALUES (?, ?, ?, 1)
+    ON CONFLICT(username) DO UPDATE SET
+      password_hash = excluded.password_hash,
+      role = excluded.role,
+      is_active = 1
+    `
+  ).bind(username, await hashAdminPassword(env, password), role).run();
+
+  await logAdminAction(env, request, session, "admin_created_or_updated", `${username}:${role}`);
+  return redirectResponse("/admin/superadmin");
+}
+
+async function handleSuperadminToggleAdmin(request, env, session, adminId) {
+  const admin = await env.DB.prepare("SELECT * FROM admin_users WHERE id = ?").bind(adminId).first();
+  if (!admin) return redirectResponse("/admin/superadmin");
+  if (admin.username === session?.username) return redirectResponse("/admin/superadmin");
+
+  const activeSuperadminCount = await env.DB.prepare(
+    "SELECT COUNT(*) AS count FROM admin_users WHERE role = 'superadmin' AND is_active = 1"
+  ).first();
+
+  if (
+    admin.role === "superadmin"
+    && Number(admin.is_active) === 1
+    && Number(activeSuperadminCount?.count || 0) <= 1
+    && !env.SUPERADMIN_USERNAME
+  ) {
+    return redirectResponse("/admin/superadmin");
+  }
+
+  const nextActive = Number(admin.is_active) === 1 ? 0 : 1;
+
+  await env.DB.prepare(
+    "UPDATE admin_users SET is_active = ? WHERE id = ?"
+  ).bind(nextActive, adminId).run();
+
+  await logAdminAction(env, request, session, nextActive ? "admin_activated" : "admin_deactivated", admin.username);
+  return redirectResponse("/admin/superadmin");
+}
+
+async function handleSuperadminDeleteAdmin(request, env, session, adminId) {
+  const admin = await env.DB.prepare("SELECT * FROM admin_users WHERE id = ?").bind(adminId).first();
+  if (!admin) return redirectResponse("/admin/superadmin");
+  if (admin.username === session?.username) return redirectResponse("/admin/superadmin");
+
+  const activeSuperadminCount = await env.DB.prepare(
+    "SELECT COUNT(*) AS count FROM admin_users WHERE role = 'superadmin' AND is_active = 1"
+  ).first();
+
+  if (
+    admin.role === "superadmin"
+    && Number(admin.is_active) === 1
+    && Number(activeSuperadminCount?.count || 0) <= 1
+    && !env.SUPERADMIN_USERNAME
+  ) {
+    return redirectResponse("/admin/superadmin");
+  }
+
+  await env.DB.prepare("DELETE FROM admin_users WHERE id = ?").bind(adminId).run();
+  await logAdminAction(env, request, session, "admin_credential_deleted", admin.username);
+  return redirectResponse("/admin/superadmin");
 }
 
 async function handleCreateProduct(request, env) {
@@ -6244,7 +6745,7 @@ function renderOpenRequestsTable(context, ui = i18nAdmin("en")) {
       <td>
         <form action="/admin/customer-requests/group/done" method="post">
           <input type="hidden" name="customer_id" value="${escapeHtml(item.customer_id)}">
-          <input type="hidden" name="request_type" value="${escapeHtml(i18nRequestType(item.request_type, ui._language))}">
+          <input type="hidden" name="request_type" value="${escapeHtml(item.request_type)}">
           <input type="hidden" name="item_name" value="${escapeHtml(item.item_name || "")}">
           <button type="submit">${ui.done}</button>
         </form>
@@ -6665,12 +7166,12 @@ async function handleMarkCustomerRequestGroupDone(request, env) {
       .bind(customerId, requestType).run();
   }
 
-  return redirectResponse("/admin");
+  return redirectResponse("/admin/openrequests/");
 }
 
 async function handleMarkAllDone(env) {
   await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE status != 'done'").run();
-  return redirectResponse("/admin");
+  return redirectResponse("/admin/openrequests/");
 }
 
 async function handleChangePasswordPage(error = null, success = null) {
@@ -6783,7 +7284,6 @@ async function sendMeetingPointChoiceOrDirect(env, customer, chatId, incomingTex
   if (points.length === 1) {
     const point = points[0];
     const replyText = getOurLocationApprovalPrompt(point, language);
-    await logCustomerRequest(env, customer.id, "location", incomingText, null, point.name, point.address, null, null, point.google_maps_link);
     await sendTelegramMessage(env, chatId, replyText, getMeetingPointApprovalKeyboard(point.id, language));
     await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
     return;
@@ -7841,7 +8341,6 @@ async function handleMeetingPointSelection(env, callbackQuery) {
 
   await setCustomerState(env, customer.id, "awaiting_typed_address");
   await setActiveCartOrderStatus(env, customer.id, "waiting_location");
-  await logCustomerRequest(env, customer.id, "location", "Customer selected meeting point, waiting approval", null, point.name, point.address, null, null, point.google_maps_link);
   await saveMessage(env, customer.id, "outgoing", replyText, language);
   await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getMeetingPointApprovalKeyboard(point.id, language));
 }
@@ -8206,14 +8705,41 @@ async function routeRequest(request, env) {
   if (url.pathname === "/admin/reset-password" && request.method === "GET") return handleResetPasswordPage();
   if (url.pathname === "/admin/reset-password" && request.method === "POST") return handleResetPassword(request, env);
 
+  let adminSession = null;
+
   if (url.pathname.startsWith("/admin")) {
-    const authenticated = await requireAdmin(request, env);
-    if (!authenticated) return redirectResponse("/admin/login");
+    adminSession = await getAdminSession(request, env);
+    if (!adminSession) return redirectResponse("/admin/login");
+
+    await cleanupOldAdminAuditLogs(env);
+
+    if (request.method === "POST" && url.pathname !== "/admin/logout") {
+      await logAdminAction(env, request, adminSession, "admin_post_action", url.pathname);
+    }
   }
 
-  if ((url.pathname === "/admin" || url.pathname === "/admin/") && request.method === "GET") return handleAdminHome(env);
-  if ((url.pathname === "/admin/orders" || url.pathname === "/admin/orders/") && request.method === "GET") return handleAdminOrdersPage(env);
-  if ((url.pathname === "/admin/closedorders" || url.pathname === "/admin/closedorders/") && request.method === "GET") return handleAdminClosedOrdersPage(env);
+  if ((url.pathname === "/admin" || url.pathname === "/admin/") && request.method === "GET") return handleAdminHome(env, adminSession);
+  if ((url.pathname === "/admin/orders" || url.pathname === "/admin/orders/") && request.method === "GET") return handleAdminOrdersPage(env, adminSession);
+  if ((url.pathname === "/admin/closedorders" || url.pathname === "/admin/closedorders/") && request.method === "GET") return handleAdminClosedOrdersPage(env, adminSession);
+  if ((url.pathname === "/admin/superadmin" || url.pathname === "/admin/superadmin/") && request.method === "GET") {
+    if (!adminSession?.is_superadmin) return jsonResponse({ error: "Forbidden" }, 403);
+    return handleAdminSuperadminPage(env, adminSession);
+  }
+  if (url.pathname === "/admin/superadmin/admins" && request.method === "POST") {
+    if (!adminSession?.is_superadmin) return jsonResponse({ error: "Forbidden" }, 403);
+    return handleSuperadminCreateAdmin(request, env, adminSession);
+  }
+  const superadminToggleAdmin = url.pathname.match(/^\/admin\/superadmin\/admins\/(\d+)\/toggle$/);
+  if (superadminToggleAdmin && request.method === "POST") {
+    if (!adminSession?.is_superadmin) return jsonResponse({ error: "Forbidden" }, 403);
+    return handleSuperadminToggleAdmin(request, env, adminSession, Number(superadminToggleAdmin[1]));
+  }
+
+  const superadminDeleteAdmin = url.pathname.match(/^\/admin\/superadmin\/admins\/(\d+)\/delete$/);
+  if (superadminDeleteAdmin && request.method === "POST") {
+    if (!adminSession?.is_superadmin) return jsonResponse({ error: "Forbidden" }, 403);
+    return handleSuperadminDeleteAdmin(request, env, adminSession, Number(superadminDeleteAdmin[1]));
+  }
   if ((url.pathname === "/admin/products" || url.pathname === "/admin/products/") && request.method === "GET") return handleAdminProductsPage(env);
   if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env);
   if ((url.pathname === "/admin/ai" || url.pathname === "/admin/ai/") && request.method === "GET") return handleAdminAiPage(env);
