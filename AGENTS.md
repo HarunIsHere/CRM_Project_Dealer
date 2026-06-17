@@ -202,3 +202,18 @@ For customer choosing our meeting point/location:
 - only admin clears Open Requests with Done or All Done
 
 For customer delivery location messages sent to admin, include the customer's basket directly in the Telegram admin notification before ETA buttons.
+
+## Android app roadmap
+
+The production Android app roadmap is documented in:
+
+    docs/ANDROID_APPS_ROADMAP.md
+
+Two apps are planned:
+
+- Admin Android App
+- Customer Android App
+
+Both apps must support English, German, Turkish, Arabic, and Russian from the start.
+
+Backend remains the source of truth. Android apps must call backend APIs and should not duplicate business logic locally.

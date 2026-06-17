@@ -698,6 +698,11 @@ Customer Locations tab shows:
 - preferred status
 - created time
 
+
+Android apps roadmap:
+
+    docs/ANDROID_APPS_ROADMAP.md
+
 ## Development notes
 
 Current active implementation:
