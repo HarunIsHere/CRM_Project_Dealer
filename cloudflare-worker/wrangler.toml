@@ -3,9 +3,9 @@ main = "src/index.js"
 compatibility_date = "2026-06-01"
 
 routes = [
-  { pattern = "crm.ayartuerk.me/*", zone_name = "ayartuerk.me" }
+  { pattern = "crm.ayartuerk.me/*", zone_name = "ayartuerk.me" },
+  { pattern = "api.horizend.com", custom_domain = true, zone_name = "horizend.com" }
 ]
-
 
 [vars]
 APP_NAME = "CRM Delivery"

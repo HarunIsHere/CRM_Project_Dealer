@@ -57,6 +57,50 @@ const APP_CAPABILITIES = {
   ]
 };
 
+
+function apiResponse(data, status = 200) {
+  return jsonResponse({
+    ok: status >= 200 && status < 400,
+    data: status >= 400 ? null : data,
+    error: status >= 400 ? data?.error || "Request failed" : null
+  }, status);
+}
+
+function getApiLanguage(request) {
+  const url = new URL(request.url);
+  const fromQuery = url.searchParams.get("lang");
+  const fromHeader = request.headers.get("x-language") || request.headers.get("accept-language") || "";
+  const candidate = fromQuery || fromHeader.split(",")[0]?.slice(0, 2) || "en";
+  return safeLang(candidate);
+}
+
+async function handleApiV1(request, env) {
+  const url = new URL(request.url);
+  const language = getApiLanguage(request);
+
+  if (url.pathname === "/api/v1/health") {
+    return apiResponse({
+      app: "CRM Delivery",
+      status: "ok",
+      runtime: "Cloudflare Worker + D1",
+      language
+    });
+  }
+
+  if (url.pathname === "/api/v1/capabilities") {
+    return apiResponse({
+      ...APP_CAPABILITIES,
+      supported_languages: SUPPORTED_LANGUAGES,
+      api_version: "v1",
+      production_admin_url: env.ADMIN_WEB_URL || "https://crm.ayartuerk.me/admin",
+      api_base_url: "https://api.horizend.com/api/v1",
+      telegram_bot: "@SpecialDeliveryBerlinBot"
+    });
+  }
+
+  return apiResponse({ error: "API endpoint not found" }, 404);
+}
+
 const RESPONSE_TEXTS = {
   contact_admin_received: {
     en: "I received your message. I will help you shortly.",
@@ -8685,6 +8729,10 @@ async function routeRequest(request, env) {
   const url = new URL(request.url);
 
   if (url.pathname === "/health") return handleHealth();
+
+  if (url.pathname.startsWith("/api/v1/")) {
+    return handleApiV1(request, env);
+  }
 
   if (url.pathname === "/static/admin.css") {
     return new Response(ADMIN_CSS, { headers: { "content-type": "text/css; charset=utf-8" } });
