@@ -74,6 +74,101 @@ function getApiLanguage(request) {
   return safeLang(candidate);
 }
 
+function getApiBearerToken(request) {
+  const header = request.headers.get("authorization") || "";
+  if (!header.toLowerCase().startsWith("bearer ")) return "";
+  return header.slice(7).trim();
+}
+
+function getApiAdminProfile(session) {
+  return {
+    username: session.username,
+    role: session.role || "admin",
+    is_superadmin: session.is_superadmin === true
+  };
+}
+
+async function getApiAdminSession(request, env) {
+  const token = getApiBearerToken(request);
+  const payload = await verifyAdminToken(env, token);
+  if (!payload) return null;
+
+  return {
+    username: payload.sub,
+    role: payload.role || "admin",
+    is_superadmin: payload.is_superadmin === true
+  };
+}
+
+async function parseApiBody(request) {
+  const contentType = request.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return await request.json();
+    } catch {
+      return {};
+    }
+  }
+
+  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    return Object.fromEntries(form.entries());
+  }
+
+  return {};
+}
+
+async function handleApiAdminLogin(request, env) {
+  if (request.method !== "POST") {
+    return apiResponse({ error: "Method not allowed" }, 405);
+  }
+
+  const body = await parseApiBody(request);
+  const username = String(body.username || "").trim();
+  const password = String(body.password || "");
+
+  if (!username || !password) {
+    return apiResponse({ error: "Username and password are required" }, 400);
+  }
+
+  const auth = await authenticateAdmin(env, username, password);
+
+  if (!auth) {
+    await logAdminAction(env, request, { username, role: "" }, "api_admin_login_failed", username);
+    return apiResponse({ error: "Invalid username or password" }, 401);
+  }
+
+  await cleanupOldAdminAuditLogs(env);
+  await logAdminAction(env, request, auth, "api_admin_login_success", auth.source || "");
+
+  const token = await createAdminToken(env, auth.username, auth.role);
+
+  return apiResponse({
+    token_type: "Bearer",
+    access_token: token,
+    expires_in: 43200,
+    admin: getApiAdminProfile(auth),
+    supported_languages: SUPPORTED_LANGUAGES
+  });
+}
+
+async function handleApiAdminMe(request, env) {
+  if (request.method !== "GET") {
+    return apiResponse({ error: "Method not allowed" }, 405);
+  }
+
+  const session = await getApiAdminSession(request, env);
+  if (!session) {
+    return apiResponse({ error: "Unauthorized" }, 401);
+  }
+
+  return apiResponse({
+    admin: getApiAdminProfile(session),
+    supported_languages: SUPPORTED_LANGUAGES
+  });
+}
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
   const language = getApiLanguage(request);
@@ -85,6 +180,14 @@ async function handleApiV1(request, env) {
       runtime: "Cloudflare Worker + D1",
       language
     });
+  }
+
+  if (url.pathname === "/api/v1/admin/login") {
+    return handleApiAdminLogin(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/me") {
+    return handleApiAdminMe(request, env);
   }
 
   if (url.pathname === "/api/v1/languages") {
