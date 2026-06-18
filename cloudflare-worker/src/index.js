@@ -169,6 +169,85 @@ async function handleApiAdminMe(request, env) {
   });
 }
 
+async function handleApiAdminDashboard(request, env) {
+  if (request.method !== "GET") {
+    return apiResponse({ error: "Method not allowed" }, 405);
+  }
+
+  const session = await getApiAdminSession(request, env);
+  if (!session) {
+    return apiResponse({ error: "Unauthorized" }, 401);
+  }
+
+  const [
+    customersCount,
+    productsCount,
+    activeProductsCount,
+    meetingPointsCount,
+    openRequestsCount,
+    activeOrdersCount,
+    closedOrdersCount
+  ] = await Promise.all([
+    env.DB.prepare("SELECT COUNT(*) AS count FROM customers").first(),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM products").first(),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM products WHERE is_active = 1").first(),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM meeting_points WHERE is_active = 1").first(),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM customer_requests WHERE status != 'done' AND request_type != 'product_list'").first(),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM shopping_carts WHERE order_status != 'delivered'").first(),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM shopping_carts WHERE order_status = 'delivered'").first()
+  ]);
+
+  const recentRequests = await env.DB.prepare(`
+    SELECT
+      r.id,
+      r.customer_id,
+      r.request_type,
+      r.request_text,
+      r.item_name,
+      r.quantity,
+      r.status,
+      r.created_at,
+      c.full_name,
+      c.username,
+      c.telegram_user_id,
+      c.preferred_language
+    FROM customer_requests r
+    LEFT JOIN customers c ON c.id = r.customer_id
+    WHERE r.status != 'done' AND r.request_type != 'product_list'
+    ORDER BY r.created_at DESC
+    LIMIT 10
+  `).all();
+
+  return apiResponse({
+    admin: getApiAdminProfile(session),
+    summary: {
+      customers: customersCount.count || 0,
+      products: productsCount.count || 0,
+      active_products: activeProductsCount.count || 0,
+      active_meeting_points: meetingPointsCount.count || 0,
+      open_requests: openRequestsCount.count || 0,
+      active_orders: activeOrdersCount.count || 0,
+      closed_orders: closedOrdersCount.count || 0
+    },
+    recent_open_requests: (recentRequests.results || []).map((request) => ({
+      id: request.id,
+      customer_id: request.customer_id,
+      request_type: request.request_type,
+      request_text: request.request_text || "",
+      item_name: request.item_name || "",
+      quantity: request.quantity || "",
+      status: request.status,
+      created_at: request.created_at,
+      customer: {
+        full_name: request.full_name || "",
+        username: request.username || "",
+        telegram_user_id: request.telegram_user_id || "",
+        preferred_language: request.preferred_language || ""
+      }
+    }))
+  });
+}
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
   const language = getApiLanguage(request);
@@ -188,6 +267,10 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/me") {
     return handleApiAdminMe(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/dashboard") {
+    return handleApiAdminDashboard(request, env);
   }
 
   if (url.pathname === "/api/v1/languages") {
