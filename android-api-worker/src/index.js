@@ -32,6 +32,165 @@ function getApiLanguage(request) {
   return safeLang(candidate);
 }
 
+function base64UrlEncode(input) {
+  const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlDecode(input) {
+  input = input.replace(/-/g, "+").replace(/_/g, "/");
+  while (input.length % 4) input += "=";
+  return atob(input);
+}
+
+async function hmacSign(secret, data) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return base64UrlEncode(new Uint8Array(signature));
+}
+
+async function createAdminToken(env, username, role = "admin") {
+  const payload = {
+    sub: username,
+    role,
+    scope: "android_admin",
+    exp: Math.floor(Date.now() / 1000) + 43200
+  };
+  const body = base64UrlEncode(JSON.stringify(payload));
+  const sig = await hmacSign(env.ADMIN_JWT_SECRET, body);
+  return `${body}.${sig}`;
+}
+
+async function verifyAdminToken(env, token) {
+  if (!token || !token.includes(".")) return null;
+
+  const [body, sig] = token.split(".");
+  const expected = await hmacSign(env.ADMIN_JWT_SECRET, body);
+  if (sig !== expected) return null;
+
+  let payload;
+  try {
+    payload = JSON.parse(base64UrlDecode(body));
+  } catch {
+    return null;
+  }
+
+  if (payload.scope !== "android_admin") return null;
+  if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+
+  return payload;
+}
+
+function getBearerToken(request) {
+  const header = request.headers.get("authorization") || "";
+  if (!header.toLowerCase().startsWith("bearer ")) return "";
+  return header.slice(7).trim();
+}
+
+async function parseRequestBody(request) {
+  const contentType = request.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return await request.json();
+    } catch {
+      return {};
+    }
+  }
+
+  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    return Object.fromEntries(form.entries());
+  }
+
+  return {};
+}
+
+async function authenticateAdmin(env, username, password) {
+  if (
+    env.SUPERADMIN_USERNAME &&
+    env.SUPERADMIN_PASSWORD &&
+    username === env.SUPERADMIN_USERNAME &&
+    password === env.SUPERADMIN_PASSWORD
+  ) {
+    return {
+      username,
+      role: "superadmin",
+      is_superadmin: true,
+      source: "secret"
+    };
+  }
+
+  return null;
+}
+
+function adminProfile(auth) {
+  return {
+    username: auth.username,
+    role: auth.role || "admin",
+    is_superadmin: auth.is_superadmin === true
+  };
+}
+
+async function requireAdmin(request, env) {
+  const token = getBearerToken(request);
+  const payload = await verifyAdminToken(env, token);
+  if (!payload) return null;
+
+  return {
+    username: payload.sub,
+    role: payload.role || "admin",
+    is_superadmin: payload.role === "superadmin"
+  };
+}
+
+async function handleAdminLogin(request, env) {
+  if (request.method !== "POST") return apiResponse({ error: "Method not allowed" }, 405);
+
+  const body = await parseRequestBody(request);
+  const username = String(body.username || "").trim();
+  const password = String(body.password || "");
+
+  if (!username || !password) {
+    return apiResponse({ error: "Username and password are required" }, 400);
+  }
+
+  const auth = await authenticateAdmin(env, username, password);
+  if (!auth) {
+    return apiResponse({ error: "Invalid username or password" }, 401);
+  }
+
+  const accessToken = await createAdminToken(env, auth.username, auth.role);
+
+  return apiResponse({
+    token_type: "Bearer",
+    access_token: accessToken,
+    expires_in: 43200,
+    admin: adminProfile(auth),
+    supported_languages: SUPPORTED_LANGUAGES
+  });
+}
+
+async function handleAdminMe(request, env) {
+  if (request.method !== "GET") return apiResponse({ error: "Method not allowed" }, 405);
+
+  const admin = await requireAdmin(request, env);
+  if (!admin) return apiResponse({ error: "Unauthorized" }, 401);
+
+  return apiResponse({
+    admin: adminProfile(admin),
+    supported_languages: SUPPORTED_LANGUAGES
+  });
+}
+
 async function handleHealth(request, env) {
   return apiResponse({
     app: env.APP_NAME || "CRM Delivery Android API",
@@ -176,6 +335,8 @@ async function handleRequest(request, env) {
   const url = new URL(request.url);
 
   if (url.pathname === "/" || url.pathname === "/api/v1/health") return handleHealth(request, env);
+  if (url.pathname === "/api/v1/admin/login") return handleAdminLogin(request, env);
+  if (url.pathname === "/api/v1/admin/me") return handleAdminMe(request, env);
   if (url.pathname === "/api/v1/languages") return handleLanguages();
   if (url.pathname === "/api/v1/products") return handleProducts(env);
   if (url.pathname === "/api/v1/meeting-points") return handleMeetingPoints(env);
