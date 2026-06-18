@@ -87,6 +87,148 @@ async function handleApiV1(request, env) {
     });
   }
 
+  if (url.pathname === "/api/v1/languages") {
+    return apiResponse({
+      default_language: "en",
+      supported_languages: [
+        { code: "en", name: "English", native_name: "English", rtl: false },
+        { code: "de", name: "German", native_name: "Deutsch", rtl: false },
+        { code: "tr", name: "Turkish", native_name: "Türkçe", rtl: false },
+        { code: "ar", name: "Arabic", native_name: "العربية", rtl: true },
+        { code: "ru", name: "Russian", native_name: "Русский", rtl: false }
+      ]
+    });
+  }
+
+  if (url.pathname === "/api/v1/products") {
+    let result;
+    try {
+      result = await env.DB.prepare(`
+        SELECT
+          p.id,
+          p.name,
+          p.price,
+          p.category_id,
+          pc.name AS category_name
+        FROM products p
+        LEFT JOIN product_categories pc ON pc.id = p.category_id
+        WHERE p.is_active = 1
+        ORDER BY pc.name ASC, p.name ASC
+      `).all();
+    } catch (error) {
+      result = await env.DB.prepare(`
+        SELECT id, name, price, category_id
+        FROM products
+        WHERE is_active = 1
+        ORDER BY name ASC
+      `).all();
+    }
+
+    return apiResponse({
+      products: (result.results || []).map((product) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category_id: product.category_id || null,
+        category_name: product.category_name || null,
+        currency: "EUR",
+        is_active: true
+      }))
+    });
+  }
+
+  if (url.pathname === "/api/v1/meeting-points") {
+    const result = await env.DB.prepare(`
+      SELECT id, name, address, google_maps_link, is_default, is_active
+      FROM meeting_points
+      WHERE is_active = 1
+      ORDER BY is_default DESC, name ASC
+    `).all();
+
+    return apiResponse({
+      meeting_points: (result.results || []).map((point) => ({
+        id: point.id,
+        name: point.name,
+        address: point.address || "",
+        google_maps_link: point.google_maps_link,
+        is_default: Boolean(point.is_default),
+        is_active: Boolean(point.is_active)
+      }))
+    });
+  }
+
+  if (url.pathname === "/api/v1/catalog") {
+    let categories = [];
+    try {
+      const categoryResult = await env.DB.prepare(`
+        SELECT id, name, is_active
+        FROM product_categories
+        WHERE is_active = 1
+        ORDER BY name ASC
+      `).all();
+      categories = categoryResult.results || [];
+    } catch (error) {
+      categories = [];
+    }
+
+    let productResult;
+    try {
+      productResult = await env.DB.prepare(`
+        SELECT
+          p.id,
+          p.name,
+          p.price,
+          p.category_id,
+          pc.name AS category_name
+        FROM products p
+        LEFT JOIN product_categories pc ON pc.id = p.category_id
+        WHERE p.is_active = 1
+        ORDER BY pc.name ASC, p.name ASC
+      `).all();
+    } catch (error) {
+      productResult = await env.DB.prepare(`
+        SELECT id, name, price, category_id
+        FROM products
+        WHERE is_active = 1
+        ORDER BY name ASC
+      `).all();
+    }
+
+    const meetingPointResult = await env.DB.prepare(`
+      SELECT id, name, address, google_maps_link, is_default, is_active
+      FROM meeting_points
+      WHERE is_active = 1
+      ORDER BY is_default DESC, name ASC
+    `).all();
+
+    return apiResponse({
+      language,
+      currency: "EUR",
+      categories: categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        is_active: Boolean(category.is_active)
+      })),
+      products: (productResult.results || []).map((product) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category_id: product.category_id || null,
+        category_name: product.category_name || null,
+        currency: "EUR",
+        is_active: true
+      })),
+      meeting_points: (meetingPointResult.results || []).map((point) => ({
+        id: point.id,
+        name: point.name,
+        address: point.address || "",
+        google_maps_link: point.google_maps_link,
+        is_default: Boolean(point.is_default),
+        is_active: Boolean(point.is_active)
+      }))
+    });
+  }
+
   if (url.pathname === "/api/v1/capabilities") {
     return apiResponse({
       ...APP_CAPABILITIES,
