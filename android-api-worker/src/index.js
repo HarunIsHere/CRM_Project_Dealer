@@ -320,6 +320,64 @@ async function handleCatalog(request, env) {
   });
 }
 
+async function countQuery(env, sql, fallback = 0) {
+  try {
+    const result = await env.DB.prepare(sql).first();
+    return Number(result?.count || 0);
+  } catch {
+    return fallback;
+  }
+}
+
+async function handleAdminDashboard(request, env) {
+  if (request.method !== "GET") return apiResponse({ error: "Method not allowed" }, 405);
+
+  const admin = await requireAdmin(request, env);
+  if (!admin) return apiResponse({ error: "Unauthorized" }, 401);
+
+  const [
+    customers,
+    products,
+    activeProducts,
+    meetingPoints,
+    openRequests,
+    orders,
+    closedOrders
+  ] = await Promise.all([
+    countQuery(env, "SELECT COUNT(*) AS count FROM customers"),
+    countQuery(env, "SELECT COUNT(*) AS count FROM products"),
+    countQuery(env, "SELECT COUNT(*) AS count FROM products WHERE is_active = 1"),
+    countQuery(env, "SELECT COUNT(*) AS count FROM meeting_points WHERE is_active = 1"),
+    countQuery(env, "SELECT COUNT(*) AS count FROM customer_requests WHERE status = 'open'"),
+    countQuery(env, "SELECT COUNT(*) AS count FROM orders"),
+    countQuery(env, "SELECT COUNT(*) AS count FROM orders WHERE status IN ('closed', 'completed', 'done')")
+  ]);
+
+  return apiResponse({
+    admin: adminProfile(admin),
+    summary: {
+      customers,
+      products,
+      active_products: activeProducts,
+      active_meeting_points: meetingPoints,
+      open_requests: openRequests,
+      orders,
+      closed_orders: closedOrders
+    },
+    sections: [
+      "open_requests",
+      "orders",
+      "closed_orders",
+      "customers",
+      "products",
+      "meeting_points",
+      "ai",
+      "superadmin"
+    ],
+    supported_languages: SUPPORTED_LANGUAGES
+  });
+}
+
 async function handleRequest(request, env) {
   if (request.method === "OPTIONS") {
     return new Response(null, {
@@ -337,6 +395,7 @@ async function handleRequest(request, env) {
   if (url.pathname === "/" || url.pathname === "/api/v1/health") return handleHealth(request, env);
   if (url.pathname === "/api/v1/admin/login") return handleAdminLogin(request, env);
   if (url.pathname === "/api/v1/admin/me") return handleAdminMe(request, env);
+  if (url.pathname === "/api/v1/admin/dashboard") return handleAdminDashboard(request, env);
   if (url.pathname === "/api/v1/languages") return handleLanguages();
   if (url.pathname === "/api/v1/products") return handleProducts(env);
   if (url.pathname === "/api/v1/meeting-points") return handleMeetingPoints(env);
