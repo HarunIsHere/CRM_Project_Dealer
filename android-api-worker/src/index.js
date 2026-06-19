@@ -329,6 +329,68 @@ async function countQuery(env, sql, fallback = 0) {
   }
 }
 
+function normalizeOpenRequest(row) {
+  return {
+    id: row.id,
+    customer_id: row.customer_id,
+    customer_name: row.full_name || "Unknown customer",
+    telegram_user_id: row.telegram_user_id || null,
+    request_type: row.request_type || "unknown",
+    status: row.status || "new",
+    language: row.language || row.preferred_language || "en",
+    request_text: row.request_text || "",
+    item_name: row.item_name || null,
+    quantity: row.quantity || null,
+    location_label: row.location_label || null,
+    latitude: row.latitude || null,
+    longitude: row.longitude || null,
+    google_maps_link: row.google_maps_link || null,
+    created_at: row.created_at || null
+  };
+}
+
+async function handleAdminOpenRequests(request, env) {
+  if (request.method !== "GET") return apiResponse({ error: "Method not allowed" }, 405);
+
+  const admin = await requireAdmin(request, env);
+  if (!admin) return apiResponse({ error: "Unauthorized" }, 401);
+
+  const url = new URL(request.url);
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 100);
+
+  const result = await env.DB.prepare(`
+    SELECT
+      cr.id,
+      cr.customer_id,
+      cr.request_type,
+      cr.request_text,
+      cr.item_name,
+      cr.quantity,
+      cr.location_label,
+      cr.latitude,
+      cr.longitude,
+      cr.google_maps_link,
+      cr.status,
+      cr.created_at,
+      c.full_name,
+      c.telegram_user_id,
+      c.language,
+      c.preferred_language
+    FROM customer_requests cr
+    LEFT JOIN customers c ON c.id = cr.customer_id
+    WHERE cr.status IN ('new', 'open')
+    ORDER BY cr.created_at DESC
+    LIMIT ?
+  `).bind(limit).all();
+
+  return apiResponse({
+    admin: adminProfile(admin),
+    open_requests: (result.results || []).map(normalizeOpenRequest),
+    count: (result.results || []).length,
+    limit
+  });
+}
+
 async function handleAdminDashboard(request, env) {
   if (request.method !== "GET") return apiResponse({ error: "Method not allowed" }, 405);
 
@@ -396,6 +458,7 @@ async function handleRequest(request, env) {
   if (url.pathname === "/api/v1/admin/login") return handleAdminLogin(request, env);
   if (url.pathname === "/api/v1/admin/me") return handleAdminMe(request, env);
   if (url.pathname === "/api/v1/admin/dashboard") return handleAdminDashboard(request, env);
+  if (url.pathname === "/api/v1/admin/open-requests") return handleAdminOpenRequests(request, env);
   if (url.pathname === "/api/v1/languages") return handleLanguages();
   if (url.pathname === "/api/v1/products") return handleProducts(env);
   if (url.pathname === "/api/v1/meeting-points") return handleMeetingPoints(env);
