@@ -8807,6 +8807,7 @@ function getApiCapabilities() {
       session_verify: "/api/v1/customer/session/verify",
       session_logout: "/api/v1/customer/session/logout",
       me: "/api/v1/customer/me",
+      update_profile: "/api/v1/customer/me",
       cart: "/api/v1/customer/cart",
       cart_items: "/api/v1/customer/cart/items",
       checkout_address: "/api/v1/customer/checkout/address",
@@ -10292,18 +10293,56 @@ async function handleApiCustomerSessionVerify(request, env) {
 }
 
 async function handleApiCustomerMe(request, env) {
-  if (request.method !== "GET") {
-    return apiError("method_not_allowed", "Method not allowed.", 405);
-  }
-
   const session = await requireApiCustomerSession(request, env);
 
   if (!session) {
     return apiError("unauthorized", "Valid customer bearer token is required.", 401);
   }
 
+  if (request.method === "GET") {
+    return apiOk({
+      customer: mapCustomerSessionProfile(session.customer)
+    });
+  }
+
+  if (request.method !== "PATCH" && request.method !== "PUT") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const fullName = body.full_name === undefined
+    ? session.customer.full_name
+    : String(body.full_name || "").trim() || null;
+
+  const username = body.username === undefined
+    ? session.customer.username
+    : String(body.username || "").trim() || null;
+
+  const preferredLanguage = body.preferred_language === undefined && body.language === undefined
+    ? session.customer.preferred_language
+    : normalizeCustomerAppLanguage(body.preferred_language || body.language || "en");
+
+  await env.DB.prepare(
+    `UPDATE customers
+     SET full_name = ?,
+         username = ?,
+         preferred_language = ?,
+         language = 'app',
+         last_seen_at = CURRENT_TIMESTAMP
+     WHERE id = ?`
+  ).bind(fullName, username, preferredLanguage, session.customer.id).run();
+
+  const updatedCustomer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?")
+    .bind(session.customer.id)
+    .first();
+
   return apiOk({
-    customer: mapCustomerSessionProfile(session.customer)
+    customer: mapCustomerSessionProfile(updatedCustomer)
   });
 }
 
