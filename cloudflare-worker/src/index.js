@@ -8769,6 +8769,11 @@ function getApiCapabilities() {
       catalog: "/api/v1/public/catalog",
       meeting_points: "/api/v1/public/meeting-points"
     },
+    customer: {
+      session_start: "/api/v1/customer/session/start",
+      session_verify: "/api/v1/customer/session/verify",
+      me: "/api/v1/customer/me"
+    },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
       shared_backend: true,
@@ -9775,6 +9780,184 @@ async function handleApiPublicMeetingPoints(request, env) {
 }
 
 
+
+function makeMobileCustomerIdentity() {
+  return `app:${crypto.randomUUID()}`;
+}
+
+function normalizeCustomerAppLanguage(language) {
+  const value = String(language || "en").trim().toLowerCase();
+  return SUPPORTED_LANGUAGES.includes(value) ? value : "en";
+}
+
+function mapCustomerSessionProfile(customer) {
+  return {
+    id: Number(customer.id),
+    full_name: customer.full_name || "",
+    username: customer.username || "",
+    language: customer.language || "unknown",
+    preferred_language: customer.preferred_language || customer.language || "en",
+    conversation_state: customer.conversation_state || null,
+    created_at: customer.created_at || "",
+    last_seen_at: customer.last_seen_at || ""
+  };
+}
+
+async function sha256Hex(value) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(value || "")));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function hashCustomerSessionToken(env, token) {
+  return sha256Hex(`${env.ADMIN_JWT_SECRET || "fallback-secret"}:customer:${token}`);
+}
+
+function createCustomerRawToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return base64UrlEncode(bytes);
+}
+
+async function createAppCustomer(env, body) {
+  const preferredLanguage = normalizeCustomerAppLanguage(body.language || body.preferred_language || "en");
+  const fullName = String(body.full_name || body.name || "").trim() || null;
+  const username = String(body.username || "").trim() || null;
+  const mobileIdentity = makeMobileCustomerIdentity();
+
+  const result = await env.DB.prepare(
+    "INSERT INTO customers (telegram_user_id, username, full_name, language, preferred_language) VALUES (?, ?, ?, ?, ?)"
+  ).bind(mobileIdentity, username, fullName, "app", preferredLanguage).run();
+
+  return env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(result.meta.last_row_id).first();
+}
+
+async function createCustomerAppSession(env, customerId, body) {
+  const token = createCustomerRawToken();
+  const tokenHash = await hashCustomerSessionToken(env, token);
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString();
+
+  await env.DB.prepare(
+    `INSERT INTO customer_app_sessions
+     (customer_id, token_hash, device_id, platform, app_version, expires_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  ).bind(
+    customerId,
+    tokenHash,
+    String(body.device_id || "").trim() || null,
+    String(body.platform || "android").trim() || "android",
+    String(body.app_version || "").trim() || null,
+    expiresAt
+  ).run();
+
+  return {
+    access_token: token,
+    token_type: "Bearer",
+    expires_at: expiresAt
+  };
+}
+
+function getCustomerBearerToken(request) {
+  const auth = request.headers.get("authorization") || "";
+  if (!auth.toLowerCase().startsWith("bearer ")) return "";
+  return auth.slice(7).trim();
+}
+
+async function getApiCustomerSession(request, env) {
+  const token = getCustomerBearerToken(request);
+  if (!token) return null;
+
+  const tokenHash = await hashCustomerSessionToken(env, token);
+  const row = await env.DB.prepare(
+    `SELECT
+       s.id AS session_id,
+       s.expires_at,
+       s.is_active,
+       c.*
+     FROM customer_app_sessions s
+     JOIN customers c ON c.id = s.customer_id
+     WHERE s.token_hash = ?
+       AND s.is_active = 1
+       AND datetime(s.expires_at) > datetime('now')
+     LIMIT 1`
+  ).bind(tokenHash).first();
+
+  if (!row) return null;
+
+  await env.DB.prepare(
+    "UPDATE customer_app_sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?"
+  ).bind(row.session_id).run();
+
+  await env.DB.prepare(
+    "UPDATE customers SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?"
+  ).bind(row.id).run();
+
+  return {
+    session_id: Number(row.session_id),
+    expires_at: row.expires_at,
+    customer: row
+  };
+}
+
+async function requireApiCustomerSession(request, env) {
+  const session = await getApiCustomerSession(request, env);
+  return session || null;
+}
+
+async function handleApiCustomerSessionStart(request, env) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const customer = await createAppCustomer(env, body);
+  const session = await createCustomerAppSession(env, customer.id, body);
+
+  return apiOk({
+    session,
+    customer: mapCustomerSessionProfile(customer)
+  }, 201);
+}
+
+async function handleApiCustomerSessionVerify(request, env) {
+  if (request.method !== "POST" && request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  return apiOk({
+    valid: true,
+    expires_at: session.expires_at,
+    customer: mapCustomerSessionProfile(session.customer)
+  });
+}
+
+async function handleApiCustomerMe(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  return apiOk({
+    customer: mapCustomerSessionProfile(session.customer)
+  });
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -9863,6 +10046,18 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/public/meeting-points") {
     return handleApiPublicMeetingPoints(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/session/start") {
+    return handleApiCustomerSessionStart(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/session/verify") {
+    return handleApiCustomerSessionVerify(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/me") {
+    return handleApiCustomerMe(request, env);
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
