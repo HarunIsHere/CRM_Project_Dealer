@@ -8760,7 +8760,8 @@ function getApiCapabilities() {
       admin_closed_orders: "/api/v1/admin/closed-orders",
       admin_open_requests: "/api/v1/admin/open-requests",
       admin_products: "/api/v1/admin/products",
-      admin_product_categories: "/api/v1/admin/product-categories"
+      admin_product_categories: "/api/v1/admin/product-categories",
+      admin_meeting_points: "/api/v1/admin/meeting-points"
     },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
@@ -9225,6 +9226,153 @@ async function handleApiAdminProductCategoryDetail(request, env, categoryId) {
 }
 
 
+
+function mapMeetingPointForApi(point) {
+  return {
+    id: Number(point.id),
+    name: point.name || "",
+    address: point.address || "",
+    google_maps_link: point.google_maps_link || "",
+    is_default: Number(point.is_default) === 1,
+    is_active: Number(point.is_active) === 1
+  };
+}
+
+async function handleApiAdminMeetingPoints(request, env) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method === "GET") {
+    const points = await getAllMeetingPoints(env);
+
+    return apiOk({
+      meeting_points: points.map(mapMeetingPointForApi),
+      count: points.length
+    });
+  }
+
+  if (request.method === "POST") {
+    const body = await readJsonBody(request);
+
+    if (!body) {
+      return apiError("invalid_json", "Request body must be valid JSON.", 400);
+    }
+
+    const name = String(body.name || "").trim();
+    const address = String(body.address || "").trim();
+    const googleMapsLink = String(body.google_maps_link || "").trim();
+    const isDefault = body.is_default ? 1 : 0;
+
+    if (!name || !googleMapsLink) {
+      return apiError("invalid_meeting_point", "Meeting point name and Google Maps link are required.", 400);
+    }
+
+    const result = await env.DB.prepare(
+      "INSERT INTO meeting_points (name, address, google_maps_link, is_default, is_active) VALUES (?, ?, ?, ?, 1)"
+    ).bind(name, address, googleMapsLink, isDefault).run();
+
+    const pointId = result.meta.last_row_id;
+
+    if (isDefault) {
+      await notifyCustomersAboutLocationChange(env, {
+        id: pointId,
+        name,
+        address,
+        google_maps_link: googleMapsLink
+      });
+    }
+
+    await logAdminAction(env, request, session, "api_meeting_point_created", `${pointId}:${name}`);
+
+    return apiOk({
+      meeting_point_id: Number(pointId)
+    }, 201);
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+async function handleApiAdminMeetingPointDetail(request, env, pointId) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const point = await env.DB.prepare(
+    "SELECT id, name, address, google_maps_link, is_default, is_active FROM meeting_points WHERE id = ?"
+  ).bind(pointId).first();
+
+  if (!point) {
+    return apiError("not_found", "Meeting point not found.", 404);
+  }
+
+  if (request.method === "GET") {
+    return apiOk({
+      meeting_point: mapMeetingPointForApi(point)
+    });
+  }
+
+  if (request.method === "PUT" || request.method === "PATCH") {
+    const body = await readJsonBody(request);
+
+    if (!body) {
+      return apiError("invalid_json", "Request body must be valid JSON.", 400);
+    }
+
+    const name = String(body.name ?? point.name ?? "").trim();
+    const address = String(body.address ?? point.address ?? "").trim();
+    const googleMapsLink = String(body.google_maps_link ?? point.google_maps_link ?? "").trim();
+    const isActive = body.is_active === undefined ? Number(point.is_active) : (body.is_active ? 1 : 0);
+    const makeDefault = body.is_default === true;
+
+    if (!name || !googleMapsLink) {
+      return apiError("invalid_meeting_point", "Meeting point name and Google Maps link are required.", 400);
+    }
+
+    await env.DB.prepare(
+      "UPDATE meeting_points SET name = ?, address = ?, google_maps_link = ?, is_active = ?, is_default = CASE WHEN ? = 0 THEN 0 ELSE is_default END WHERE id = ?"
+    ).bind(name, address, googleMapsLink, isActive, isActive, pointId).run();
+
+    if (Number(point.is_default) === 1 && Number(point.is_active) === 1 && !isActive) {
+      await notifyCustomersLocationUnavailable(env);
+    }
+
+    if (makeDefault) {
+      await env.DB.prepare("UPDATE meeting_points SET is_default = 1, is_active = 1 WHERE id = ?").bind(pointId).run();
+      await notifyCustomersAboutLocationChange(env, {
+        id: pointId,
+        name,
+        address,
+        google_maps_link: googleMapsLink
+      });
+    }
+
+    await logAdminAction(env, request, session, "api_meeting_point_updated", `${pointId}:${name}`);
+
+    return apiOk({
+      meeting_point_id: Number(pointId)
+    });
+  }
+
+  if (request.method === "DELETE") {
+    await env.DB.prepare("DELETE FROM meeting_points WHERE id = ?").bind(pointId).run();
+
+    await logAdminAction(env, request, session, "api_meeting_point_deleted", String(pointId));
+
+    return apiOk({
+      meeting_point_id: Number(pointId),
+      deleted: true
+    });
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -9278,6 +9426,15 @@ async function handleApiV1(request, env) {
   const productCategoryDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/product-categories\/(\d+)$/);
   if (productCategoryDetailMatch) {
     return handleApiAdminProductCategoryDetail(request, env, Number(productCategoryDetailMatch[1]));
+  }
+
+  if (url.pathname === "/api/v1/admin/meeting-points") {
+    return handleApiAdminMeetingPoints(request, env);
+  }
+
+  const meetingPointDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/meeting-points\/(\d+)$/);
+  if (meetingPointDetailMatch) {
+    return handleApiAdminMeetingPointDetail(request, env, Number(meetingPointDetailMatch[1]));
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
