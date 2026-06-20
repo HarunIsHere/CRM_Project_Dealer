@@ -146,6 +146,7 @@ Request:
 
 POST   /api/v1/admin/login
 POST   /api/v1/admin/logout
+POST   /api/v1/admin/password
 GET    /api/v1/admin/me
 GET    /api/v1/admin/dashboard
 
@@ -182,6 +183,30 @@ GET    /api/v1/admin/settings
 PATCH  /api/v1/admin/settings
 
 
+
+
+## Admin password change
+
+POST /api/v1/admin/password
+
+Headers:
+Authorization: Bearer <admin_token>
+Content-Type: application/json
+
+Body:
+{
+  "current_password": "current-password",
+  "new_password": "new-password-min-8",
+  "confirm_password": "new-password-min-8"
+}
+
+Changes the current admin password, revokes the current token, and requires login again.
+
+Returns:
+
+- password_changed
+- current_token_revoked
+- login_required
 
 ## Admin logout
 
