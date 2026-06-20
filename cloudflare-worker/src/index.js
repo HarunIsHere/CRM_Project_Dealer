@@ -8761,7 +8761,8 @@ function getApiCapabilities() {
       admin_open_requests: "/api/v1/admin/open-requests",
       admin_products: "/api/v1/admin/products",
       admin_product_categories: "/api/v1/admin/product-categories",
-      admin_meeting_points: "/api/v1/admin/meeting-points"
+      admin_meeting_points: "/api/v1/admin/meeting-points",
+      admin_customers: "/api/v1/admin/customers"
     },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
@@ -9373,6 +9374,218 @@ async function handleApiAdminMeetingPointDetail(request, env, pointId) {
 }
 
 
+
+function mapCustomerForApi(customer) {
+  return {
+    id: Number(customer.id),
+    telegram_user_id: customer.telegram_user_id || "",
+    username: customer.username || "",
+    full_name: customer.full_name || "",
+    language: customer.language || "",
+    preferred_language: customer.preferred_language || "",
+    is_blocked: Number(customer.is_blocked || 0) === 1,
+    last_seen_at: customer.last_seen_at || "",
+    created_at: customer.created_at || ""
+  };
+}
+
+function mapMessageForApi(message) {
+  return {
+    id: Number(message.id),
+    direction: message.direction || "",
+    message_type: message.message_type || "",
+    source_label: formatMessageSource(message.message_type, message.direction),
+    content: message.content || "",
+    language: message.language || "",
+    created_at: message.created_at || ""
+  };
+}
+
+function mapCustomerRequestForApi(item) {
+  return {
+    id: Number(item.id),
+    customer_id: Number(item.customer_id),
+    request_type: item.request_type || "",
+    request_type_label: i18nRequestType(item.request_type || "", "en"),
+    status: item.status || "",
+    status_label: i18nStatus(item.status || "", "en"),
+    item_name: item.item_name || "",
+    description: item.description || "",
+    request_text: item.request_text || "",
+    quantity: item.quantity === null || item.quantity === undefined ? null : Number(item.quantity || 0),
+    google_maps_link: item.google_maps_link || "",
+    created_at: item.created_at || ""
+  };
+}
+
+function mapCustomerLocationForApi(item) {
+  return {
+    id: Number(item.id),
+    customer_id: Number(item.customer_id),
+    request_type: item.request_type || "",
+    description: item.description || "",
+    latitude: item.latitude === null || item.latitude === undefined ? null : Number(item.latitude),
+    longitude: item.longitude === null || item.longitude === undefined ? null : Number(item.longitude),
+    google_maps_link: item.google_maps_link || "",
+    source: item.source || "",
+    is_preferred: Number(item.is_preferred || 0) === 1,
+    created_at: item.created_at || ""
+  };
+}
+
+async function handleApiAdminCustomers(request, env) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const url = new URL(request.url);
+  const search = String(url.searchParams.get("search") || "").trim().toLowerCase();
+  const language = String(url.searchParams.get("language") || "").trim();
+  const active = String(url.searchParams.get("active") || "").trim();
+  const limitRaw = Number(url.searchParams.get("limit") || 100);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 250) : 100;
+
+  let customers = (await env.DB.prepare("SELECT * FROM customers ORDER BY last_seen_at DESC").all()).results || [];
+
+  if (search) {
+    customers = customers.filter((customer) => {
+      const haystack = [
+        customer.id,
+        customer.telegram_user_id,
+        customer.username,
+        customer.full_name,
+        customer.language,
+        customer.preferred_language
+      ].map((value) => String(value || "").toLowerCase()).join(" ");
+      return haystack.includes(search);
+    });
+  }
+
+  if (language) {
+    customers = customers.filter((customer) => (
+      String(customer.preferred_language || customer.language || "") === language
+    ));
+  }
+
+  if (active === "active") {
+    customers = customers.filter((customer) => Number(customer.is_blocked || 0) !== 1);
+  }
+
+  if (active === "blocked") {
+    customers = customers.filter((customer) => Number(customer.is_blocked || 0) === 1);
+  }
+
+  customers = customers.slice(0, limit);
+
+  return apiOk({
+    customers: customers.map(mapCustomerForApi),
+    count: customers.length
+  });
+}
+
+async function handleApiAdminCustomerDetail(request, env, customerId) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(customerId).first();
+
+  if (!customer) {
+    return apiError("not_found", "Customer not found.", 404);
+  }
+
+  if (request.method === "GET") {
+    const [messages, requests, locations] = await Promise.all([
+      env.DB.prepare("SELECT * FROM messages WHERE customer_id = ? ORDER BY created_at DESC").bind(customerId).all(),
+      env.DB.prepare("SELECT * FROM customer_requests WHERE customer_id = ? ORDER BY created_at DESC").bind(customerId).all(),
+      env.DB.prepare(`
+        SELECT *
+        FROM customer_locations
+        WHERE customer_id = ?
+        ORDER BY is_preferred DESC, datetime(created_at) DESC, id DESC
+      `).bind(customerId).all()
+    ]);
+
+    return apiOk({
+      customer: mapCustomerForApi(customer),
+      messages: (messages.results || []).map(mapMessageForApi),
+      requests: (requests.results || []).map(mapCustomerRequestForApi),
+      locations: (locations.results || []).map(mapCustomerLocationForApi)
+    });
+  }
+
+  if (request.method === "DELETE") {
+    await env.DB.prepare("DELETE FROM messages WHERE customer_id = ?").bind(customerId).run();
+    await env.DB.prepare("DELETE FROM customer_requests WHERE customer_id = ?").bind(customerId).run();
+    await env.DB.prepare("DELETE FROM customer_locations WHERE customer_id = ?").bind(customerId).run();
+    await env.DB.prepare(
+      `DELETE FROM app_settings
+       WHERE key IN (?, ?)`
+    ).bind(
+      `address_search_results_${customerId}`,
+      `pending_product_fulfillment_request_${customerId}`
+    ).run();
+    await env.DB.prepare("DELETE FROM customers WHERE id = ?").bind(customerId).run();
+
+    await logAdminAction(env, request, session, "api_customer_deleted", String(customerId));
+
+    return apiOk({
+      customer_id: Number(customerId),
+      deleted: true
+    });
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+async function handleApiAdminCustomerReply(request, env, customerId) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const replyText = String(body.reply_text || body.message || "").trim();
+
+  if (!replyText) {
+    return apiError("missing_message", "Reply text is required.", 400);
+  }
+
+  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(customerId).first();
+
+  if (!customer) {
+    return apiError("not_found", "Customer not found.", 404);
+  }
+
+  await sendTelegramMessage(env, customer.telegram_user_id, replyText);
+  await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language, "admin_reply");
+  await logAdminAction(env, request, session, "api_customer_reply_sent", String(customerId));
+
+  return apiOk({
+    customer_id: Number(customerId),
+    sent: true
+  });
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -9435,6 +9648,20 @@ async function handleApiV1(request, env) {
   const meetingPointDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/meeting-points\/(\d+)$/);
   if (meetingPointDetailMatch) {
     return handleApiAdminMeetingPointDetail(request, env, Number(meetingPointDetailMatch[1]));
+  }
+
+  if (url.pathname === "/api/v1/admin/customers") {
+    return handleApiAdminCustomers(request, env);
+  }
+
+  const customerReplyMatch = url.pathname.match(/^\/api\/v1\/admin\/customers\/(\d+)\/reply$/);
+  if (customerReplyMatch) {
+    return handleApiAdminCustomerReply(request, env, Number(customerReplyMatch[1]));
+  }
+
+  const customerDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customers\/(\d+)$/);
+  if (customerDetailMatch) {
+    return handleApiAdminCustomerDetail(request, env, Number(customerDetailMatch[1]));
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
