@@ -6180,7 +6180,10 @@ async function notifyCustomerForOrderStatus(env, order, status) {
   if (status === "waiting_location") keyboard = getCheckoutLocationKeyboard(language);
   if (status === "not_delivered") keyboard = getMenuKeyboard(language);
 
-  await sendTelegramMessage(env, order.telegram_user_id, text, keyboard);
+  if (/^\d+$/.test(String(order.telegram_user_id || ""))) {
+    await sendTelegramMessage(env, order.telegram_user_id, text, keyboard);
+  }
+
   await saveMessage(env, order.customer_id, "outgoing", text, language, "order_status");
 }
 
@@ -8758,6 +8761,9 @@ function getApiCapabilities() {
       admin_me: "/api/v1/admin/me",
       admin_orders: "/api/v1/admin/orders",
       admin_closed_orders: "/api/v1/admin/closed-orders",
+      admin_order_status: "/api/v1/admin/orders/{order_id}/status",
+      admin_order_delivered: "/api/v1/admin/orders/{order_id}/delivered",
+      admin_order_return: "/api/v1/admin/orders/{order_id}/return",
       admin_open_requests: "/api/v1/admin/open-requests",
       admin_products: "/api/v1/admin/products",
       admin_product_categories: "/api/v1/admin/product-categories",
@@ -8955,6 +8961,175 @@ async function handleApiAdminOrders(request, env, closed = false) {
     closed
   });
 }
+
+
+const API_ALLOWED_ORDER_STATUSES = new Set([
+  "in_progress",
+  "waiting_location",
+  "ready_to_delivery",
+  "on_the_way",
+  "not_delivered",
+  "delivered"
+]);
+
+async function getOrderApiRowById(env, orderId) {
+  const result = await env.DB.prepare(`
+    SELECT
+      c.id,
+      c.customer_id,
+      c.status,
+      c.order_status,
+      c.delivery_location_label,
+      c.delivery_google_maps_link,
+      c.delivery_note,
+      c.delivered_at,
+      c.closed_at,
+      c.admin_status_note,
+      c.created_at,
+      c.updated_at,
+      customers.full_name,
+      customers.username,
+      customers.telegram_user_id,
+      customers.preferred_language,
+      COUNT(i.id) AS item_count,
+      COALESCE(SUM(COALESCE(i.price_snapshot, 0) * COALESCE(i.quantity, 1)), 0) AS total_amount,
+      json_group_array(
+        json_object(
+          'id', i.id,
+          'name', i.name,
+          'quantity', i.quantity,
+          'price_snapshot', i.price_snapshot
+        )
+      ) AS items_json
+    FROM shopping_carts c
+    JOIN customers ON customers.id = c.customer_id
+    LEFT JOIN shopping_cart_items i ON i.cart_id = c.id
+    WHERE c.id = ?
+    GROUP BY c.id
+    HAVING item_count > 0
+    LIMIT 1
+  `).bind(orderId).all();
+
+  return (result.results || [])[0] || null;
+}
+
+async function handleApiAdminOrderStatus(request, env, orderId) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method !== "PATCH" && request.method !== "PUT") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const status = String(body.order_status || body.status || "").trim();
+  const note = String(body.admin_status_note || body.note || "").trim();
+
+  if (!API_ALLOWED_ORDER_STATUSES.has(status)) {
+    return apiError("invalid_order_status", "Invalid order status.", 400, {
+      allowed_statuses: Array.from(API_ALLOWED_ORDER_STATUSES)
+    });
+  }
+
+  const order = await getOrderById(env, orderId);
+  if (!order) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  if (status === "not_delivered") {
+    await env.DB.prepare(`
+      UPDATE shopping_carts
+      SET order_status = 'not_delivered',
+          admin_status_note = ?,
+          delivered_at = NULL,
+          closed_at = NULL,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(note || null, orderId).run();
+
+    await notifyCustomerForOrderStatus(env, order, "not_delivered");
+  } else {
+    await updateOrderStatusByAdmin(env, orderId, status, note);
+  }
+
+  await logAdminAction(env, request, session, "api_order_status_updated", `order:${orderId}:${status}`);
+
+  const updated = await getOrderApiRowById(env, orderId);
+
+  return apiOk({
+    order: updated ? mapOrderForApi(updated) : null
+  });
+}
+
+async function handleApiAdminOrderDelivered(request, env, orderId) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const order = await getOrderById(env, orderId);
+  if (!order) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  await updateOrderStatusByAdmin(env, orderId, "delivered", "");
+  await logAdminAction(env, request, session, "api_order_delivered", `order:${orderId}`);
+
+  const updated = await getOrderApiRowById(env, orderId);
+
+  return apiOk({
+    order: updated ? mapOrderForApi(updated) : null
+  });
+}
+
+async function handleApiAdminOrderReturn(request, env, orderId) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const order = await getOrderById(env, orderId);
+  if (!order) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  await env.DB.prepare(`
+    UPDATE shopping_carts
+    SET order_status = 'not_delivered',
+        delivered_at = NULL,
+        closed_at = NULL,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(orderId).run();
+
+  await notifyCustomerForOrderStatus(env, order, "not_delivered");
+  await logAdminAction(env, request, session, "api_order_returned", `order:${orderId}`);
+
+  const updated = await getOrderApiRowById(env, orderId);
+
+  return apiOk({
+    order: updated ? mapOrderForApi(updated) : null
+  });
+}
+
 
 async function handleApiAdminOpenRequests(request, env) {
   if (request.method !== "GET") {
@@ -10435,6 +10610,21 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/closed-orders") {
     return handleApiAdminOrders(request, env, true);
+  }
+
+  const adminOrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/status$/);
+  if (adminOrderStatusMatch) {
+    return handleApiAdminOrderStatus(request, env, Number(adminOrderStatusMatch[1]));
+  }
+
+  const adminOrderDeliveredMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/delivered$/);
+  if (adminOrderDeliveredMatch) {
+    return handleApiAdminOrderDelivered(request, env, Number(adminOrderDeliveredMatch[1]));
+  }
+
+  const adminOrderReturnMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/return$/);
+  if (adminOrderReturnMatch) {
+    return handleApiAdminOrderReturn(request, env, Number(adminOrderReturnMatch[1]));
   }
 
   if (url.pathname === "/api/v1/admin/open-requests") {
