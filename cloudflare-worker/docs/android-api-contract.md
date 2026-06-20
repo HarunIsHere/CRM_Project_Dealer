@@ -113,6 +113,7 @@ Request:
 
 POST   /api/v1/admin/login
 GET    /api/v1/admin/me
+GET    /api/v1/admin/dashboard
 
 GET    /api/v1/admin/orders
 GET    /api/v1/admin/closed-orders
@@ -145,6 +146,25 @@ POST   /api/v1/admin/customers/{customer_id}/reply
 
 GET    /api/v1/admin/settings
 PATCH  /api/v1/admin/settings
+
+
+## Admin dashboard
+
+GET /api/v1/admin/dashboard
+
+Headers:
+Authorization: Bearer <admin_token>
+
+Returns:
+
+- open_orders_count
+- closed_orders_count
+- open_requests_count
+- active_customers_count
+- active_products_count
+- active_meeting_points_count
+- latest_orders
+- latest_requests
 
 ## Admin order status update
 
