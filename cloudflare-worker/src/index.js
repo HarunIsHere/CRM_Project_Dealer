@@ -4571,6 +4571,10 @@ async function getCurrentAdminPassword(env) {
   return await getSetting(env, "admin_password_override") || env.ADMIN_PASSWORD;
 }
 
+async function getCurrentSuperadminPassword(env) {
+  return await getSetting(env, "superadmin_password_override") || env.SUPERADMIN_PASSWORD;
+}
+
 async function hashAdminPassword(env, password) {
   const secret = env.ADMIN_JWT_SECRET || "fallback-secret";
   const input = `${secret}:${password}`;
@@ -4583,8 +4587,8 @@ async function authenticateAdmin(env, username, password) {
     return { username, role: "admin", is_superadmin: false, source: "env" };
   }
 
-  if (env.SUPERADMIN_USERNAME && env.SUPERADMIN_PASSWORD && username === env.SUPERADMIN_USERNAME && password === env.SUPERADMIN_PASSWORD) {
-    return { username, role: "superadmin", is_superadmin: true, source: "env" };
+  if (env.SUPERADMIN_USERNAME && env.SUPERADMIN_PASSWORD && username === env.SUPERADMIN_USERNAME && password === await getCurrentSuperadminPassword(env)) {
+    return { username, role: "superadmin", is_superadmin: true, source: "env_superadmin" };
   }
 
   const dbAdmin = await env.DB.prepare(
@@ -8784,6 +8788,7 @@ function getApiCapabilities() {
       capabilities: "/api/v1/capabilities",
       admin_login: "/api/v1/admin/login",
       admin_logout: "/api/v1/admin/logout",
+      admin_change_password: "/api/v1/admin/password",
       admin_me: "/api/v1/admin/me",
       admin_dashboard: "/api/v1/admin/dashboard",
       admin_orders: "/api/v1/admin/orders",
@@ -8889,6 +8894,73 @@ async function handleApiAdminLogout(request, env) {
 
   return apiOk({
     logged_out: true
+  });
+}
+
+
+
+async function handleApiAdminPasswordChange(request, env) {
+  if (request.method !== "POST" && request.method !== "PATCH" && request.method !== "PUT") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const token = getBearerToken(request) || parseCookies(request)[ADMIN_COOKIE_NAME];
+  const session = await getApiAdminSession(request, env);
+
+  if (!session || !token) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const currentPassword = String(body.current_password || "");
+  const newPassword = String(body.new_password || "");
+  const confirmPassword = body.confirm_password === undefined ? newPassword : String(body.confirm_password || "");
+
+  if (!currentPassword || !newPassword) {
+    return apiError("missing_password", "Current password and new password are required.", 400);
+  }
+
+  if (newPassword !== confirmPassword) {
+    return apiError("password_mismatch", "New password and confirmation do not match.", 400);
+  }
+
+  if (newPassword.length < 8) {
+    return apiError("weak_password", "New password must be at least 8 characters.", 400);
+  }
+
+  const auth = await authenticateAdmin(env, session.username, currentPassword);
+
+  if (!auth) {
+    await logAdminAction(env, request, session, "api_admin_password_change_failed", "wrong_current_password");
+    return apiError("invalid_current_password", "Current password is incorrect.", 401);
+  }
+
+  if (session.username === env.ADMIN_USERNAME) {
+    await setSetting(env, "admin_password_override", newPassword);
+  } else if (env.SUPERADMIN_USERNAME && session.username === env.SUPERADMIN_USERNAME) {
+    await setSetting(env, "superadmin_password_override", newPassword);
+  } else {
+    const result = await env.DB.prepare(
+      "UPDATE admin_users SET password_hash = ? WHERE username = ? AND is_active = 1"
+    ).bind(await hashAdminPassword(env, newPassword), session.username).run();
+
+    if (Number(result.meta?.changes || 0) === 0) {
+      return apiError("admin_not_found", "Active admin user was not found.", 404);
+    }
+  }
+
+  await revokeAdminToken(env, token, session.username, null);
+  await logAdminAction(env, request, session, "api_admin_password_changed", session.username);
+
+  return apiOk({
+    password_changed: true,
+    current_token_revoked: true,
+    login_required: true
   });
 }
 
@@ -10811,6 +10883,10 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/logout") {
     return handleApiAdminLogout(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/password") {
+    return handleApiAdminPasswordChange(request, env);
   }
 
   if (url.pathname === "/api/v1/admin/me") {
