@@ -24,7 +24,7 @@ This system must not be broken by Android development.
 
 Android-related work lives here:
 
-- `android-api-worker/`
+- `cloudflare-worker/`
 - `android/admin-app/`
 - `android/customer-app/`
 - `android/shared/`
@@ -32,13 +32,13 @@ Android-related work lives here:
 ## API domain plan
 
 - Existing production web/admin: `https://crm.ayartuerk.me`
-- Android API: `https://api.horizend.com`
+- Android API: `https://crm.ayartuerk.me/api/v1`
 
 ## Rule
 
 Do not add new Android-only features directly into `cloudflare-worker/`.
 
-Android app features should be added to `android-api-worker/` first.
+Android app features should be added to `cloudflare-worker/` under `/api/v1/...`.
 
 The Android API may read/write the same D1 database only through explicit, controlled API endpoints.
 

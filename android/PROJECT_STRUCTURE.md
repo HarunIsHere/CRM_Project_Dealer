@@ -17,4 +17,4 @@ Backend:
 
 Important rule:
 
-Do not use `android-api-worker/` for production Android apps. Android apps use the shared backend in `cloudflare-worker/`.
+Android apps use the shared backend in `cloudflare-worker/`.
