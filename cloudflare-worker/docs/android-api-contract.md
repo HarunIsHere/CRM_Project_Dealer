@@ -48,6 +48,27 @@ Authorization: Bearer <customer_token>
 
 Revokes the current customer session token. After logout, the same token returns 401.
 
+
+### Customer profile update
+
+PATCH /api/v1/customer/me
+
+Headers:
+Authorization: Bearer <customer_token>
+Content-Type: application/json
+
+Body:
+{
+  "full_name": "Customer Name",
+  "username": "customer_username",
+  "preferred_language": "en"
+}
+
+Supported languages:
+en, de, tr, ar
+
+Updates the current customer app profile and returns the updated customer object.
+
 ## Public endpoints
 
 GET /api/v1/health
@@ -61,6 +82,7 @@ POST   /api/v1/customer/session/start
 POST   /api/v1/customer/session/verify
 POST   /api/v1/customer/session/logout
 GET    /api/v1/customer/me
+PATCH  /api/v1/customer/me
 
 GET    /api/v1/customer/cart
 POST   /api/v1/customer/cart/items
