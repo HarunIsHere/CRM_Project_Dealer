@@ -8677,6 +8677,188 @@ async function handleTelegramWebhook(request, env) {
   return jsonResponse({ ok: true });
 }
 
+
+function apiResponse(data, status = 200) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store"
+    }
+  });
+}
+
+function apiOk(data = {}, status = 200) {
+  return apiResponse({ ok: true, ...data }, status);
+}
+
+function apiError(code, message, status = 400, details = null) {
+  const body = {
+    ok: false,
+    error: {
+      code,
+      message
+    }
+  };
+
+  if (details !== null) body.error.details = details;
+
+  return apiResponse(body, status);
+}
+
+async function readJsonBody(request) {
+  const contentType = request.headers.get("content-type") || "";
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return null;
+  }
+
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+
+function getBearerToken(request) {
+  const header = request.headers.get("authorization") || "";
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+async function getApiAdminSession(request, env) {
+  const token = getBearerToken(request) || parseCookies(request)[ADMIN_COOKIE_NAME];
+  const payload = await verifyAdminToken(env, token);
+
+  if (!payload) return null;
+
+  return {
+    username: payload.sub,
+    role: payload.role || "admin",
+    is_superadmin: payload.is_superadmin === true
+  };
+}
+
+function getApiCapabilities() {
+  return {
+    app_name: APP_CAPABILITIES.app_name,
+    runtime: APP_CAPABILITIES.runtime,
+    api_version: "v1",
+    supported_languages: SUPPORTED_LANGUAGES,
+    clients: [
+      "telegram_bot",
+      "admin_web",
+      "admin_android_app",
+      "customer_android_app"
+    ],
+    routes: {
+      health: "/api/v1/health",
+      capabilities: "/api/v1/capabilities",
+      admin_login: "/api/v1/admin/login",
+      admin_me: "/api/v1/admin/me"
+    },
+    production_rules: {
+      telegram_webhook_unchanged: "/telegram/webhook",
+      shared_backend: true,
+      shared_database: true,
+      android_separate_webhook: false,
+      android_separate_database: false
+    },
+    roadmap_stage: "phase_1_api_foundation"
+  };
+}
+
+async function handleApiAdminLogin(request, env) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const username = String(body.username || "").trim();
+  const password = String(body.password || "");
+
+  if (!username || !password) {
+    return apiError("missing_credentials", "Username and password are required.", 400);
+  }
+
+  const auth = await authenticateAdmin(env, username, password);
+
+  if (!auth) {
+    await logAdminAction(env, request, { username, role: "" }, "api_admin_login_failed", username);
+    return apiError("invalid_credentials", "Invalid username or password.", 401);
+  }
+
+  await cleanupOldAdminAuditLogs(env);
+  await logAdminAction(env, request, auth, "api_admin_login_success", auth.source || "");
+
+  const token = await createAdminToken(env, auth.username, auth.role);
+
+  return apiOk({
+    token_type: "Bearer",
+    access_token: token,
+    expires_in: 43200,
+    admin: {
+      username: auth.username,
+      role: auth.role || "admin",
+      is_superadmin: auth.is_superadmin === true
+    }
+  });
+}
+
+async function handleApiAdminMe(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await getApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  return apiOk({
+    admin: {
+      username: session.username,
+      role: session.role || "admin",
+      is_superadmin: session.is_superadmin === true
+    }
+  });
+}
+
+async function handleApiV1(request, env) {
+  const url = new URL(request.url);
+
+  if (url.pathname === "/api/v1/health" && request.method === "GET") {
+    return apiOk({
+      app: "CRM Delivery Worker",
+      status: "ok",
+      api_version: "v1"
+    });
+  }
+
+  if (url.pathname === "/api/v1/capabilities" && request.method === "GET") {
+    return apiOk({
+      capabilities: getApiCapabilities()
+    });
+  }
+
+  if (url.pathname === "/api/v1/admin/login") {
+    return handleApiAdminLogin(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/me") {
+    return handleApiAdminMe(request, env);
+  }
+
+  return apiError("not_found", "API route not found.", 404, { path: url.pathname });
+}
+
+
 async function handleHealth() {
   return jsonResponse({ app: "CRM Delivery Worker", status: "ok" });
 }
@@ -8685,6 +8867,9 @@ async function routeRequest(request, env) {
   const url = new URL(request.url);
 
   if (url.pathname === "/health") return handleHealth();
+
+  if (url.pathname.startsWith("/api/v1/")) return handleApiV1(request, env);
+
 
   if (url.pathname === "/static/admin.css") {
     return new Response(ADMIN_CSS, { headers: { "content-type": "text/css; charset=utf-8" } });
