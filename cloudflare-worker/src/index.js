@@ -8755,7 +8755,10 @@ function getApiCapabilities() {
       health: "/api/v1/health",
       capabilities: "/api/v1/capabilities",
       admin_login: "/api/v1/admin/login",
-      admin_me: "/api/v1/admin/me"
+      admin_me: "/api/v1/admin/me",
+      admin_orders: "/api/v1/admin/orders",
+      admin_closed_orders: "/api/v1/admin/closed-orders",
+      admin_open_requests: "/api/v1/admin/open-requests"
     },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
@@ -8830,6 +8833,131 @@ async function handleApiAdminMe(request, env) {
   });
 }
 
+
+function parseApiJsonArray(value) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed.filter((item) => item && item.name) : [];
+  } catch {
+    return [];
+  }
+}
+
+function mapOrderForApi(order) {
+  const items = parseApiJsonArray(order.items_json).map((item) => {
+    const quantity = Number(item.quantity || 1);
+    const priceSnapshot = item.price_snapshot === null || item.price_snapshot === undefined
+      ? null
+      : Number(item.price_snapshot);
+
+    return {
+      id: item.id === null || item.id === undefined ? null : Number(item.id),
+      name: item.name || "",
+      quantity,
+      price_snapshot: priceSnapshot,
+      line_total: priceSnapshot === null ? null : priceSnapshot * quantity
+    };
+  });
+
+  return {
+    id: Number(order.id),
+    customer_id: Number(order.customer_id),
+    status: order.status || "",
+    order_status: order.order_status || "in_progress",
+    order_status_label: getOrderStatusLabel(order.order_status || "in_progress"),
+    delivery_location_label: order.delivery_location_label || "",
+    delivery_google_maps_link: order.delivery_google_maps_link || "",
+    delivery_note: order.delivery_note || "",
+    delivered_at: order.delivered_at || null,
+    closed_at: order.closed_at || null,
+    admin_status_note: order.admin_status_note || "",
+    created_at: order.created_at || "",
+    updated_at: order.updated_at || "",
+    customer: {
+      full_name: order.full_name || "",
+      username: order.username || "",
+      telegram_user_id: order.telegram_user_id || "",
+      preferred_language: order.preferred_language || ""
+    },
+    item_count: Number(order.item_count || items.length || 0),
+    total_amount: Number(order.total_amount || 0),
+    total_amount_formatted: formatPrice(order.total_amount || 0),
+    items
+  };
+}
+
+function mapOpenRequestForApi(item, customerMap) {
+  const customer = customerMap[item.customer_id] || null;
+
+  return {
+    customer_id: Number(item.customer_id),
+    request_type: item.request_type || "",
+    request_type_label: i18nRequestType(item.request_type || "", "en"),
+    item_name: item.item_name || "",
+    quantity: item.quantity === null || item.quantity === undefined ? null : Number(item.quantity || 0),
+    request_count: Number(item.request_count || 0),
+    status: item.status || "",
+    latest_text: item.latest_text || "",
+    latest_created_at: item.latest_created_at || "",
+    google_maps_link: item.google_maps_link || "",
+    customer: customer ? {
+      id: Number(customer.id),
+      full_name: customer.full_name || "",
+      username: customer.username || "",
+      telegram_user_id: customer.telegram_user_id || "",
+      language: customer.language || "",
+      preferred_language: customer.preferred_language || "",
+      last_seen_at: customer.last_seen_at || ""
+    } : null
+  };
+}
+
+async function requireApiAdminSession(request, env) {
+  const session = await getApiAdminSession(request, env);
+  return session || null;
+}
+
+async function handleApiAdminOrders(request, env, closed = false) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const orders = await getOrdersContext(env, closed);
+
+  return apiOk({
+    orders: orders.map(mapOrderForApi),
+    count: orders.length,
+    closed
+  });
+}
+
+async function handleApiAdminOpenRequests(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const context = await getOpenRequestContext(env);
+  const requests = context.openRequests.map((item) => mapOpenRequestForApi(item, context.customerMap));
+
+  return apiOk({
+    open_requests: requests,
+    count: requests.length
+  });
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -8853,6 +8981,18 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/me") {
     return handleApiAdminMe(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/orders") {
+    return handleApiAdminOrders(request, env, false);
+  }
+
+  if (url.pathname === "/api/v1/admin/closed-orders") {
+    return handleApiAdminOrders(request, env, true);
+  }
+
+  if (url.pathname === "/api/v1/admin/open-requests") {
+    return handleApiAdminOpenRequests(request, env);
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
