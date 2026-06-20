@@ -8759,6 +8759,7 @@ function getApiCapabilities() {
       capabilities: "/api/v1/capabilities",
       admin_login: "/api/v1/admin/login",
       admin_me: "/api/v1/admin/me",
+      admin_dashboard: "/api/v1/admin/dashboard",
       admin_orders: "/api/v1/admin/orders",
       admin_closed_orders: "/api/v1/admin/closed-orders",
       admin_order_status: "/api/v1/admin/orders/{order_id}/status",
@@ -8941,6 +8942,54 @@ async function requireApiAdminSession(request, env) {
   const session = await getApiAdminSession(request, env);
   return session || null;
 }
+
+
+async function handleApiAdminDashboard(request, env) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const [
+    openOrders,
+    closedOrders,
+    openRequestContext,
+    activeCustomersRow,
+    activeProductsRow,
+    activeMeetingPointsRow
+  ] = await Promise.all([
+    getOrdersContext(env, false),
+    getOrdersContext(env, true),
+    getOpenRequestContext(env),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM customers").first(),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM products WHERE is_active = 1").first(),
+    env.DB.prepare("SELECT COUNT(*) AS count FROM meeting_points WHERE is_active = 1").first()
+  ]);
+
+  const latestOrders = openOrders.slice(0, 5).map(mapOrderForApi);
+  const latestRequests = openRequestContext.openRequests.slice(0, 5).map((item) =>
+    mapOpenRequestForApi(item, openRequestContext.customerMap)
+  );
+
+  return apiOk({
+    summary: {
+      open_orders_count: openOrders.length,
+      closed_orders_count: closedOrders.length,
+      open_requests_count: openRequestContext.openRequests.length,
+      active_customers_count: Number(activeCustomersRow?.count || 0),
+      active_products_count: Number(activeProductsRow?.count || 0),
+      active_meeting_points_count: Number(activeMeetingPointsRow?.count || 0)
+    },
+    latest_orders: latestOrders,
+    latest_requests: latestRequests
+  });
+}
+
 
 async function handleApiAdminOrders(request, env, closed = false) {
   if (request.method !== "GET") {
@@ -10602,6 +10651,10 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/me") {
     return handleApiAdminMe(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/dashboard") {
+    return handleApiAdminDashboard(request, env);
   }
 
   if (url.pathname === "/api/v1/admin/orders") {
