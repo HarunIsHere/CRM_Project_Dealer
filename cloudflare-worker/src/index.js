@@ -8870,7 +8870,6 @@ async function routeRequest(request, env) {
 
   if (url.pathname.startsWith("/api/v1/")) return handleApiV1(request, env);
 
-
   if (url.pathname === "/static/admin.css") {
     return new Response(ADMIN_CSS, { headers: { "content-type": "text/css; charset=utf-8" } });
   }
