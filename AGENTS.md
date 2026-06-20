@@ -203,6 +203,25 @@ For customer choosing our meeting point/location:
 
 For customer delivery location messages sent to admin, include the customer's basket directly in the Telegram admin notification before ETA buttons.
 
+
+## Current Android / domain direction
+
+- Build two Android apps in parallel with the existing Telegram bot and admin web UI.
+- Do not replace Telegram.
+- Do not create a separate Android webhook.
+- Keep the existing Telegram webhook unchanged:
+
+    https://crm.ayartuerk.me/telegram/webhook
+
+- Android apps, Telegram, and admin web must use the same Cloudflare Worker backend and the same D1 database.
+- Add versioned mobile/backend API routes under:
+
+    /api/v1/...
+
+- Backend remains the source of truth. Android apps must call backend APIs and must not duplicate business logic locally.
+- Carry/expose the admin system on horizend.com, but keep crm.ayartuerk.me/admin working during the transition.
+- Do not break current production routes while adding Android APIs.
+
 ## Android app roadmap
 
 The production Android app roadmap is documented in:

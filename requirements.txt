@@ -1,7 +1,14 @@
 # Deprecated local FastAPI backend requirements.
 # The active production app is the Cloudflare Worker in cloudflare-worker/.
 # Keep this file only for the archived/local Python implementation unless explicitly revived.
-
+#
+# Current active backend:
+#   Cloudflare Worker + Cloudflare D1
+#
+# Android app work must NOT use this file.
+# Android apps must use the Cloudflare Worker API routes under /api/v1/...
+# and the Worker project in cloudflare-worker/.
+#
 alembic==1.18.4
 annotated-doc==0.0.4
 annotated-types==0.7.0

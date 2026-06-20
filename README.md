@@ -699,6 +699,45 @@ Customer Locations tab shows:
 - created time
 
 
+
+## Current Android and domain direction
+
+Two Android apps are now part of the active project direction:
+
+1. Admin Android App
+2. Customer Android App
+
+The Android apps must be built in parallel with the existing Telegram bot and current admin web UI.
+
+Production rule:
+
+- Telegram must continue working.
+- The current admin web system must continue working.
+- Do not create a separate Android webhook.
+- Do not create a separate Android backend/database.
+- Telegram, admin web, Admin Android App, and Customer Android App must use the same Cloudflare Worker backend and the same Cloudflare D1 database.
+- Add versioned API endpoints under `/api/v1/...` for Android and future clients.
+- Keep the current Telegram webhook unchanged:
+
+    https://crm.ayartuerk.me/telegram/webhook
+
+Domain direction:
+
+- Keep `crm.ayartuerk.me/admin` working during transition.
+- Carry/expose the admin system on `horizend.com`.
+- Do not move Telegram to a separate webhook while building Android apps.
+
+Implementation order:
+
+1. Build backend API foundation first.
+2. Add Admin App APIs.
+3. Add Customer App APIs.
+4. Start Android UI only after the first API contract is stable.
+
+Android roadmap:
+
+    docs/ANDROID_APPS_ROADMAP.md
+
 Android apps roadmap:
 
     docs/ANDROID_APPS_ROADMAP.md
