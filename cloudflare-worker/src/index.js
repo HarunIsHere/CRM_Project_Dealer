@@ -8762,7 +8762,8 @@ function getApiCapabilities() {
       admin_products: "/api/v1/admin/products",
       admin_product_categories: "/api/v1/admin/product-categories",
       admin_meeting_points: "/api/v1/admin/meeting-points",
-      admin_customers: "/api/v1/admin/customers"
+      admin_customers: "/api/v1/admin/customers",
+      admin_settings: "/api/v1/admin/settings"
     },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
@@ -9586,6 +9587,125 @@ async function handleApiAdminCustomerReply(request, env, customerId) {
 }
 
 
+
+async function getApiAdminSettings(env) {
+  return {
+    admin_telegram_chat_id: await getSetting(env, "admin_telegram_chat_id") || "",
+    working_hours_enabled: await getSetting(env, "working_hours_enabled") || "off",
+    working_hours_timezone: await getSetting(env, "working_hours_timezone") || "Europe/Berlin",
+    working_hours_start: await getSetting(env, "working_hours_start") || "10:00",
+    working_hours_end: await getSetting(env, "working_hours_end") || "22:00",
+    working_hours_closed_message: await getSetting(env, "working_hours_closed_message") || "",
+    working_hours_message_mode: await getSetting(env, "working_hours_message_mode") || "custom",
+    admin_view_language: await getSetting(env, "admin_view_language") || "en",
+    allow_preferred_customer_location: await getSetting(env, "allow_preferred_customer_location") || "on",
+    allow_new_customer_location: await getSetting(env, "allow_new_customer_location") || "on",
+    allow_customer_pickup: await getSetting(env, "allow_customer_pickup") || "on",
+    allowed_delivery_cities: await getAllowedDeliveryCities(env),
+    ai_response_mode: await getSetting(env, "ai_response_mode") || "rule_base",
+    ai_custom_instructions: await getSetting(env, "ai_custom_instructions") || ""
+  };
+}
+
+function normalizeOnOff(value, fallback = "off") {
+  if (value === true || value === "on" || value === "true" || value === 1 || value === "1") return "on";
+  if (value === false || value === "off" || value === "false" || value === 0 || value === "0") return "off";
+  return fallback;
+}
+
+async function handleApiAdminSettings(request, env) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method === "GET") {
+    return apiOk({
+      settings: await getApiAdminSettings(env)
+    });
+  }
+
+  if (request.method === "PUT" || request.method === "PATCH") {
+    const body = await readJsonBody(request);
+
+    if (!body) {
+      return apiError("invalid_json", "Request body must be valid JSON.", 400);
+    }
+
+    if (body.admin_telegram_chat_id !== undefined) {
+      await setSetting(env, "admin_telegram_chat_id", String(body.admin_telegram_chat_id || ""));
+    }
+
+    if (body.working_hours_enabled !== undefined) {
+      await setSetting(env, "working_hours_enabled", normalizeOnOff(body.working_hours_enabled, "off"));
+    }
+
+    if (body.working_hours_timezone !== undefined) {
+      await setSetting(env, "working_hours_timezone", String(body.working_hours_timezone || "Europe/Berlin"));
+    }
+
+    if (body.working_hours_start !== undefined) {
+      await setSetting(env, "working_hours_start", String(body.working_hours_start || "10:00"));
+    }
+
+    if (body.working_hours_end !== undefined) {
+      await setSetting(env, "working_hours_end", String(body.working_hours_end || "22:00"));
+    }
+
+    if (body.working_hours_message_mode !== undefined) {
+      const mode = String(body.working_hours_message_mode || "custom");
+      await setSetting(env, "working_hours_message_mode", mode === "default" ? "default" : "custom");
+    }
+
+    if (body.working_hours_closed_message !== undefined) {
+      await setSetting(env, "working_hours_closed_message", String(body.working_hours_closed_message || ""));
+    }
+
+    if (body.admin_view_language !== undefined) {
+      const language = SUPPORTED_LANGUAGES.includes(String(body.admin_view_language)) ? String(body.admin_view_language) : "en";
+      await setSetting(env, "admin_view_language", language);
+    }
+
+    if (body.allow_preferred_customer_location !== undefined) {
+      await setSetting(env, "allow_preferred_customer_location", normalizeOnOff(body.allow_preferred_customer_location, "on"));
+    }
+
+    if (body.allow_new_customer_location !== undefined) {
+      await setSetting(env, "allow_new_customer_location", normalizeOnOff(body.allow_new_customer_location, "on"));
+    }
+
+    if (body.allow_customer_pickup !== undefined) {
+      await setSetting(env, "allow_customer_pickup", normalizeOnOff(body.allow_customer_pickup, "on"));
+    }
+
+    if (body.allowed_delivery_cities !== undefined) {
+      const cities = Array.isArray(body.allowed_delivery_cities)
+        ? body.allowed_delivery_cities.map((city) => String(city || "").trim()).filter(Boolean)
+        : String(body.allowed_delivery_cities || "").split(",").map((city) => city.trim()).filter(Boolean);
+      await setAllowedDeliveryCities(env, cities);
+    }
+
+    if (body.ai_response_mode !== undefined) {
+      const mode = String(body.ai_response_mode || "rule_base");
+      await setSetting(env, "ai_response_mode", mode === "ai_fallback" ? "ai_fallback" : "rule_base");
+    }
+
+    if (body.ai_custom_instructions !== undefined) {
+      await setSetting(env, "ai_custom_instructions", String(body.ai_custom_instructions || "").trim());
+    }
+
+    await logAdminAction(env, request, session, "api_settings_updated", "admin_settings");
+
+    return apiOk({
+      settings: await getApiAdminSettings(env)
+    });
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -9662,6 +9782,10 @@ async function handleApiV1(request, env) {
   const customerDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customers\/(\d+)$/);
   if (customerDetailMatch) {
     return handleApiAdminCustomerDetail(request, env, Number(customerDetailMatch[1]));
+  }
+
+  if (url.pathname === "/api/v1/admin/settings") {
+    return handleApiAdminSettings(request, env);
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
