@@ -8772,7 +8772,9 @@ function getApiCapabilities() {
     customer: {
       session_start: "/api/v1/customer/session/start",
       session_verify: "/api/v1/customer/session/verify",
-      me: "/api/v1/customer/me"
+      me: "/api/v1/customer/me",
+      cart: "/api/v1/customer/cart",
+      cart_items: "/api/v1/customer/cart/items"
     },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
@@ -9958,6 +9960,183 @@ async function handleApiCustomerMe(request, env) {
 }
 
 
+
+function mapCartItemForApi(item) {
+  const quantity = Number(item.quantity || 1);
+  const unitPrice = Number(item.price_snapshot || 0);
+  return {
+    id: Number(item.id),
+    product_id: item.product_id !== null && item.product_id !== undefined ? Number(item.product_id) : null,
+    item_type: item.item_type || "product",
+    name: item.name || "",
+    quantity,
+    price_snapshot: unitPrice,
+    line_total: unitPrice * quantity,
+    created_at: item.created_at || ""
+  };
+}
+
+function mapCustomerCartForApi(cart, items) {
+  const mappedItems = (items || []).map(mapCartItemForApi);
+  const total = mappedItems.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
+
+  return {
+    id: cart ? Number(cart.id) : null,
+    status: cart?.status || "active",
+    order_status: cart?.order_status || "in_progress",
+    delivery_location_label: cart?.delivery_location_label || "",
+    delivery_google_maps_link: cart?.delivery_google_maps_link || "",
+    delivery_note: cart?.delivery_note || "",
+    admin_status_note: cart?.admin_status_note || "",
+    item_count: mappedItems.length,
+    total_amount: total,
+    total_formatted: formatPrice(total),
+    items: mappedItems,
+    created_at: cart?.created_at || "",
+    updated_at: cart?.updated_at || ""
+  };
+}
+
+async function getCustomerCartApiPayload(env, customerId) {
+  const { cart, items } = await getCartItems(env, customerId);
+  return mapCustomerCartForApi(cart, items);
+}
+
+async function handleApiCustomerCart(request, env) {
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  const customerId = session.customer.id;
+
+  if (request.method === "GET") {
+    return apiOk({
+      cart: await getCustomerCartApiPayload(env, customerId)
+    });
+  }
+
+  if (request.method === "DELETE") {
+    const cart = await getActiveCart(env, customerId);
+
+    if (cart) {
+      await env.DB.prepare("DELETE FROM shopping_cart_items WHERE cart_id = ?").bind(cart.id).run();
+      await setActiveCartOrderStatus(env, customerId, "in_progress", {
+        delivery_location_label: null,
+        delivery_google_maps_link: null,
+        delivery_note: null,
+        delivered_at: null,
+        closed_at: null
+      });
+    }
+
+    return apiOk({
+      cart: await getCustomerCartApiPayload(env, customerId)
+    });
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+async function handleApiCustomerCartItems(request, env) {
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const productId = Number(body.product_id || 0);
+  const quantity = Math.max(1, Math.floor(Number(body.quantity || 1)));
+
+  if (!productId) {
+    return apiError("invalid_product", "product_id is required.", 400);
+  }
+
+  const product = await env.DB.prepare(
+    "SELECT id, name, price, is_active FROM products WHERE id = ? AND is_active = 1"
+  ).bind(productId).first();
+
+  if (!product) {
+    return apiError("product_not_found", "Product is not available.", 404);
+  }
+
+  await addProductToBasket(env, session.customer.id, product, quantity);
+  await refreshCartStatusAfterItemChange(env, session.customer.id);
+
+  return apiOk({
+    cart: await getCustomerCartApiPayload(env, session.customer.id)
+  }, 201);
+}
+
+async function handleApiCustomerCartItemDetail(request, env, itemId) {
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  const customerId = session.customer.id;
+  const cart = await getActiveCart(env, customerId);
+
+  if (!cart) {
+    return apiError("cart_not_found", "Cart is empty.", 404);
+  }
+
+  const item = await env.DB.prepare(
+    "SELECT * FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
+  ).bind(itemId, cart.id).first();
+
+  if (!item) {
+    return apiError("item_not_found", "Cart item was not found.", 404);
+  }
+
+  if (request.method === "PATCH" || request.method === "PUT") {
+    const body = await readJsonBody(request);
+
+    if (!body) {
+      return apiError("invalid_json", "Request body must be valid JSON.", 400);
+    }
+
+    const quantity = Math.max(1, Math.floor(Number(body.quantity || item.quantity || 1)));
+
+    await env.DB.prepare(
+      "UPDATE shopping_cart_items SET quantity = ? WHERE id = ? AND cart_id = ?"
+    ).bind(quantity, itemId, cart.id).run();
+
+    await refreshCartStatusAfterItemChange(env, customerId);
+
+    return apiOk({
+      cart: await getCustomerCartApiPayload(env, customerId)
+    });
+  }
+
+  if (request.method === "DELETE") {
+    await env.DB.prepare(
+      "DELETE FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
+    ).bind(itemId, cart.id).run();
+
+    await refreshCartStatusAfterItemChange(env, customerId);
+
+    return apiOk({
+      cart: await getCustomerCartApiPayload(env, customerId)
+    });
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -10058,6 +10237,19 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/customer/me") {
     return handleApiCustomerMe(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/cart") {
+    return handleApiCustomerCart(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/cart/items") {
+    return handleApiCustomerCartItems(request, env);
+  }
+
+  const customerCartItemMatch = url.pathname.match(/^\/api\/v1\/customer\/cart\/items\/(\d+)$/);
+  if (customerCartItemMatch) {
+    return handleApiCustomerCartItemDetail(request, env, Number(customerCartItemMatch[1]));
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
