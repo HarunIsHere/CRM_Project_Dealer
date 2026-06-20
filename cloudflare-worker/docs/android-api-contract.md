@@ -38,6 +38,16 @@ Use returned token:
 
 Authorization: Bearer <customer_token>
 
+
+### Customer logout
+
+POST /api/v1/customer/session/logout
+
+Headers:
+Authorization: Bearer <customer_token>
+
+Revokes the current customer session token. After logout, the same token returns 401.
+
 ## Public endpoints
 
 GET /api/v1/health
@@ -49,6 +59,7 @@ GET /api/v1/public/meeting-points
 
 POST   /api/v1/customer/session/start
 POST   /api/v1/customer/session/verify
+POST   /api/v1/customer/session/logout
 GET    /api/v1/customer/me
 
 GET    /api/v1/customer/cart
