@@ -8758,7 +8758,9 @@ function getApiCapabilities() {
       admin_me: "/api/v1/admin/me",
       admin_orders: "/api/v1/admin/orders",
       admin_closed_orders: "/api/v1/admin/closed-orders",
-      admin_open_requests: "/api/v1/admin/open-requests"
+      admin_open_requests: "/api/v1/admin/open-requests",
+      admin_products: "/api/v1/admin/products",
+      admin_product_categories: "/api/v1/admin/product-categories"
     },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
@@ -8958,6 +8960,271 @@ async function handleApiAdminOpenRequests(request, env) {
 }
 
 
+
+function mapProductForApi(product, aliasMap = {}) {
+  return {
+    id: Number(product.id),
+    name: product.name || "",
+    price: Number(product.price || 0),
+    price_formatted: formatPrice(product.price || 0),
+    is_active: Number(product.is_active) === 1,
+    category_id: product.category_id === null || product.category_id === undefined ? null : Number(product.category_id),
+    category_name: product.category_name || "",
+    aliases: aliasMap[product.id] || []
+  };
+}
+
+function mapProductCategoryForApi(category) {
+  return {
+    id: Number(category.id),
+    name: category.name || "",
+    is_active: Number(category.is_active) === 1
+  };
+}
+
+async function handleApiAdminProducts(request, env) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method === "GET") {
+    const products = await getAllProducts(env);
+    const categories = await getAllProductCategories(env);
+    const aliasMap = await getProductAliasMap(env);
+
+    return apiOk({
+      products: products.map((product) => mapProductForApi(product, aliasMap)),
+      categories: categories.map(mapProductCategoryForApi),
+      count: products.length
+    });
+  }
+
+  if (request.method === "POST") {
+    const body = await readJsonBody(request);
+
+    if (!body) {
+      return apiError("invalid_json", "Request body must be valid JSON.", 400);
+    }
+
+    const name = String(body.name || "").trim();
+    const price = Number(body.price || 0);
+    const categoryId = body.category_id === null || body.category_id === undefined || body.category_id === ""
+      ? null
+      : Number(body.category_id);
+    const aliasesText = Array.isArray(body.aliases) ? body.aliases.join(",") : String(body.aliases || "");
+
+    if (!name || price <= 0) {
+      return apiError("invalid_product", "Product name and positive price are required.", 400);
+    }
+
+    const inserted = await env.DB.prepare(
+      "INSERT INTO products (name, price, category_id, is_active) VALUES (?, ?, ?, 1) RETURNING id"
+    ).bind(name, price, categoryId).first();
+
+    if (inserted && inserted.id) {
+      if (aliasesText.trim()) {
+        await replaceManualAliases(env, inserted.id, aliasesText);
+      } else {
+        await syncAutoAliases(env, inserted.id, name);
+      }
+
+      await logAdminAction(env, request, session, "api_product_created", `${inserted.id}:${name}`);
+    }
+
+    return apiOk({
+      product_id: inserted?.id ? Number(inserted.id) : null
+    }, 201);
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+async function handleApiAdminProductDetail(request, env, productId) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const product = await env.DB.prepare(
+    `SELECT
+       p.id,
+       p.name,
+       p.price,
+       p.is_active,
+       p.category_id,
+       pc.name AS category_name
+     FROM products p
+     LEFT JOIN product_categories pc ON pc.id = p.category_id
+     WHERE p.id = ?`
+  ).bind(productId).first();
+
+  if (!product) {
+    return apiError("not_found", "Product not found.", 404);
+  }
+
+  if (request.method === "GET") {
+    const aliasMap = await getProductAliasMap(env);
+
+    return apiOk({
+      product: mapProductForApi(product, aliasMap)
+    });
+  }
+
+  if (request.method === "PUT" || request.method === "PATCH") {
+    const body = await readJsonBody(request);
+
+    if (!body) {
+      return apiError("invalid_json", "Request body must be valid JSON.", 400);
+    }
+
+    const name = String(body.name ?? product.name ?? "").trim();
+    const price = Number(body.price ?? product.price ?? 0);
+    const isActive = body.is_active === undefined ? Number(product.is_active) : (body.is_active ? 1 : 0);
+    const categoryId = body.category_id === null || body.category_id === ""
+      ? null
+      : (body.category_id === undefined ? product.category_id : Number(body.category_id));
+    const aliasesText = Array.isArray(body.aliases) ? body.aliases.join(",") : String(body.aliases || "");
+
+    if (!name || price <= 0) {
+      return apiError("invalid_product", "Product name and positive price are required.", 400);
+    }
+
+    await env.DB.prepare(
+      "UPDATE products SET name = ?, price = ?, category_id = ?, is_active = ? WHERE id = ?"
+    ).bind(name, price, categoryId, isActive, productId).run();
+
+    if (body.aliases !== undefined) {
+      if (aliasesText.trim()) {
+        await replaceManualAliases(env, productId, aliasesText);
+      } else {
+        await syncAutoAliases(env, productId, name);
+      }
+    }
+
+    await logAdminAction(env, request, session, "api_product_updated", `${productId}:${name}`);
+
+    return apiOk({
+      product_id: Number(productId)
+    });
+  }
+
+  if (request.method === "DELETE") {
+    await env.DB.prepare("DELETE FROM product_aliases WHERE product_id = ?").bind(productId).run();
+    await env.DB.prepare("DELETE FROM products WHERE id = ?").bind(productId).run();
+
+    await logAdminAction(env, request, session, "api_product_deleted", String(productId));
+
+    return apiOk({
+      product_id: Number(productId),
+      deleted: true
+    });
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+async function handleApiAdminProductCategories(request, env) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method === "GET") {
+    const categories = await getAllProductCategories(env);
+
+    return apiOk({
+      categories: categories.map(mapProductCategoryForApi),
+      count: categories.length
+    });
+  }
+
+  if (request.method === "POST") {
+    const body = await readJsonBody(request);
+
+    if (!body) {
+      return apiError("invalid_json", "Request body must be valid JSON.", 400);
+    }
+
+    const name = String(body.name || "").trim();
+
+    if (!name) {
+      return apiError("invalid_category", "Category name is required.", 400);
+    }
+
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO product_categories (name, is_active) VALUES (?, 1)"
+    ).bind(name).run();
+
+    await logAdminAction(env, request, session, "api_product_category_created", name);
+
+    return apiOk({
+      name
+    }, 201);
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+async function handleApiAdminProductCategoryDetail(request, env, categoryId) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const category = await env.DB.prepare(
+    "SELECT id, name, is_active FROM product_categories WHERE id = ?"
+  ).bind(categoryId).first();
+
+  if (!category) {
+    return apiError("not_found", "Product category not found.", 404);
+  }
+
+  if (request.method === "PUT" || request.method === "PATCH") {
+    const body = await readJsonBody(request);
+
+    if (!body) {
+      return apiError("invalid_json", "Request body must be valid JSON.", 400);
+    }
+
+    const name = String(body.name ?? category.name ?? "").trim();
+    const isActive = body.is_active === undefined ? Number(category.is_active) : (body.is_active ? 1 : 0);
+
+    if (!name) {
+      return apiError("invalid_category", "Category name is required.", 400);
+    }
+
+    await env.DB.prepare(
+      "UPDATE product_categories SET name = ?, is_active = ? WHERE id = ?"
+    ).bind(name, isActive, categoryId).run();
+
+    await logAdminAction(env, request, session, "api_product_category_updated", `${categoryId}:${name}`);
+
+    return apiOk({
+      category_id: Number(categoryId)
+    });
+  }
+
+  if (request.method === "DELETE") {
+    await env.DB.prepare("UPDATE products SET category_id = NULL WHERE category_id = ?").bind(categoryId).run();
+    await env.DB.prepare("DELETE FROM product_categories WHERE id = ?").bind(categoryId).run();
+
+    await logAdminAction(env, request, session, "api_product_category_deleted", String(categoryId));
+
+    return apiOk({
+      category_id: Number(categoryId),
+      deleted: true
+    });
+  }
+
+  return apiError("method_not_allowed", "Method not allowed.", 405);
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -8993,6 +9260,24 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/open-requests") {
     return handleApiAdminOpenRequests(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/products") {
+    return handleApiAdminProducts(request, env);
+  }
+
+  const productDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/products\/(\d+)$/);
+  if (productDetailMatch) {
+    return handleApiAdminProductDetail(request, env, Number(productDetailMatch[1]));
+  }
+
+  if (url.pathname === "/api/v1/admin/product-categories") {
+    return handleApiAdminProductCategories(request, env);
+  }
+
+  const productCategoryDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/product-categories\/(\d+)$/);
+  if (productCategoryDetailMatch) {
+    return handleApiAdminProductCategoryDetail(request, env, Number(productCategoryDetailMatch[1]));
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
