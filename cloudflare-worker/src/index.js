@@ -2264,10 +2264,10 @@ async function setCustomerState(env, customerId, state) {
   await env.DB.prepare("UPDATE customers SET conversation_state = ? WHERE id = ?").bind(state, customerId).run();
 }
 
-async function saveMessage(env, customerId, direction, content, language = null, messageType = "text") {
+async function saveMessage(env, customerId, direction, content, language = null, messageType = "text", platform = "telegram") {
   await env.DB.prepare(
-    "INSERT INTO messages (customer_id, direction, platform, content, message_type, language) VALUES (?, ?, 'telegram', ?, ?, ?)"
-  ).bind(customerId, direction, content, messageType, language).run();
+    "INSERT INTO messages (customer_id, direction, platform, content, message_type, language) VALUES (?, ?, ?, ?, ?, ?)"
+  ).bind(customerId, direction, platform, content, messageType, language).run();
 }
 
 async function logCustomerRequest(env, customerId, requestType, requestText = null, quantity = null, itemName = null, locationLabel = null, latitude = null, longitude = null, googleMapsLink = null) {
@@ -10457,7 +10457,7 @@ async function handleApiCustomerCheckoutAddress(request, env) {
     googleMapsLink
   );
 
-  await saveMessage(env, customerId, "incoming", finalLocationLabel, session.customer.preferred_language || "en", "customer_app_checkout_address");
+  await saveMessage(env, customerId, "incoming", finalLocationLabel, session.customer.preferred_language || "en", "customer_app_checkout_address", "android");
 
   if (googleMapsLink) {
     await forwardCustomerLocationToAdmin(env, session.customer, requestId, finalLocationLabel, googleMapsLink);
@@ -10527,7 +10527,7 @@ async function handleApiCustomerCheckoutPickup(request, env) {
     point.google_maps_link
   );
 
-  await saveMessage(env, customerId, "incoming", `Pickup selected: ${point.name || point.address}`, session.customer.preferred_language || "en", "customer_app_checkout_pickup");
+  await saveMessage(env, customerId, "incoming", `Pickup selected: ${point.name || point.address}`, session.customer.preferred_language || "en", "customer_app_checkout_pickup", "android");
 
   const orders = await getCustomerOrderRows(env, customerId, cartCheck.cart.id);
 
