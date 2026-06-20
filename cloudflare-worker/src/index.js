@@ -4489,11 +4489,17 @@ async function hmacSign(secret, data) {
 }
 
 async function createAdminToken(env, username, role = "admin") {
+  const now = Math.floor(Date.now() / 1000);
+  const randomBytes = new Uint8Array(16);
+  crypto.getRandomValues(randomBytes);
+
   const payload = {
     sub: username,
     role,
     scope: "admin",
-    exp: Math.floor(Date.now() / 1000) + 43200
+    iat: now,
+    jti: base64UrlEncode(randomBytes),
+    exp: now + 43200
   };
   const body = base64UrlEncode(JSON.stringify(payload));
   const sig = await hmacSign(env.ADMIN_JWT_SECRET, body);
