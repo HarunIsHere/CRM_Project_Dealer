@@ -8779,6 +8779,7 @@ function getApiCapabilities() {
     customer: {
       session_start: "/api/v1/customer/session/start",
       session_verify: "/api/v1/customer/session/verify",
+      session_logout: "/api/v1/customer/session/logout",
       me: "/api/v1/customer/me",
       cart: "/api/v1/customer/cart",
       cart_items: "/api/v1/customer/cart/items",
@@ -10190,6 +10191,36 @@ async function handleApiCustomerSessionStart(request, env) {
   }, 201);
 }
 
+
+async function handleApiCustomerSessionLogout(request, env) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const token = getCustomerBearerToken(request);
+
+  if (!token) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  const tokenHash = await hashCustomerSessionToken(env, token);
+
+  const result = await env.DB.prepare(
+    `UPDATE customer_app_sessions
+     SET is_active = 0,
+         revoked_at = CURRENT_TIMESTAMP,
+         last_seen_at = CURRENT_TIMESTAMP
+     WHERE token_hash = ?
+       AND is_active = 1`
+  ).bind(tokenHash).run();
+
+  return apiOk({
+    logged_out: true,
+    revoked_count: Number(result.meta?.changes || 0)
+  });
+}
+
+
 async function handleApiCustomerSessionVerify(request, env) {
   if (request.method !== "POST" && request.method !== "GET") {
     return apiError("method_not_allowed", "Method not allowed.", 405);
@@ -10781,6 +10812,10 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/customer/session/verify") {
     return handleApiCustomerSessionVerify(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/session/logout") {
+    return handleApiCustomerSessionLogout(request, env);
   }
 
   if (url.pathname === "/api/v1/customer/me") {
