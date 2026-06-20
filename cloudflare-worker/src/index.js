@@ -8765,6 +8765,10 @@ function getApiCapabilities() {
       admin_customers: "/api/v1/admin/customers",
       admin_settings: "/api/v1/admin/settings"
     },
+    public: {
+      catalog: "/api/v1/public/catalog",
+      meeting_points: "/api/v1/public/meeting-points"
+    },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
       shared_backend: true,
@@ -9706,6 +9710,71 @@ async function handleApiAdminSettings(request, env) {
 }
 
 
+
+async function getPublicCatalog(env) {
+  const productsResult = await env.DB.prepare(
+    `SELECT
+       p.id,
+       p.name,
+       p.price,
+       p.is_active,
+       p.category_id,
+       pc.name AS category_name
+     FROM products p
+     LEFT JOIN product_categories pc ON pc.id = p.category_id
+     WHERE p.is_active = 1
+     ORDER BY pc.name ASC, p.name ASC`
+  ).all();
+
+  const categories = await getActiveProductCategories(env);
+  const meetingPoints = await getActiveMeetingPoints(env);
+  const fulfillmentSettings = await getFulfillmentSettings(env);
+
+  return {
+    products: (productsResult.results || []).map((product) => mapProductForApi(product, {})),
+    categories: categories.map((category) => ({
+      id: Number(category.id),
+      name: category.name || ""
+    })),
+    meeting_points: meetingPoints.map(mapMeetingPointForApi),
+    fulfillment: {
+      allow_preferred_customer_location: fulfillmentSettings.allowPreferred,
+      allow_new_customer_location: fulfillmentSettings.allowNew,
+      allow_customer_pickup: fulfillmentSettings.allowPickup
+    },
+    allowed_delivery_cities: await getAllowedDeliveryCities(env),
+    languages: SUPPORTED_LANGUAGES,
+    app: {
+      name: env.APP_NAME || "CRM Delivery",
+      api_version: "v1"
+    }
+  };
+}
+
+async function handleApiPublicCatalog(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  return apiOk({
+    catalog: await getPublicCatalog(env)
+  });
+}
+
+async function handleApiPublicMeetingPoints(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const meetingPoints = await getActiveMeetingPoints(env);
+
+  return apiOk({
+    meeting_points: meetingPoints.map(mapMeetingPointForApi),
+    count: meetingPoints.length
+  });
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -9786,6 +9855,14 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/settings") {
     return handleApiAdminSettings(request, env);
+  }
+
+  if (url.pathname === "/api/v1/public/catalog") {
+    return handleApiPublicCatalog(request, env);
+  }
+
+  if (url.pathname === "/api/v1/public/meeting-points") {
+    return handleApiPublicMeetingPoints(request, env);
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
