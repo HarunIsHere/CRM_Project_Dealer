@@ -8774,7 +8774,10 @@ function getApiCapabilities() {
       session_verify: "/api/v1/customer/session/verify",
       me: "/api/v1/customer/me",
       cart: "/api/v1/customer/cart",
-      cart_items: "/api/v1/customer/cart/items"
+      cart_items: "/api/v1/customer/cart/items",
+      checkout_address: "/api/v1/customer/checkout/address",
+      checkout_pickup: "/api/v1/customer/checkout/pickup",
+      orders: "/api/v1/customer/orders"
     },
     production_rules: {
       telegram_webhook_unchanged: "/telegram/webhook",
@@ -10137,6 +10140,270 @@ async function handleApiCustomerCartItemDetail(request, env, itemId) {
 }
 
 
+
+function parseApiItemsJson(itemsJson) {
+  if (!itemsJson) return [];
+  try {
+    return JSON.parse(itemsJson).filter((item) => item && item.id !== null);
+  } catch (_) {
+    return [];
+  }
+}
+
+function mapCustomerOrderForApi(order) {
+  const items = parseApiItemsJson(order.items_json).map(mapCartItemForApi);
+  const total = Number(order.total_amount || 0);
+
+  return {
+    id: Number(order.id),
+    status: order.status || "active",
+    order_status: order.order_status || "in_progress",
+    order_status_label: getOrderStatusLabel(order.order_status || "in_progress"),
+    delivery_location_label: order.delivery_location_label || "",
+    delivery_google_maps_link: order.delivery_google_maps_link || "",
+    delivery_note: order.delivery_note || "",
+    admin_status_note: order.admin_status_note || "",
+    delivered_at: order.delivered_at || "",
+    closed_at: order.closed_at || "",
+    item_count: Number(order.item_count || items.length || 0),
+    total_amount: total,
+    total_formatted: formatPrice(total),
+    items,
+    created_at: order.created_at || "",
+    updated_at: order.updated_at || ""
+  };
+}
+
+async function getCustomerOrderRows(env, customerId, orderId = null) {
+  const whereOrder = orderId ? "AND c.id = ?" : "";
+  const query = `
+    SELECT
+      c.id,
+      c.customer_id,
+      c.status,
+      c.order_status,
+      c.delivery_location_label,
+      c.delivery_google_maps_link,
+      c.delivery_note,
+      c.delivered_at,
+      c.closed_at,
+      c.admin_status_note,
+      c.created_at,
+      c.updated_at,
+      COUNT(i.id) AS item_count,
+      COALESCE(SUM(COALESCE(i.price_snapshot, 0) * COALESCE(i.quantity, 1)), 0) AS total_amount,
+      json_group_array(
+        json_object(
+          'id', i.id,
+          'product_id', i.product_id,
+          'item_type', i.item_type,
+          'name', i.name,
+          'quantity', i.quantity,
+          'price_snapshot', i.price_snapshot,
+          'created_at', i.created_at
+        )
+      ) AS items_json
+    FROM shopping_carts c
+    LEFT JOIN shopping_cart_items i ON i.cart_id = c.id
+    WHERE c.customer_id = ?
+      ${whereOrder}
+    GROUP BY c.id
+    HAVING item_count > 0
+    ORDER BY c.updated_at DESC
+  `;
+
+  const stmt = env.DB.prepare(query);
+  const result = orderId
+    ? await stmt.bind(customerId, orderId).all()
+    : await stmt.bind(customerId).all();
+
+  return result.results || [];
+}
+
+async function ensureCustomerCartHasItems(env, customerId) {
+  const { cart, items } = await getCartItems(env, customerId);
+
+  if (!cart || !items.length) {
+    return { error: apiError("cart_empty", "Cart is empty.", 400) };
+  }
+
+  return { cart, items };
+}
+
+async function handleApiCustomerCheckoutAddress(request, env) {
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const customerId = session.customer.id;
+  const cartCheck = await ensureCustomerCartHasItems(env, customerId);
+  if (cartCheck.error) return cartCheck.error;
+
+  const latitude = body.latitude !== undefined && body.latitude !== null ? String(body.latitude).trim() : null;
+  const longitude = body.longitude !== undefined && body.longitude !== null ? String(body.longitude).trim() : null;
+  const googleMapsLink = String(body.google_maps_link || "").trim() || (latitude && longitude ? makeGoogleMapsLink(latitude, longitude) : null);
+  const locationLabel = String(body.location_label || body.address || body.description || "").trim();
+
+  if (!locationLabel && !googleMapsLink) {
+    return apiError("location_required", "location_label, address, description, or coordinates are required.", 400);
+  }
+
+  const finalLocationLabel = locationLabel || `Customer location: ${latitude}, ${longitude}`;
+  const deliveryNote = String(body.delivery_note || "customer_app_checkout_address").trim();
+
+  await setActiveCartOrderStatus(env, customerId, "ready_to_delivery", {
+    delivery_location_label: finalLocationLabel,
+    delivery_google_maps_link: googleMapsLink,
+    delivery_note: deliveryNote
+  });
+
+  const requestId = await logCustomerRequest(
+    env,
+    customerId,
+    "delivery_location",
+    finalLocationLabel,
+    null,
+    "customer_app_checkout",
+    finalLocationLabel,
+    latitude,
+    longitude,
+    googleMapsLink
+  );
+
+  await saveMessage(env, customerId, "incoming", finalLocationLabel, session.customer.preferred_language || "en", "customer_app_checkout_address");
+
+  if (googleMapsLink) {
+    await forwardCustomerLocationToAdmin(env, session.customer, requestId, finalLocationLabel, googleMapsLink);
+  } else {
+    await forwardUnresolvedMessage(env, session.customer, `Customer app checkout location: ${finalLocationLabel}`);
+  }
+
+  const orders = await getCustomerOrderRows(env, customerId, cartCheck.cart.id);
+
+  return apiOk({
+    order: orders[0] ? mapCustomerOrderForApi(orders[0]) : null,
+    cart: await getCustomerCartApiPayload(env, customerId)
+  });
+}
+
+async function handleApiCustomerCheckoutPickup(request, env) {
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const customerId = session.customer.id;
+  const cartCheck = await ensureCustomerCartHasItems(env, customerId);
+  if (cartCheck.error) return cartCheck.error;
+
+  const meetingPointId = Number(body.meeting_point_id || 0);
+
+  if (!meetingPointId) {
+    return apiError("meeting_point_required", "meeting_point_id is required.", 400);
+  }
+
+  const point = await env.DB.prepare(
+    "SELECT * FROM meeting_points WHERE id = ? AND is_active = 1"
+  ).bind(meetingPointId).first();
+
+  if (!point) {
+    return apiError("meeting_point_not_found", "Meeting point is not available.", 404);
+  }
+
+  await setActiveCartOrderStatus(env, customerId, "ready_to_delivery", {
+    delivery_location_label: point.name || point.address,
+    delivery_google_maps_link: point.google_maps_link,
+    delivery_note: "customer_app_pickup"
+  });
+
+  await logCustomerRequest(
+    env,
+    customerId,
+    "location",
+    "Customer app selected pickup at business location",
+    null,
+    point.name,
+    point.address,
+    null,
+    null,
+    point.google_maps_link
+  );
+
+  await saveMessage(env, customerId, "incoming", `Pickup selected: ${point.name || point.address}`, session.customer.preferred_language || "en", "customer_app_checkout_pickup");
+
+  const orders = await getCustomerOrderRows(env, customerId, cartCheck.cart.id);
+
+  return apiOk({
+    order: orders[0] ? mapCustomerOrderForApi(orders[0]) : null,
+    cart: await getCustomerCartApiPayload(env, customerId)
+  });
+}
+
+async function handleApiCustomerOrders(request, env) {
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const orders = await getCustomerOrderRows(env, session.customer.id);
+
+  return apiOk({
+    orders: orders.map(mapCustomerOrderForApi),
+    count: orders.length
+  });
+}
+
+async function handleApiCustomerOrderDetail(request, env, orderId) {
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const orders = await getCustomerOrderRows(env, session.customer.id, orderId);
+
+  if (!orders.length) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  return apiOk({
+    order: mapCustomerOrderForApi(orders[0])
+  });
+}
+
+
 async function handleApiV1(request, env) {
   const url = new URL(request.url);
 
@@ -10250,6 +10517,23 @@ async function handleApiV1(request, env) {
   const customerCartItemMatch = url.pathname.match(/^\/api\/v1\/customer\/cart\/items\/(\d+)$/);
   if (customerCartItemMatch) {
     return handleApiCustomerCartItemDetail(request, env, Number(customerCartItemMatch[1]));
+  }
+
+  if (url.pathname === "/api/v1/customer/checkout/address") {
+    return handleApiCustomerCheckoutAddress(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/checkout/pickup") {
+    return handleApiCustomerCheckoutPickup(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/orders") {
+    return handleApiCustomerOrders(request, env);
+  }
+
+  const customerOrderMatch = url.pathname.match(/^\/api\/v1\/customer\/orders\/(\d+)$/);
+  if (customerOrderMatch) {
+    return handleApiCustomerOrderDetail(request, env, Number(customerOrderMatch[1]));
   }
 
   return apiError("not_found", "API route not found.", 404, { path: url.pathname });
