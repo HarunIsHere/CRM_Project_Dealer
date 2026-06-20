@@ -4500,6 +4500,29 @@ async function createAdminToken(env, username, role = "admin") {
   return `${body}.${sig}`;
 }
 
+async function hashAdminToken(env, token) {
+  return sha256Hex(`${env.ADMIN_JWT_SECRET || "fallback-secret"}:admin:${token}`);
+}
+
+async function isAdminTokenRevoked(env, token) {
+  const tokenHash = await hashAdminToken(env, token);
+  const row = await env.DB.prepare(
+    "SELECT id FROM admin_token_revocations WHERE token_hash = ? LIMIT 1"
+  ).bind(tokenHash).first();
+
+  return !!row;
+}
+
+async function revokeAdminToken(env, token, username = "", expiresAt = null) {
+  const tokenHash = await hashAdminToken(env, token);
+
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO admin_token_revocations
+     (token_hash, username, expires_at)
+     VALUES (?, ?, ?)`
+  ).bind(tokenHash, username || null, expiresAt).run();
+}
+
 async function verifyAdminToken(env, token) {
   if (!token || !token.includes(".")) return false;
   const [body, sig] = token.split(".");
@@ -4518,6 +4541,8 @@ async function verifyAdminToken(env, token) {
 
   const username = String(payload.sub || "");
   if (!username) return false;
+
+  if (await isAdminTokenRevoked(env, token)) return false;
 
   if (env.SUPERADMIN_USERNAME && username === env.SUPERADMIN_USERNAME) {
     payload.role = "superadmin";
@@ -8758,6 +8783,7 @@ function getApiCapabilities() {
       health: "/api/v1/health",
       capabilities: "/api/v1/capabilities",
       admin_login: "/api/v1/admin/login",
+      admin_logout: "/api/v1/admin/logout",
       admin_me: "/api/v1/admin/me",
       admin_dashboard: "/api/v1/admin/dashboard",
       admin_orders: "/api/v1/admin/orders",
@@ -8839,6 +8865,32 @@ async function handleApiAdminLogin(request, env) {
     }
   });
 }
+
+
+async function handleApiAdminLogout(request, env) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const token = getBearerToken(request) || parseCookies(request)[ADMIN_COOKIE_NAME];
+
+  if (!token) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const payload = await verifyAdminToken(env, token);
+
+  if (!payload) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  await revokeAdminToken(env, token, payload.sub || "", payload.exp ? new Date(payload.exp * 1000).toISOString() : null);
+
+  return apiOk({
+    logged_out: true
+  });
+}
+
 
 async function handleApiAdminMe(request, env) {
   if (request.method !== "GET") {
@@ -10716,6 +10768,10 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/login") {
     return handleApiAdminLogin(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/logout") {
+    return handleApiAdminLogout(request, env);
   }
 
   if (url.pathname === "/api/v1/admin/me") {
