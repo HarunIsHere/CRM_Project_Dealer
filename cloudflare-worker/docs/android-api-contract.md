@@ -123,6 +123,7 @@ Request:
 ## Admin Android endpoints
 
 POST   /api/v1/admin/login
+POST   /api/v1/admin/logout
 GET    /api/v1/admin/me
 GET    /api/v1/admin/dashboard
 
@@ -158,6 +159,16 @@ POST   /api/v1/admin/customers/{customer_id}/reply
 GET    /api/v1/admin/settings
 PATCH  /api/v1/admin/settings
 
+
+
+## Admin logout
+
+POST /api/v1/admin/logout
+
+Headers:
+Authorization: Bearer <admin_token>
+
+Revokes the current admin token server-side. After logout, the same token returns 401.
 
 ## Admin dashboard
 
