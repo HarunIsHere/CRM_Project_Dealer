@@ -738,10 +738,6 @@ Android roadmap:
 
     docs/ANDROID_APPS_ROADMAP.md
 
-Android apps roadmap:
-
-    docs/ANDROID_APPS_ROADMAP.md
-
 ## Development notes
 
 Current active implementation:
