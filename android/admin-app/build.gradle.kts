@@ -8,6 +8,15 @@ android {
     namespace = "com.horizend.crmdelivery.admin"
     compileSdk = 35
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     defaultConfig {
         applicationId = "com.horizend.crmdelivery.admin"
         minSdk = 26
