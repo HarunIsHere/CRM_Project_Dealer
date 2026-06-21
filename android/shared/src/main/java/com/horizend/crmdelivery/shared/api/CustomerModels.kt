@@ -148,3 +148,29 @@ data class CustomerOrderItem(
     @SerialName("created_at")
     val createdAt: String? = null
 )
+
+@Serializable
+data class CustomerCatalogResponse(
+    val ok: Boolean = true,
+    val catalog: CustomerCatalog
+)
+
+@Serializable
+data class CustomerCatalog(
+    val products: List<CustomerProduct> = emptyList()
+)
+
+@Serializable
+data class CustomerProduct(
+    val id: Int,
+    val name: String,
+    val price: Int,
+    @SerialName("category_id")
+    val categoryId: Int? = null,
+    @SerialName("category_name")
+    val categoryName: String? = null,
+    @SerialName("shop_id")
+    val shopId: Int? = null,
+    @SerialName("shop_name")
+    val shopName: String? = null
+)

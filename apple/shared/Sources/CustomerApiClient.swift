@@ -3,6 +3,12 @@ import Foundation
 public enum CustomerApiClient {
     private static let customerApiBaseURL = "https://crm.ayartuerk.me/api/v1"
 
+
+    public static func getCustomerProducts() async throws -> [CustomerProduct] {
+        let response: CustomerCatalogResponse = try await fetch(URL(string: "\(customerApiBaseURL)/public/catalog")!)
+        return response.catalog.products
+    }
+
     public static func getCustomerCart(sessionToken: String) async throws -> CustomerCartResponse {
         var components = URLComponents(string: "\(customerApiBaseURL)/customer/cart")!
         components.queryItems = [URLQueryItem(name: "session_token", value: sessionToken)]

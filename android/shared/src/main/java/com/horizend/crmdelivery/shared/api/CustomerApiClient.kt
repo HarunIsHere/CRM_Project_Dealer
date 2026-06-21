@@ -27,6 +27,13 @@ object CustomerApiClient {
         }
     }
 
+
+    suspend fun getCustomerProducts(): List<CustomerProduct> =
+        httpClient.get("$customerApiBaseUrl/public/catalog")
+            .body<CustomerCatalogResponse>()
+            .catalog
+            .products
+
     suspend fun getCustomerCart(sessionToken: String): CustomerCartResponse =
         httpClient.get("$customerApiBaseUrl/customer/cart") {
             parameter("session_token", sessionToken)

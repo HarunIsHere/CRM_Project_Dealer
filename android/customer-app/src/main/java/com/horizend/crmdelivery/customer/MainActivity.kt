@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.horizend.crmdelivery.shared.api.CustomerApiClient
 import com.horizend.crmdelivery.shared.api.CustomerCart
+import com.horizend.crmdelivery.shared.api.CustomerProduct
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -37,38 +38,45 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                CustomerCartScreen()
+                CustomerShopScreen()
             }
         }
     }
 }
 
 @Composable
-private fun CustomerCartScreen() {
+private fun CustomerShopScreen() {
     val scope = rememberCoroutineScope()
     val sessionToken = remember { "android_customer_${System.currentTimeMillis()}" }
 
+    var products by remember { mutableStateOf<List<CustomerProduct>>(emptyList()) }
     var cart by remember { mutableStateOf<CustomerCart?>(null) }
-    var message by remember { mutableStateOf("Loading cart...") }
+    var message by remember { mutableStateOf("Loading shop...") }
     var loading by remember { mutableStateOf(false) }
 
     fun refreshCart() {
         scope.launch {
-            loading = true
             runCatching {
                 CustomerApiClient.getCustomerCart(sessionToken).cart
             }.onSuccess {
                 cart = it
-                message = "Cart loaded"
             }.onFailure {
                 message = "Cart error: ${it.message}"
             }
-            loading = false
         }
     }
 
     LaunchedEffect(Unit) {
-        refreshCart()
+        loading = true
+        runCatching {
+            products = CustomerApiClient.getCustomerProducts()
+            cart = CustomerApiClient.getCustomerCart(sessionToken).cart
+        }.onSuccess {
+            message = "Shop loaded"
+        }.onFailure {
+            message = "Loading failed: ${it.message}"
+        }
+        loading = false
     }
 
     Column(
@@ -104,30 +112,6 @@ private fun CustomerCartScreen() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedButton(
-                    enabled = !loading,
-                    onClick = {
-                        scope.launch {
-                            loading = true
-                            runCatching {
-                                CustomerApiClient.addCustomerCartItem(
-                                    sessionToken = sessionToken,
-                                    productId = 3,
-                                    quantity = 1
-                                )
-                            }.onSuccess {
-                                cart = it.cart
-                                message = "Added demo product"
-                            }.onFailure {
-                                message = "Add failed: ${it.message}"
-                            }
-                            loading = false
-                        }
-                    }
-                ) {
-                    Text("Add demo product")
-                }
-
                 Button(
                     enabled = !loading && cart?.items?.isNotEmpty() == true,
                     onClick = {
@@ -140,11 +124,11 @@ private fun CustomerCartScreen() {
                                     phone = "+49123456789",
                                     deliveryAddress = "Berlin",
                                     paymentMethodCode = "cash_delivery",
-                                    notes = "Android smoke checkout"
+                                    notes = "Android checkout from catalog"
                                 )
                             }.onSuccess {
                                 message = "Order created: ${it.order.publicOrderCode}"
-                                cart = CustomerApiClient.getCustomerCart(sessionToken).cart
+                                refreshCart()
                             }.onFailure {
                                 message = "Checkout failed: ${it.message}"
                             }
@@ -153,6 +137,47 @@ private fun CustomerCartScreen() {
                     }
                 ) {
                     Text("Checkout")
+                }
+            }
+        }
+
+        Text("Products", style = MaterialTheme.typography.titleLarge)
+
+        products.forEach { product ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(product.name, style = MaterialTheme.typography.titleMedium)
+                    Text("${product.price} EUR")
+                    product.categoryName?.takeIf { it.isNotBlank() }?.let { categoryName ->
+                        Text(categoryName)
+                    }
+                    product.shopName?.takeIf { it.isNotBlank() }?.let { shopName ->
+                        Text("Shop: $shopName")
+                    }
+
+                    OutlinedButton(
+                        enabled = !loading,
+                        onClick = {
+                            scope.launch {
+                                loading = true
+                                runCatching {
+                                    CustomerApiClient.addCustomerCartItem(
+                                        sessionToken = sessionToken,
+                                        productId = product.id,
+                                        quantity = 1
+                                    )
+                                }.onSuccess {
+                                    cart = it.cart
+                                    message = "Added: ${product.name}"
+                                }.onFailure {
+                                    message = "Add failed: ${it.message}"
+                                }
+                                loading = false
+                            }
+                        }
+                    ) {
+                        Text("Add to cart")
+                    }
                 }
             }
         }

@@ -5,16 +5,17 @@ import Shared
 struct CustomerApp: App {
     var body: some Scene {
         WindowGroup {
-            CustomerCartView()
+            CustomerShopView()
         }
     }
 }
 
-struct CustomerCartView: View {
+struct CustomerShopView: View {
     private let sessionToken = "ios_customer_\(Int(Date().timeIntervalSince1970))"
 
+    @State private var products: [CustomerProduct] = []
     @State private var cart: CustomerCart?
-    @State private var message = "Loading cart..."
+    @State private var message = "Loading shop..."
     @State private var isLoading = false
 
     var body: some View {
@@ -37,13 +38,6 @@ struct CustomerCartView: View {
                         }
                     }
 
-                    Button("Add demo product") {
-                        Task {
-                            await addDemoProduct()
-                        }
-                    }
-                    .disabled(isLoading)
-
                     Button("Checkout") {
                         Task {
                             await checkout()
@@ -51,10 +45,38 @@ struct CustomerCartView: View {
                     }
                     .disabled((cart?.items.isEmpty ?? true) || isLoading)
                 }
+
+                Section("Products") {
+                    ForEach(products) { product in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(product.name)
+                                .font(.headline)
+                            Text("\(product.price) EUR")
+
+                            if let categoryName = product.categoryName, !categoryName.isEmpty {
+                                Text(categoryName)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            if let shopName = product.shopName, !shopName.isEmpty {
+                                Text("Shop: \(shopName)")
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Button("Add to cart") {
+                                Task {
+                                    await addToCart(product)
+                                }
+                            }
+                            .disabled(isLoading)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
             }
             .navigationTitle("Customer Shop")
             .task {
-                await loadCart()
+                await load()
             }
             .overlay {
                 if isLoading {
@@ -64,31 +86,32 @@ struct CustomerCartView: View {
         }
     }
 
-    private func loadCart() async {
+    private func load() async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            let response = try await CustomerApiClient.getCustomerCart(sessionToken: sessionToken)
-            cart = response.cart
-            message = "Cart loaded"
+            products = try await CustomerApiClient.getCustomerProducts()
+            let cartResponse = try await CustomerApiClient.getCustomerCart(sessionToken: sessionToken)
+            cart = cartResponse.cart
+            message = "Shop loaded"
         } catch {
-            message = "Cart failed: \(error.localizedDescription)"
+            message = "Loading failed: \(error.localizedDescription)"
         }
     }
 
-    private func addDemoProduct() async {
+    private func addToCart(_ product: CustomerProduct) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
             let response = try await CustomerApiClient.addCustomerCartItem(
                 sessionToken: sessionToken,
-                productId: 3,
+                productId: product.id,
                 quantity: 1
             )
             cart = response.cart
-            message = "Added demo product"
+            message = "Added: \(product.name)"
         } catch {
             message = "Add failed: \(error.localizedDescription)"
         }
@@ -105,7 +128,7 @@ struct CustomerCartView: View {
                 phone: "+49123456789",
                 deliveryAddress: "Berlin",
                 paymentMethodCode: "cash_delivery",
-                notes: "iOS smoke checkout"
+                notes: "iOS checkout from catalog"
             )
             message = "Order created: \(response.order.publicOrderCode)"
             let cartResponse = try await CustomerApiClient.getCustomerCart(sessionToken: sessionToken)
