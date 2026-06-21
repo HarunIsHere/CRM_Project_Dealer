@@ -11113,16 +11113,21 @@ const ADMIN_V2_CSS = `
 :root {
   --bg: #0f172a;
   --panel: #111827;
-  --card: #1f2937;
-  --text: #f9fafb;
+  --panel-2: #1f2937;
+  --line: #374151;
+  --text: #f8fafc;
   --muted: #9ca3af;
-  --border: #374151;
   --primary: #3b82f6;
+  --primary-2: #2563eb;
   --danger: #ef4444;
   --success: #22c55e;
+  --warning: #f59e0b;
+  --radius: 16px;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -11131,82 +11136,301 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-header {
-  padding: 18px;
-  border-bottom: 1px solid var(--border);
+a {
+  color: inherit;
+}
+
+.header {
+  min-height: 120px;
+  padding: 26px 24px;
+  border-bottom: 1px solid var(--line);
   display: flex;
-  gap: 12px;
-  align-items: center;
   justify-content: space-between;
+  gap: 20px;
 }
 
-h1 { margin: 0; font-size: 22px; }
-h2 { margin: 0 0 12px; font-size: 18px; }
+.header h1 {
+  margin: 0;
+  font-size: 28px;
+}
 
-main {
-  padding: 18px;
+.header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 18px;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  padding: 24px;
 }
 
-nav, section {
+.sidebar {
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  height: fit-content;
+  position: sticky;
+  top: 18px;
 }
 
-button, a.button {
+.sidebar button,
+.sidebar a {
   width: 100%;
   display: block;
+  text-align: left;
+  margin: 0 0 10px;
+  padding: 13px 16px;
   border: 0;
   border-radius: 10px;
-  padding: 10px 12px;
-  margin: 0 0 8px;
-  background: var(--card);
+  background: var(--panel-2);
   color: var(--text);
-  text-align: left;
+  font: inherit;
+  font-weight: 650;
   text-decoration: none;
   cursor: pointer;
-  font: inherit;
 }
 
-button:hover, a.button:hover { background: #273449; }
-button.primary { background: var(--primary); }
-button.danger { background: var(--danger); }
+.sidebar button:hover,
+.sidebar a:hover,
+.sidebar button.active {
+  background: var(--primary);
+}
 
-.grid {
+.main {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  min-width: 0;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 23px;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 16px;
 }
 
-.card strong { display: block; font-size: 22px; margin-top: 6px; }
+.card strong {
+  display: block;
+  font-size: 28px;
+  margin-top: 8px;
+}
+
+.button,
+button.primary {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  background: var(--primary);
+  color: white;
+  padding: 11px 15px;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover,
+button.primary:hover {
+  background: var(--primary-2);
+}
+
+button.danger {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  background: var(--danger);
+  color: white;
+  padding: 11px 15px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #020617;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+th,
+td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #1f2937;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+th {
+  color: #cbd5e1;
+  background: #111827;
+  font-weight: 750;
+}
+
+td.wrap {
+  white-space: normal;
+  max-width: 420px;
+}
+
+tr:hover td {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #334155;
+  color: white;
+}
+
+.badge.success {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+
+.badge.warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+.badge.danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.kv {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #020617;
+}
+
+.kv-row {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  border-bottom: 1px solid #1f2937;
+}
+
+.kv-row:last-child {
+  border-bottom: 0;
+}
+
+.kv-key {
+  padding: 12px;
+  color: #cbd5e1;
+  background: #111827;
+  font-weight: 750;
+}
+
+.kv-value {
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+details {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #020617;
+  overflow: hidden;
+}
+
+summary {
+  padding: 12px;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 700;
+}
 
 pre {
-  white-space: pre-wrap;
-  word-break: break-word;
-  background: #020617;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  max-height: 620px;
+  margin: 0;
+  padding: 14px;
   overflow: auto;
+  color: #e5e7eb;
+  line-height: 1.45;
 }
 
-.small { color: var(--muted); font-size: 13px; }
+.empty {
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  color: var(--muted);
+}
 
-@media (max-width: 800px) {
-  main { grid-template-columns: 1fr; }
-  header { flex-direction: column; align-items: flex-start; }
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+
+  .cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .kv-row {
+    grid-template-columns: 1fr;
+  }
 }
 `;
 
@@ -11235,7 +11459,7 @@ function pretty(value) {
 function showLoading(name) {
   title.textContent = name;
   cards.innerHTML = "";
-  result.innerHTML = "Loading...";
+  result.innerHTML = "<div class='empty'>Loading...</div>";
 }
 
 async function api(path, options = {}) {
@@ -11271,20 +11495,39 @@ async function api(path, options = {}) {
   return data;
 }
 
-function getPayload(data) {
+function payload(data) {
   return data.data || data;
 }
 
-function pickArray(payload, keys) {
-  for (const key of keys) {
-    if (Array.isArray(payload[key])) return payload[key];
-  }
+function formatDate(value) {
+  if (!value) return "";
+  return String(value).replace("T", " ").replace(".000Z", "").replace("Z", "");
+}
 
-  for (const value of Object.values(payload)) {
-    if (Array.isArray(value)) return value;
-  }
+function money(value) {
+  if (value === null || value === undefined || value === "") return "";
+  return String(value);
+}
 
-  return [];
+function badge(value) {
+  const text = String(value ?? "");
+  const lower = text.toLowerCase();
+  let cls = "";
+  if (lower.includes("active") || lower.includes("delivered") || lower === "yes" || lower === "true") cls = "success";
+  if (lower.includes("new") || lower.includes("ready") || lower.includes("progress")) cls = "warning";
+  if (lower.includes("closed") || lower.includes("blocked") || lower.includes("false") || lower === "no") cls = "danger";
+  return "<span class='badge " + cls + "'>" + escapeHtml(text || "-") + "</span>";
+}
+
+function mapsLink(url) {
+  if (!url) return "";
+  return "<a class='button' target='_blank' rel='noopener' href='" + escapeHtml(url) + "'>Map</a>";
+}
+
+function setActive(action) {
+  document.querySelectorAll("[data-action]").forEach((button) => {
+    button.classList.toggle("active", button.getAttribute("data-action") === action);
+  });
 }
 
 function renderCards(items) {
@@ -11298,77 +11541,189 @@ function renderCards(items) {
   }
 }
 
-function formatCell(value) {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "boolean") return value ? "yes" : "no";
-  if (typeof value === "object") {
-    if (value.full_name) return value.full_name;
-    if (value.name) return value.name;
-    if (value.username) return value.username;
-    return pretty(value);
-  }
-  return value;
-}
-
-function renderTable(rows, columns = null) {
+function renderTable(rows, columns) {
   if (!rows.length) {
-    return "<p class='small'>No data found.</p>";
+    return "<div class='empty'>No data found.</div>";
   }
-
-  const keys = columns || Object.keys(rows[0]).slice(0, 10);
 
   return [
-    "<table>",
-    "<thead><tr>" + keys.map((key) => "<th>" + escapeHtml(key) + "</th>").join("") + "</tr></thead>",
+    "<div class='table-wrap'><table>",
+    "<thead><tr>" + columns.map((column) => "<th>" + escapeHtml(column.label) + "</th>").join("") + "</tr></thead>",
     "<tbody>",
     rows.map((row) => {
-      return "<tr>" + keys.map((key) => "<td>" + escapeHtml(formatCell(row[key])) + "</td>").join("") + "</tr>";
+      return "<tr>" + columns.map((column) => {
+        const raw = column.value(row);
+        const html = column.html ? raw : escapeHtml(raw);
+        const cls = column.wrap ? " class='wrap'" : "";
+        return "<td" + cls + ">" + html + "</td>";
+      }).join("") + "</tr>";
     }).join(""),
-    "</tbody></table>"
+    "</tbody></table></div>"
   ].join("");
 }
 
-function renderDetails(payload) {
-  return "<details style='margin-top:14px;' open><summary>Raw API data</summary><pre>" + escapeHtml(pretty(payload)) + "</pre></details>";
+function renderDebug(data) {
+  return "<details><summary>Raw API data</summary><pre>" + escapeHtml(pretty(data)) + "</pre></details>";
 }
 
-function renderPayload(name, data, keys, columns) {
-  const payload = getPayload(data);
-  const rows = pickArray(payload, keys);
+function renderSettings(settings, data) {
+  const rows = Object.entries(settings || {}).map(([key, value]) => {
+    const shown = Array.isArray(value) ? value.join(", ") : value;
+    return "<div class='kv-row'><div class='kv-key'>" + escapeHtml(key) + "</div><div class='kv-value'>" + escapeHtml(shown) + "</div></div>";
+  }).join("");
 
-  result.innerHTML = renderTable(rows, columns) + renderDetails(payload);
+  result.innerHTML = "<div class='kv'>" + rows + "</div>" + renderDebug(data);
 }
 
 async function loadDashboard() {
+  setActive("dashboard");
   showLoading("Dashboard");
 
   const data = await api("/api/v1/admin/dashboard");
-  const payload = getPayload(data);
-  const summary = payload.summary || payload;
+  const p = payload(data);
+  const summary = p.summary || {};
 
   renderCards([
-    { label: "Open orders", value: summary.open_orders_count ?? summary.open_orders ?? "-" },
-    { label: "Closed orders", value: summary.closed_orders_count ?? summary.closed_orders ?? "-" },
-    { label: "Open requests", value: summary.open_requests_count ?? summary.open_requests ?? "-" },
-    { label: "Customers", value: summary.active_customers_count ?? summary.customers_count ?? summary.customers ?? "-" }
+    { label: "Open orders", value: summary.open_orders_count ?? "-" },
+    { label: "Closed orders", value: summary.closed_orders_count ?? "-" },
+    { label: "Open requests", value: summary.open_requests_count ?? "-" },
+    { label: "Customers", value: summary.active_customers_count ?? "-" }
   ]);
 
-  const latestOrders = payload.latest_orders || [];
-  result.innerHTML = "<h2>Latest orders</h2>" + renderTable(latestOrders, [
-    "id",
-    "customer_id",
-    "status",
-    "order_status",
-    "order_status_label",
-    "delivery_location_label",
-    "created_at"
-  ]) + renderDetails(payload);
+  const rows = p.latest_orders || [];
+  result.innerHTML = "<h2>Latest orders</h2>" + renderTable(rows, orderColumns()) + renderDebug(p);
 }
 
-async function loadSection(name, path, keys, columns) {
-  showLoading(name);
-  const data = await api(path);
-  renderPayload(name, data, keys, columns);
+function orderColumns() {
+  return [
+    { label: "ID", value: (r) => r.id },
+    { label: "Customer", value: (r) => r.customer?.full_name || r.customer_id || "" },
+    { label: "Status", value: (r) => badge(r.order_status_label || r.order_status || r.status), html: true },
+    { label: "Delivery", value: (r) => r.delivery_location_label || r.delivery_note || "", wrap: true },
+    { label: "Created", value: (r) => formatDate(r.created_at) },
+    { label: "Delivered", value: (r) => formatDate(r.delivered_at) },
+    { label: "Closed", value: (r) => formatDate(r.closed_at) },
+    { label: "Map", value: (r) => mapsLink(r.delivery_google_maps_link), html: true }
+  ];
+}
+
+function requestColumns() {
+  return [
+    { label: "Customer", value: (r) => r.customer?.full_name || r.customer_id || "" },
+    { label: "Type", value: (r) => r.request_type_label || r.request_type || "" },
+    { label: "Status", value: (r) => badge(r.status), html: true },
+    { label: "Item", value: (r) => r.item_name || "" },
+    { label: "Message", value: (r) => r.latest_text || r.message || "", wrap: true },
+    { label: "Created", value: (r) => formatDate(r.latest_created_at || r.created_at) },
+    { label: "Map", value: (r) => mapsLink(r.google_maps_link), html: true }
+  ];
+}
+
+function productColumns() {
+  return [
+    { label: "ID", value: (r) => r.id },
+    { label: "Name", value: (r) => r.name },
+    { label: "Price", value: (r) => money(r.price_formatted || r.price) },
+    { label: "Category", value: (r) => r.category_name || "" },
+    { label: "Active", value: (r) => badge(r.is_active ? "yes" : "no"), html: true },
+    { label: "Aliases", value: (r) => Array.isArray(r.aliases) ? r.aliases.join(", ") : "", wrap: true }
+  ];
+}
+
+function categoryColumns() {
+  return [
+    { label: "ID", value: (r) => r.id },
+    { label: "Name", value: (r) => r.name },
+    { label: "Active", value: (r) => badge(r.is_active ? "yes" : "no"), html: true },
+    { label: "Sort", value: (r) => r.sort_order ?? "" }
+  ];
+}
+
+function meetingPointColumns() {
+  return [
+    { label: "ID", value: (r) => r.id },
+    { label: "Name", value: (r) => r.name },
+    { label: "Address", value: (r) => r.address, wrap: true },
+    { label: "Default", value: (r) => badge(r.is_default ? "yes" : "no"), html: true },
+    { label: "Active", value: (r) => badge(r.is_active ? "yes" : "no"), html: true },
+    { label: "Map", value: (r) => mapsLink(r.google_maps_link), html: true }
+  ];
+}
+
+function customerColumns() {
+  return [
+    { label: "ID", value: (r) => r.id },
+    { label: "Name", value: (r) => r.full_name || "" },
+    { label: "Username", value: (r) => r.username || "" },
+    { label: "Telegram/App ID", value: (r) => r.telegram_user_id || "", wrap: true },
+    { label: "Language", value: (r) => r.preferred_language || r.language || "" },
+    { label: "Blocked", value: (r) => badge(r.is_blocked ? "yes" : "no"), html: true },
+    { label: "Created", value: (r) => formatDate(r.created_at) }
+  ];
+}
+
+async function loadOrders() {
+  setActive("orders");
+  showLoading("Orders");
+  const data = await api("/api/v1/admin/orders");
+  const p = payload(data);
+  result.innerHTML = renderTable(p.orders || [], orderColumns()) + renderDebug(p);
+}
+
+async function loadClosedOrders() {
+  setActive("closedOrders");
+  showLoading("Closed Orders");
+  const data = await api("/api/v1/admin/closed-orders");
+  const p = payload(data);
+  result.innerHTML = renderTable(p.orders || p.closed_orders || [], orderColumns()) + renderDebug(p);
+}
+
+async function loadOpenRequests() {
+  setActive("openRequests");
+  showLoading("Open Requests");
+  const data = await api("/api/v1/admin/open-requests");
+  const p = payload(data);
+  result.innerHTML = renderTable(p.open_requests || p.requests || p.customer_requests || [], requestColumns()) + renderDebug(p);
+}
+
+async function loadProducts() {
+  setActive("products");
+  showLoading("Products");
+  const data = await api("/api/v1/admin/products");
+  const p = payload(data);
+  result.innerHTML = renderTable(p.products || [], productColumns()) + renderDebug(p);
+}
+
+async function loadCategories() {
+  setActive("categories");
+  showLoading("Product Categories");
+  const data = await api("/api/v1/admin/product-categories");
+  const p = payload(data);
+  result.innerHTML = renderTable(p.categories || p.product_categories || [], categoryColumns()) + renderDebug(p);
+}
+
+async function loadMeetingPoints() {
+  setActive("meetingPoints");
+  showLoading("Meeting Points");
+  const data = await api("/api/v1/admin/meeting-points");
+  const p = payload(data);
+  result.innerHTML = renderTable(p.meeting_points || [], meetingPointColumns()) + renderDebug(p);
+}
+
+async function loadCustomers() {
+  setActive("customers");
+  showLoading("Customers");
+  const data = await api("/api/v1/admin/customers");
+  const p = payload(data);
+  result.innerHTML = renderTable(p.customers || [], customerColumns()) + renderDebug(p);
+}
+
+async function loadSettings() {
+  setActive("settings");
+  showLoading("Settings");
+  const data = await api("/api/v1/admin/settings");
+  const p = payload(data);
+  renderSettings(p.settings || p, p);
 }
 
 async function logout() {
@@ -11381,65 +11736,15 @@ async function logout() {
 }
 
 const actions = {
-  dashboard: () => loadDashboard(),
-  orders: () => loadSection("Orders", "/api/v1/admin/orders", ["orders"], [
-    "id",
-    "customer_id",
-    "status",
-    "order_status",
-    "order_status_label",
-    "delivery_location_label",
-    "created_at"
-  ]),
-  closedOrders: () => loadSection("Closed Orders", "/api/v1/admin/closed-orders", ["orders", "closed_orders"], [
-    "id",
-    "customer_id",
-    "status",
-    "order_status",
-    "order_status_label",
-    "delivered_at",
-    "closed_at"
-  ]),
-  openRequests: () => loadSection("Open Requests", "/api/v1/admin/open-requests", ["requests", "open_requests", "customer_requests"], [
-    "id",
-    "customer_id",
-    "status",
-    "request_type",
-    "message",
-    "created_at"
-  ]),
-  products: () => loadSection("Products", "/api/v1/admin/products", ["products"], [
-    "id",
-    "name",
-    "price",
-    "category_name",
-    "is_active",
-    "shop_id"
-  ]),
-  categories: () => loadSection("Product Categories", "/api/v1/admin/product-categories", ["categories", "product_categories"], [
-    "id",
-    "name",
-    "sort_order",
-    "is_active",
-    "shop_id"
-  ]),
-  meetingPoints: () => loadSection("Meeting Points", "/api/v1/admin/meeting-points", ["meeting_points"], [
-    "id",
-    "name",
-    "address",
-    "is_default",
-    "is_active",
-    "shop_id"
-  ]),
-  customers: () => loadSection("Customers", "/api/v1/admin/customers", ["customers"], [
-    "id",
-    "full_name",
-    "username",
-    "telegram_user_id",
-    "preferred_language",
-    "created_at"
-  ]),
-  settings: () => loadSection("Settings", "/api/v1/admin/settings", ["settings"], null)
+  dashboard: loadDashboard,
+  orders: loadOrders,
+  closedOrders: loadClosedOrders,
+  openRequests: loadOpenRequests,
+  products: loadProducts,
+  categories: loadCategories,
+  meetingPoints: loadMeetingPoints,
+  customers: loadCustomers,
+  settings: loadSettings
 };
 
 document.querySelectorAll("[data-action]").forEach((button) => {
@@ -11451,7 +11756,7 @@ document.querySelectorAll("[data-action]").forEach((button) => {
       await actions[action]();
     } catch (error) {
       cards.innerHTML = "";
-      result.innerHTML = "<pre>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</pre>";
+      result.innerHTML = "<div class='empty'>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</div>";
     }
   });
 });
@@ -11466,7 +11771,7 @@ document.getElementById("logout")?.addEventListener("click", async () => {
 });
 
 loadDashboard().catch((error) => {
-  result.innerHTML = "<pre>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</pre>";
+  result.innerHTML = "<div class='empty'>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</div>";
 });
 `;
 
