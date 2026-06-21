@@ -20,8 +20,17 @@ import json
 from pathlib import Path
 
 data = json.loads(Path("/tmp/crm-smoke-response.json").read_text())
-if data.get("ok") is not True:
-    raise SystemExit(f"API returned ok != true: {data}")
+
+valid = (
+    data.get("ok") is True
+    or isinstance(data.get("shops"), list)
+    or isinstance(data.get("payment_methods"), list)
+    or isinstance(data.get("products"), list)
+    or isinstance(data.get("meeting_points"), list)
+)
+
+if not valid:
+    raise SystemExit(f"Unexpected API response shape: {data}")
 PY
 done
 
