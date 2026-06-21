@@ -9,8 +9,8 @@ public enum ApiConfig {
     public static let publicMeetingPointsURL = URL(string: "https://crm.ayartuerk.me/api/v1/public/meeting-points")!
     public static let publicPaymentMethodsURL = URL(string: "https://crm.ayartuerk.me/api/v1/public/payment-methods")!
 
-    public static let customerCartURL = URL(string: "\(apiBaseURL)/customer/cart")!
-    public static let customerCartItemsURL = URL(string: "\(apiBaseURL)/customer/cart/items")!
-    public static let customerCheckoutURL = URL(string: "\(apiBaseURL)/customer/checkout")!
-    public static let customerOrdersURL = URL(string: "\(apiBaseURL)/customer/orders")!
+    public static let customerCartURL = URL(string: "https://crm.ayartuerk.me/api/v1/customer/cart")!
+    public static let customerCartItemsURL = URL(string: "https://crm.ayartuerk.me/api/v1/customer/cart/items")!
+    public static let customerCheckoutURL = URL(string: "https://crm.ayartuerk.me/api/v1/customer/checkout")!
+    public static let customerOrdersURL = URL(string: "https://crm.ayartuerk.me/api/v1/customer/orders")!
 }

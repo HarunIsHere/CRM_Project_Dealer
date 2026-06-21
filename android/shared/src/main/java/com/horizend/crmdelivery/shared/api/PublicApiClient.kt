@@ -1,13 +1,5 @@
 package com.horizend.crmdelivery.shared.api
 
-import io.ktor.http.contentType
-
-import io.ktor.http.ContentType
-
-import io.ktor.client.request.setBody
-
-import io.ktor.client.request.parameter
-
 import com.horizend.crmdelivery.shared.ApiConfig
 import java.net.URL
 import org.json.JSONArray
@@ -131,50 +123,4 @@ object PublicApiClient {
     private fun <T> JSONArray.toObjectList(mapper: (JSONObject) -> T): List<T> {
         return List(length()) { index -> mapper(getJSONObject(index)) }
     }
-
-
-    suspend fun getCustomerCart(sessionToken: String): CustomerCartResponse =
-        client.get("${ApiConfig.apiBaseUrl}/customer/cart") {
-            parameter("session_token", sessionToken)
-        }.body()
-
-    suspend fun addCustomerCartItem(sessionToken: String, productId: Int, quantity: Int): CustomerCartResponse =
-        client.post("${ApiConfig.apiBaseUrl}/customer/cart/items") {
-            contentType(ContentType.Application.Json)
-            setBody(AddCartItemRequest(sessionToken = sessionToken, productId = productId, quantity = quantity))
-        }.body()
-
-    suspend fun updateCustomerCartItem(sessionToken: String, productId: Int, quantity: Int): CustomerCartResponse =
-        client.patch("${ApiConfig.apiBaseUrl}/customer/cart/items/$productId") {
-            contentType(ContentType.Application.Json)
-            setBody(UpdateCartItemRequest(sessionToken = sessionToken, quantity = quantity))
-        }.body()
-
-    suspend fun checkoutCustomerCart(
-        sessionToken: String,
-        customerName: String,
-        phone: String,
-        deliveryAddress: String,
-        paymentMethodCode: String,
-        notes: String
-    ): CustomerOrderResponse =
-        client.post("${ApiConfig.apiBaseUrl}/customer/checkout") {
-            contentType(ContentType.Application.Json)
-            setBody(
-                CheckoutRequest(
-                    sessionToken = sessionToken,
-                    customerName = customerName,
-                    phone = phone,
-                    deliveryAddress = deliveryAddress,
-                    paymentMethodCode = paymentMethodCode,
-                    notes = notes
-                )
-            )
-        }.body()
-
-    suspend fun getCustomerOrders(sessionToken: String): CustomerOrdersResponse =
-        client.get("${ApiConfig.apiBaseUrl}/customer/orders") {
-            parameter("session_token", sessionToken)
-        }.body()
-
 }
