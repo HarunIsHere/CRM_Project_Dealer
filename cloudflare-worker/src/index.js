@@ -4641,6 +4641,36 @@ async function cleanupOldAdminAuditLogs(env) {
 
 async function logAdminAction(env, request, session, actionType, actionDetail = "") {
   const url = new URL(request.url);
+
+  if (url.pathname === "/api/v1/customer/cart" && request.method === "GET") {
+    return handleCustomerCartApi(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/cart/items" && request.method === "POST") {
+    return handleCustomerCartAddItemApi(request, env);
+  }
+
+  if (url.pathname.startsWith("/api/v1/customer/cart/items/") && (request.method === "PATCH" || request.method === "PUT")) {
+    return handleCustomerCartUpdateItemApi(request, env, url);
+  }
+
+  if (url.pathname.startsWith("/api/v1/customer/cart/items/") && request.method === "DELETE") {
+    return handleCustomerCartDeleteItemApi(request, env, url);
+  }
+
+  if (url.pathname === "/api/v1/customer/checkout" && request.method === "POST") {
+    return handleCustomerCheckoutApi(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/orders" && request.method === "GET") {
+    return handleCustomerOrdersApi(request, env);
+  }
+
+  if (url.pathname.startsWith("/api/v1/customer/orders/") && request.method === "GET") {
+    return handleCustomerOrderDetailApi(request, env, url);
+  }
+
+
   const ip = request.headers.get("cf-connecting-ip") || "";
   const userAgent = request.headers.get("user-agent") || "";
 
@@ -11867,3 +11897,318 @@ export default {
     return routeRequest(request, env);
   }
 };
+
+
+function customerApiJson(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+      "access-control-allow-headers": "content-type,authorization,x-customer-session-token"
+    }
+  });
+}
+
+function getCustomerSessionToken(request, url = null, body = null) {
+  const headerToken = request.headers.get("x-customer-session-token") || "";
+  const queryToken = url ? (url.searchParams.get("session_token") || url.searchParams.get("session_id") || "") : "";
+  const bodyToken = body ? (body.session_token || body.session_id || "") : "";
+  const token = String(headerToken || queryToken || bodyToken || "").trim();
+
+  if (token.length >= 12 && token.length <= 128) {
+    return token;
+  }
+
+  const randomPart = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+  return `cust_${randomPart}`;
+}
+
+async function readCustomerJson(request) {
+  try {
+    return await request.json();
+  } catch (_) {
+    return {};
+  }
+}
+
+async function ensureCustomerCartSession(env, sessionToken, body = {}) {
+  await env.DB.prepare(`
+    INSERT OR IGNORE INTO customer_cart_sessions (session_token, customer_name, phone)
+    VALUES (?, ?, ?)
+  `).bind(
+    sessionToken,
+    String(body.customer_name || body.customerName || ""),
+    String(body.phone || "")
+  ).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_cart_sessions
+    SET updated_at = CURRENT_TIMESTAMP
+    WHERE session_token = ?
+  `).bind(sessionToken).run();
+}
+
+async function getCustomerCart(env, sessionToken) {
+  const items = await env.DB.prepare(`
+    SELECT
+      ci.product_id,
+      ci.quantity,
+      p.name AS product_name,
+      p.price AS unit_price,
+      COALESCE(p.shop_id, 1) AS shop_id,
+      s.name AS shop_name,
+      (ci.quantity * p.price) AS line_total
+    FROM customer_cart_items_v2 ci
+    JOIN products p ON p.id = ci.product_id
+    LEFT JOIN shops s ON s.id = COALESCE(p.shop_id, 1)
+    WHERE ci.session_token = ?
+    ORDER BY ci.created_at ASC, ci.id ASC
+  `).bind(sessionToken).all();
+
+  const rows = items.results || [];
+  const totalAmount = rows.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
+
+  return {
+    session_token: sessionToken,
+    items: rows,
+    total_amount: totalAmount,
+    currency: "EUR",
+    item_count: rows.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+  };
+}
+
+async function handleCustomerCartApi(request, env) {
+  const url = new URL(request.url);
+  const sessionToken = getCustomerSessionToken(request, url);
+  await ensureCustomerCartSession(env, sessionToken);
+  const cart = await getCustomerCart(env, sessionToken);
+  return customerApiJson({ ok: true, cart });
+}
+
+async function handleCustomerCartAddItemApi(request, env) {
+  const body = await readCustomerJson(request);
+  const sessionToken = getCustomerSessionToken(request, null, body);
+  const productId = Number(body.product_id || body.productId || 0);
+  const quantity = Math.max(1, Number(body.quantity || 1));
+
+  if (!productId) {
+    return customerApiJson({ ok: false, error: "product_id_required" }, 400);
+  }
+
+  const product = await env.DB.prepare(`
+    SELECT id, name, price, COALESCE(shop_id, 1) AS shop_id
+    FROM products
+    WHERE id = ?
+  `).bind(productId).first();
+
+  if (!product) {
+    return customerApiJson({ ok: false, error: "product_not_found" }, 404);
+  }
+
+  await ensureCustomerCartSession(env, sessionToken, body);
+
+  await env.DB.prepare(`
+    INSERT INTO customer_cart_items_v2 (session_token, product_id, quantity)
+    VALUES (?, ?, ?)
+    ON CONFLICT(session_token, product_id)
+    DO UPDATE SET
+      quantity = quantity + excluded.quantity,
+      updated_at = CURRENT_TIMESTAMP
+  `).bind(sessionToken, productId, quantity).run();
+
+  const cart = await getCustomerCart(env, sessionToken);
+  return customerApiJson({ ok: true, cart });
+}
+
+async function handleCustomerCartUpdateItemApi(request, env, url) {
+  const body = await readCustomerJson(request);
+  const sessionToken = getCustomerSessionToken(request, url, body);
+  const productId = Number(url.pathname.split("/").pop() || 0);
+  const quantity = Math.max(0, Number(body.quantity || 0));
+
+  if (!productId) {
+    return customerApiJson({ ok: false, error: "product_id_required" }, 400);
+  }
+
+  await ensureCustomerCartSession(env, sessionToken, body);
+
+  if (quantity === 0) {
+    await env.DB.prepare(`
+      DELETE FROM customer_cart_items_v2
+      WHERE session_token = ? AND product_id = ?
+    `).bind(sessionToken, productId).run();
+  } else {
+    await env.DB.prepare(`
+      UPDATE customer_cart_items_v2
+      SET quantity = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE session_token = ? AND product_id = ?
+    `).bind(quantity, sessionToken, productId).run();
+  }
+
+  const cart = await getCustomerCart(env, sessionToken);
+  return customerApiJson({ ok: true, cart });
+}
+
+async function handleCustomerCartDeleteItemApi(request, env, url) {
+  const sessionToken = getCustomerSessionToken(request, url);
+  const productId = Number(url.pathname.split("/").pop() || 0);
+
+  if (!productId) {
+    return customerApiJson({ ok: false, error: "product_id_required" }, 400);
+  }
+
+  await env.DB.prepare(`
+    DELETE FROM customer_cart_items_v2
+    WHERE session_token = ? AND product_id = ?
+  `).bind(sessionToken, productId).run();
+
+  const cart = await getCustomerCart(env, sessionToken);
+  return customerApiJson({ ok: true, cart });
+}
+
+async function handleCustomerCheckoutApi(request, env) {
+  const body = await readCustomerJson(request);
+  const sessionToken = getCustomerSessionToken(request, null, body);
+  await ensureCustomerCartSession(env, sessionToken, body);
+
+  const cart = await getCustomerCart(env, sessionToken);
+
+  if (!cart.items.length) {
+    return customerApiJson({ ok: false, error: "cart_empty" }, 400);
+  }
+
+  const orderCode = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const customerName = String(body.customer_name || body.customerName || "");
+  const phone = String(body.phone || "");
+  const deliveryAddress = String(body.delivery_address || body.deliveryAddress || "");
+  const paymentMethodCode = String(body.payment_method_code || body.paymentMethodCode || "");
+  const notes = String(body.notes || "");
+
+  const orderInsert = await env.DB.prepare(`
+    INSERT INTO customer_orders_v2 (
+      public_order_code,
+      session_token,
+      status,
+      total_amount,
+      currency,
+      customer_name,
+      phone,
+      delivery_address,
+      payment_method_code,
+      notes
+    )
+    VALUES (?, ?, 'new', ?, 'EUR', ?, ?, ?, ?, ?)
+  `).bind(
+    orderCode,
+    sessionToken,
+    cart.total_amount,
+    customerName,
+    phone,
+    deliveryAddress,
+    paymentMethodCode,
+    notes
+  ).run();
+
+  const orderId = orderInsert.meta.last_row_id;
+
+  for (const item of cart.items) {
+    await env.DB.prepare(`
+      INSERT INTO customer_order_items_v2 (
+        customer_order_id,
+        product_id,
+        product_name,
+        shop_id,
+        quantity,
+        unit_price,
+        line_total
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      orderId,
+      item.product_id,
+      item.product_name,
+      item.shop_id,
+      item.quantity,
+      item.unit_price,
+      item.line_total
+    ).run();
+  }
+
+  await env.DB.prepare(`
+    DELETE FROM customer_cart_items_v2
+    WHERE session_token = ?
+  `).bind(sessionToken).run();
+
+  const order = await getCustomerOrder(env, orderId, sessionToken);
+  return customerApiJson({ ok: true, order }, 201);
+}
+
+async function getCustomerOrder(env, orderId, sessionToken) {
+  const order = await env.DB.prepare(`
+    SELECT *
+    FROM customer_orders_v2
+    WHERE id = ? AND session_token = ?
+  `).bind(orderId, sessionToken).first();
+
+  if (!order) {
+    return null;
+  }
+
+  const items = await env.DB.prepare(`
+    SELECT *
+    FROM customer_order_items_v2
+    WHERE customer_order_id = ?
+    ORDER BY id ASC
+  `).bind(orderId).all();
+
+  return {
+    ...order,
+    items: items.results || []
+  };
+}
+
+async function handleCustomerOrdersApi(request, env) {
+  const url = new URL(request.url);
+  const sessionToken = getCustomerSessionToken(request, url);
+
+  const orders = await env.DB.prepare(`
+    SELECT
+      id,
+      public_order_code,
+      status,
+      total_amount,
+      currency,
+      customer_name,
+      phone,
+      delivery_address,
+      payment_method_code,
+      notes,
+      created_at,
+      updated_at
+    FROM customer_orders_v2
+    WHERE session_token = ?
+    ORDER BY created_at DESC, id DESC
+  `).bind(sessionToken).all();
+
+  return customerApiJson({ ok: true, orders: orders.results || [] });
+}
+
+async function handleCustomerOrderDetailApi(request, env, url) {
+  const sessionToken = getCustomerSessionToken(request, url);
+  const orderId = Number(url.pathname.split("/").pop() || 0);
+
+  if (!orderId) {
+    return customerApiJson({ ok: false, error: "order_id_required" }, 400);
+  }
+
+  const order = await getCustomerOrder(env, orderId, sessionToken);
+
+  if (!order) {
+    return customerApiJson({ ok: false, error: "order_not_found" }, 404);
+  }
+
+  return customerApiJson({ ok: true, order });
+}
+
