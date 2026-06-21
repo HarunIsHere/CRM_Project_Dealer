@@ -11109,6 +11109,282 @@ async function handleApiV1(request, env) {
 }
 
 
+const ADMIN_V2_CSS = `
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --card: #1f2937;
+  --text: #f9fafb;
+  --muted: #9ca3af;
+  --border: #374151;
+  --primary: #3b82f6;
+  --danger: #ef4444;
+  --success: #22c55e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+header {
+  padding: 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 0 0 12px; font-size: 18px; }
+
+main {
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 18px;
+}
+
+nav, section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+button, a.button {
+  width: 100%;
+  display: block;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0 0 8px;
+  background: var(--card);
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+button:hover, a.button:hover { background: #273449; }
+button.primary { background: var(--primary); }
+button.danger { background: var(--danger); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.card strong { display: block; font-size: 22px; margin-top: 6px; }
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #020617;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  max-height: 620px;
+  overflow: auto;
+}
+
+.small { color: var(--muted); font-size: 13px; }
+
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr; }
+  header { flex-direction: column; align-items: flex-start; }
+}
+`;
+
+const ADMIN_V2_JS = `
+const state = {
+  current: "dashboard"
+};
+
+const result = document.getElementById("result");
+const title = document.getElementById("section-title");
+const cards = document.getElementById("cards");
+
+function pretty(value) {
+  return JSON.stringify(value, null, 2);
+}
+
+function showLoading(name) {
+  title.textContent = name;
+  cards.innerHTML = "";
+  result.textContent = "Loading...";
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.ok === false) {
+    throw new Error(data.message || data.error || "Request failed");
+  }
+
+  return data;
+}
+
+function renderCards(items) {
+  cards.innerHTML = "";
+
+  for (const item of items) {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = "<span class='small'>" + item.label + "</span><strong>" + item.value + "</strong>";
+    cards.appendChild(div);
+  }
+}
+
+async function loadDashboard() {
+  showLoading("Dashboard");
+  const data = await api("/api/v1/admin/dashboard");
+  const payload = data.data || data;
+
+  renderCards([
+    { label: "Open orders", value: payload.open_orders_count ?? payload.open_orders ?? "-" },
+    { label: "Closed orders", value: payload.closed_orders_count ?? payload.closed_orders ?? "-" },
+    { label: "Open requests", value: payload.open_requests_count ?? payload.open_requests ?? "-" },
+    { label: "Customers", value: payload.customers_count ?? payload.customers ?? "-" }
+  ]);
+
+  result.textContent = pretty(payload);
+}
+
+async function loadSection(name, path) {
+  showLoading(name);
+  const data = await api(path);
+  result.textContent = pretty(data.data || data);
+}
+
+async function logout() {
+  await api("/api/v1/admin/logout", { method: "POST" });
+  window.location.href = "/admin/login";
+}
+
+const actions = {
+  dashboard: () => loadDashboard(),
+  orders: () => loadSection("Orders", "/api/v1/admin/orders"),
+  closedOrders: () => loadSection("Closed Orders", "/api/v1/admin/closed-orders"),
+  openRequests: () => loadSection("Open Requests", "/api/v1/admin/open-requests"),
+  products: () => loadSection("Products", "/api/v1/admin/products"),
+  categories: () => loadSection("Product Categories", "/api/v1/admin/product-categories"),
+  meetingPoints: () => loadSection("Meeting Points", "/api/v1/admin/meeting-points"),
+  customers: () => loadSection("Customers", "/api/v1/admin/customers"),
+  settings: () => loadSection("Settings", "/api/v1/admin/settings")
+};
+
+document.querySelectorAll("[data-action]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const action = button.getAttribute("data-action");
+    state.current = action;
+
+    try {
+      await actions[action]();
+    } catch (error) {
+      cards.innerHTML = "";
+      result.textContent = error instanceof Error ? error.message : "Unknown error";
+    }
+  });
+});
+
+document.getElementById("logout")?.addEventListener("click", async () => {
+  try {
+    await logout();
+  } catch {
+    window.location.href = "/admin/login";
+  }
+});
+
+loadDashboard().catch((error) => {
+  result.textContent = error instanceof Error ? error.message : "Unknown error";
+});
+`;
+
+function handleAdminV2Page() {
+  return new Response(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRM Delivery Admin v2</title>
+  <link rel="stylesheet" href="/static/admin-v2.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>CRM Delivery Admin v2</h1>
+      <div class="small">API-powered admin interface. Current old admin remains available.</div>
+    </div>
+    <div>
+      <a class="button" href="/admin">Old Admin</a>
+      <button id="logout" class="danger">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <nav>
+      <button class="primary" data-action="dashboard">Dashboard</button>
+      <button data-action="orders">Orders</button>
+      <button data-action="closedOrders">Closed Orders</button>
+      <button data-action="openRequests">Open Requests</button>
+      <button data-action="products">Products</button>
+      <button data-action="categories">Product Categories</button>
+      <button data-action="meetingPoints">Meeting Points</button>
+      <button data-action="customers">Customers</button>
+      <button data-action="settings">Settings</button>
+    </nav>
+
+    <section>
+      <h2 id="section-title">Dashboard</h2>
+      <div id="cards" class="grid"></div>
+      <pre id="result">Loading...</pre>
+    </section>
+  </main>
+
+  <script src="/static/admin-v2.js"></script>
+</body>
+</html>`, {
+    headers: { "content-type": "text/html; charset=utf-8" }
+  });
+}
+
+function handleAdminV2Css() {
+  return new Response(ADMIN_V2_CSS, {
+    headers: { "content-type": "text/css; charset=utf-8" }
+  });
+}
+
+function handleAdminV2Js() {
+  return new Response(ADMIN_V2_JS, {
+    headers: { "content-type": "application/javascript; charset=utf-8" }
+  });
+}
+
+
 async function handleHealth() {
   return jsonResponse({ app: "CRM Delivery Worker", status: "ok" });
 }
@@ -11122,6 +11398,14 @@ async function routeRequest(request, env) {
 
   if (url.pathname === "/static/admin.css") {
     return new Response(ADMIN_CSS, { headers: { "content-type": "text/css; charset=utf-8" } });
+  }
+
+  if (url.pathname === "/static/admin-v2.css") {
+    return handleAdminV2Css();
+  }
+
+  if (url.pathname === "/static/admin-v2.js") {
+    return handleAdminV2Js();
   }
 
   if (url.pathname === "/telegram/webhook" && request.method === "POST") {
@@ -11150,6 +11434,11 @@ async function routeRequest(request, env) {
     if (request.method === "POST" && url.pathname !== "/admin/logout") {
       await logAdminAction(env, request, adminSession, "admin_post_action", url.pathname);
     }
+  }
+
+
+  if ((url.pathname === "/admin-v2" || url.pathname === "/admin-v2/") && request.method === "GET") {
+    return handleAdminV2Page();
   }
 
   if ((url.pathname === "/admin" || url.pathname === "/admin/") && request.method === "GET") return handleAdminHome(env, adminSession);
