@@ -11451,6 +11451,7 @@ function handleAdminV2Page() {
       <button data-action="meetingPoints">Meeting Points</button>
       <button data-action="customers">Customers</button>
       <button data-action="settings">Settings</button>
+      <a class="button" href="/admin/superadmin">Superadmin</a>
     </nav>
 
     <section>
