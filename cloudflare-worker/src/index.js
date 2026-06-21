@@ -11109,328 +11109,128 @@ async function handleApiV1(request, env) {
 }
 
 
-const ADMIN_V2_CSS = `
-:root {
-  --bg: #0f172a;
-  --panel: #111827;
-  --panel-2: #1f2937;
-  --line: #374151;
-  --text: #f8fafc;
-  --muted: #9ca3af;
-  --primary: #3b82f6;
-  --primary-2: #2563eb;
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --radius: 16px;
+const ADMIN_V2_CSS = ADMIN_CSS + `
+.admin-v2-api-panel {
+    max-width: 1200px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 18px;
 }
 
-* {
-  box-sizing: border-box;
+.admin-v2-summary-grid {
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
 }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+.admin-v2-summary-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px;
 }
 
-a {
-  color: inherit;
+.admin-v2-summary-card span {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 6px;
 }
 
-.header {
-  min-height: 120px;
-  padding: 26px 24px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
+.admin-v2-summary-card strong {
+    display: block;
+    font-size: 26px;
 }
 
-.header h1 {
-  margin: 0;
-  font-size: 28px;
+.admin-v2-table-wrap {
+    max-width: 1200px;
+    overflow-x: auto;
 }
 
-.header p {
-  margin: 4px 0 0;
-  color: var(--muted);
+.admin-v2-table-wrap table {
+    min-width: 900px;
 }
 
-.header-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.admin-v2-section-head {
+    max-width: 1200px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
 }
 
-.layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 24px;
-  padding: 24px;
+.admin-v2-section-head h2 {
+    margin: 0;
 }
 
-.sidebar {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 16px;
-  height: fit-content;
-  position: sticky;
-  top: 18px;
+.admin-v2-raw {
+    max-width: 1200px;
+    background: #0f172a;
+    color: #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+    overflow: auto;
+    font-size: 12px;
 }
 
-.sidebar button,
-.sidebar a {
-  width: 100%;
-  display: block;
-  text-align: left;
-  margin: 0 0 10px;
-  padding: 13px 16px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--panel-2);
-  color: var(--text);
-  font: inherit;
-  font-weight: 650;
-  text-decoration: none;
-  cursor: pointer;
+.admin-v2-empty {
+    max-width: 1200px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    color: var(--muted);
 }
 
-.sidebar button:hover,
-.sidebar a:hover,
-.sidebar button.active {
-  background: var(--primary);
+.admin-v2-badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #e5e7eb;
+    color: #111827;
 }
 
-.main {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 20px;
-  min-width: 0;
+.admin-v2-badge.success {
+    background: #dcfce7;
+    color: #166534;
 }
 
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  margin-bottom: 16px;
+.admin-v2-badge.warning {
+    background: #fef3c7;
+    color: #92400e;
 }
 
-.section-head h2 {
-  margin: 0;
-  font-size: 23px;
+.admin-v2-badge.danger {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
-.small {
-  color: var(--muted);
-  font-size: 13px;
+.admin-v2-map-link {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-weight: 700;
 }
 
-.cards {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(160px, 1fr));
-  gap: 14px;
-  margin-bottom: 18px;
-}
+@media (max-width: 760px) {
+    .admin-v2-summary-grid {
+        grid-template-columns: 1fr;
+    }
 
-.card {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  padding: 16px;
-}
-
-.card strong {
-  display: block;
-  font-size: 28px;
-  margin-top: 8px;
-}
-
-.button,
-button.primary {
-  appearance: none;
-  border: 0;
-  border-radius: 10px;
-  background: var(--primary);
-  color: white;
-  padding: 11px 15px;
-  font: inherit;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.button:hover,
-button.primary:hover {
-  background: var(--primary-2);
-}
-
-button.danger {
-  appearance: none;
-  border: 0;
-  border-radius: 10px;
-  background: var(--danger);
-  color: white;
-  padding: 11px 15px;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #020617;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 900px;
-}
-
-th,
-td {
-  padding: 11px 12px;
-  border-bottom: 1px solid #1f2937;
-  text-align: left;
-  vertical-align: top;
-  white-space: nowrap;
-  font-size: 14px;
-}
-
-th {
-  color: #cbd5e1;
-  background: #111827;
-  font-weight: 750;
-}
-
-td.wrap {
-  white-space: normal;
-  max-width: 420px;
-}
-
-tr:hover td {
-  background: rgba(59, 130, 246, 0.08);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 3px 9px;
-  font-size: 12px;
-  font-weight: 800;
-  background: #334155;
-  color: white;
-}
-
-.badge.success {
-  background: rgba(34, 197, 94, 0.18);
-  color: #86efac;
-}
-
-.badge.warning {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fcd34d;
-}
-
-.badge.danger {
-  background: rgba(239, 68, 68, 0.18);
-  color: #fca5a5;
-}
-
-.kv {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  overflow: hidden;
-  background: #020617;
-}
-
-.kv-row {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  border-bottom: 1px solid #1f2937;
-}
-
-.kv-row:last-child {
-  border-bottom: 0;
-}
-
-.kv-key {
-  padding: 12px;
-  color: #cbd5e1;
-  background: #111827;
-  font-weight: 750;
-}
-
-.kv-value {
-  padding: 12px;
-  white-space: pre-wrap;
-}
-
-details {
-  margin-top: 16px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #020617;
-  overflow: hidden;
-}
-
-summary {
-  padding: 12px;
-  cursor: pointer;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-pre {
-  margin: 0;
-  padding: 14px;
-  overflow: auto;
-  color: #e5e7eb;
-  line-height: 1.45;
-}
-
-.empty {
-  border: 1px dashed var(--line);
-  border-radius: 14px;
-  padding: 20px;
-  color: var(--muted);
-}
-
-@media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: static;
-  }
-
-  .cards {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .header {
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 560px) {
-  .cards {
-    grid-template-columns: 1fr;
-  }
-
-  .kv-row {
-    grid-template-columns: 1fr;
-  }
+    .admin-v2-section-head {
+        display: block;
+    }
 }
 `;
 
@@ -11440,8 +11240,8 @@ const state = {
 };
 
 const result = document.getElementById("result");
-const title = document.getElementById("section-title");
 const cards = document.getElementById("cards");
+const sectionTitle = document.getElementById("section-title");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -11456,10 +11256,25 @@ function pretty(value) {
   return JSON.stringify(value, null, 2);
 }
 
+function payload(data) {
+  return data.data || data;
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  return String(value).replace("T", " ").replace(".000Z", "").replace("Z", "");
+}
+
+function setActive(action) {
+  document.querySelectorAll("[data-action]").forEach((button) => {
+    button.classList.toggle("active", button.getAttribute("data-action") === action);
+  });
+}
+
 function showLoading(name) {
-  title.textContent = name;
+  sectionTitle.textContent = name;
   cards.innerHTML = "";
-  result.innerHTML = "<div class='empty'>Loading...</div>";
+  result.innerHTML = "<div class='admin-v2-empty'>Loading...</div>";
 }
 
 async function api(path, options = {}) {
@@ -11495,103 +11310,51 @@ async function api(path, options = {}) {
   return data;
 }
 
-function payload(data) {
-  return data.data || data;
-}
-
-function formatDate(value) {
-  if (!value) return "";
-  return String(value).replace("T", " ").replace(".000Z", "").replace("Z", "");
-}
-
-function money(value) {
-  if (value === null || value === undefined || value === "") return "";
-  return String(value);
-}
-
 function badge(value) {
   const text = String(value ?? "");
   const lower = text.toLowerCase();
   let cls = "";
+
   if (lower.includes("active") || lower.includes("delivered") || lower === "yes" || lower === "true") cls = "success";
   if (lower.includes("new") || lower.includes("ready") || lower.includes("progress")) cls = "warning";
   if (lower.includes("closed") || lower.includes("blocked") || lower.includes("false") || lower === "no") cls = "danger";
-  return "<span class='badge " + cls + "'>" + escapeHtml(text || "-") + "</span>";
+
+  return "<span class='admin-v2-badge " + cls + "'>" + escapeHtml(text || "-") + "</span>";
 }
 
-function mapsLink(url) {
+function mapLink(url) {
   if (!url) return "";
-  return "<a class='button' target='_blank' rel='noopener' href='" + escapeHtml(url) + "'>Map</a>";
-}
-
-function setActive(action) {
-  document.querySelectorAll("[data-action]").forEach((button) => {
-    button.classList.toggle("active", button.getAttribute("data-action") === action);
-  });
+  return "<a class='admin-v2-map-link' target='_blank' rel='noopener' href='" + escapeHtml(url) + "'>Map</a>";
 }
 
 function renderCards(items) {
-  cards.innerHTML = "";
-
-  for (const item of items) {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerHTML = "<span class='small'>" + escapeHtml(item.label) + "</span><strong>" + escapeHtml(item.value) + "</strong>";
-    cards.appendChild(div);
-  }
+  cards.innerHTML = "<div class='admin-v2-summary-grid'>" + items.map((item) => {
+    return "<div class='admin-v2-summary-card'><span>" + escapeHtml(item.label) + "</span><strong>" + escapeHtml(item.value) + "</strong></div>";
+  }).join("") + "</div>";
 }
 
 function renderTable(rows, columns) {
   if (!rows.length) {
-    return "<div class='empty'>No data found.</div>";
+    return "<div class='admin-v2-empty'>No data found.</div>";
   }
 
   return [
-    "<div class='table-wrap'><table>",
+    "<div class='admin-v2-table-wrap'><table>",
     "<thead><tr>" + columns.map((column) => "<th>" + escapeHtml(column.label) + "</th>").join("") + "</tr></thead>",
     "<tbody>",
     rows.map((row) => {
       return "<tr>" + columns.map((column) => {
-        const raw = column.value(row);
-        const html = column.html ? raw : escapeHtml(raw);
-        const cls = column.wrap ? " class='wrap'" : "";
-        return "<td" + cls + ">" + html + "</td>";
+        const value = column.value(row);
+        const shown = column.html ? value : escapeHtml(value);
+        return "<td>" + shown + "</td>";
       }).join("") + "</tr>";
     }).join(""),
     "</tbody></table></div>"
   ].join("");
 }
 
-function renderDebug(data) {
-  return "<details><summary>Raw API data</summary><pre>" + escapeHtml(pretty(data)) + "</pre></details>";
-}
-
-function renderSettings(settings, data) {
-  const rows = Object.entries(settings || {}).map(([key, value]) => {
-    const shown = Array.isArray(value) ? value.join(", ") : value;
-    return "<div class='kv-row'><div class='kv-key'>" + escapeHtml(key) + "</div><div class='kv-value'>" + escapeHtml(shown) + "</div></div>";
-  }).join("");
-
-  result.innerHTML = "<div class='kv'>" + rows + "</div>" + renderDebug(data);
-}
-
-async function loadDashboard() {
-  setActive("dashboard");
-  showLoading("Dashboard");
-
-  const data = await api("/api/v1/admin/dashboard");
-  const p = payload(data);
-  const summary = p.summary || {};
-
-  renderCards([
-    { label: "Open orders", value: summary.open_orders_count ?? "-" },
-    { label: "Closed orders", value: summary.closed_orders_count ?? "-" },
-    { label: "Open requests", value: summary.open_requests_count ?? "-" },
-    { label: "Customers", value: summary.active_customers_count ?? "-" }
-  ]);
-
-  const rows = p.latest_orders || [];
-  result.innerHTML = "<h2>Latest orders</h2>" + renderTable(rows, orderColumns()) + renderDebug(p);
+function rawPanel(data) {
+  return "<details><summary>Raw API data</summary><pre class='admin-v2-raw'>" + escapeHtml(pretty(data)) + "</pre></details>";
 }
 
 function orderColumns() {
@@ -11599,11 +11362,11 @@ function orderColumns() {
     { label: "ID", value: (r) => r.id },
     { label: "Customer", value: (r) => r.customer?.full_name || r.customer_id || "" },
     { label: "Status", value: (r) => badge(r.order_status_label || r.order_status || r.status), html: true },
-    { label: "Delivery", value: (r) => r.delivery_location_label || r.delivery_note || "", wrap: true },
+    { label: "Delivery", value: (r) => r.delivery_location_label || r.delivery_note || "" },
     { label: "Created", value: (r) => formatDate(r.created_at) },
     { label: "Delivered", value: (r) => formatDate(r.delivered_at) },
     { label: "Closed", value: (r) => formatDate(r.closed_at) },
-    { label: "Map", value: (r) => mapsLink(r.delivery_google_maps_link), html: true }
+    { label: "Map", value: (r) => mapLink(r.delivery_google_maps_link), html: true }
   ];
 }
 
@@ -11613,9 +11376,9 @@ function requestColumns() {
     { label: "Type", value: (r) => r.request_type_label || r.request_type || "" },
     { label: "Status", value: (r) => badge(r.status), html: true },
     { label: "Item", value: (r) => r.item_name || "" },
-    { label: "Message", value: (r) => r.latest_text || r.message || "", wrap: true },
+    { label: "Message", value: (r) => r.latest_text || r.message || "" },
     { label: "Created", value: (r) => formatDate(r.latest_created_at || r.created_at) },
-    { label: "Map", value: (r) => mapsLink(r.google_maps_link), html: true }
+    { label: "Map", value: (r) => mapLink(r.google_maps_link), html: true }
   ];
 }
 
@@ -11623,10 +11386,10 @@ function productColumns() {
   return [
     { label: "ID", value: (r) => r.id },
     { label: "Name", value: (r) => r.name },
-    { label: "Price", value: (r) => money(r.price_formatted || r.price) },
+    { label: "Price", value: (r) => r.price_formatted || r.price || "" },
     { label: "Category", value: (r) => r.category_name || "" },
     { label: "Active", value: (r) => badge(r.is_active ? "yes" : "no"), html: true },
-    { label: "Aliases", value: (r) => Array.isArray(r.aliases) ? r.aliases.join(", ") : "", wrap: true }
+    { label: "Aliases", value: (r) => Array.isArray(r.aliases) ? r.aliases.join(", ") : "" }
   ];
 }
 
@@ -11634,8 +11397,8 @@ function categoryColumns() {
   return [
     { label: "ID", value: (r) => r.id },
     { label: "Name", value: (r) => r.name },
-    { label: "Active", value: (r) => badge(r.is_active ? "yes" : "no"), html: true },
-    { label: "Sort", value: (r) => r.sort_order ?? "" }
+    { label: "Sort", value: (r) => r.sort_order ?? "" },
+    { label: "Active", value: (r) => badge(r.is_active ? "yes" : "no"), html: true }
   ];
 }
 
@@ -11643,10 +11406,10 @@ function meetingPointColumns() {
   return [
     { label: "ID", value: (r) => r.id },
     { label: "Name", value: (r) => r.name },
-    { label: "Address", value: (r) => r.address, wrap: true },
+    { label: "Address", value: (r) => r.address },
     { label: "Default", value: (r) => badge(r.is_default ? "yes" : "no"), html: true },
     { label: "Active", value: (r) => badge(r.is_active ? "yes" : "no"), html: true },
-    { label: "Map", value: (r) => mapsLink(r.google_maps_link), html: true }
+    { label: "Map", value: (r) => mapLink(r.google_maps_link), html: true }
   ];
 }
 
@@ -11655,11 +11418,38 @@ function customerColumns() {
     { label: "ID", value: (r) => r.id },
     { label: "Name", value: (r) => r.full_name || "" },
     { label: "Username", value: (r) => r.username || "" },
-    { label: "Telegram/App ID", value: (r) => r.telegram_user_id || "", wrap: true },
+    { label: "Telegram/App ID", value: (r) => r.telegram_user_id || "" },
     { label: "Language", value: (r) => r.preferred_language || r.language || "" },
     { label: "Blocked", value: (r) => badge(r.is_blocked ? "yes" : "no"), html: true },
     { label: "Created", value: (r) => formatDate(r.created_at) }
   ];
+}
+
+function renderSettings(settings, data) {
+  const rows = Object.entries(settings || {}).map(([key, value]) => {
+    const shown = Array.isArray(value) ? value.join(", ") : value;
+    return "<tr><th>" + escapeHtml(key) + "</th><td>" + escapeHtml(shown) + "</td></tr>";
+  }).join("");
+
+  result.innerHTML = "<table><tbody>" + rows + "</tbody></table>" + rawPanel(data);
+}
+
+async function loadDashboard() {
+  setActive("dashboard");
+  showLoading("General");
+
+  const data = await api("/api/v1/admin/dashboard");
+  const p = payload(data);
+  const summary = p.summary || {};
+
+  renderCards([
+    { label: "Open Orders", value: summary.open_orders_count ?? "-" },
+    { label: "Closed Orders", value: summary.closed_orders_count ?? "-" },
+    { label: "Open Requests", value: summary.open_requests_count ?? "-" },
+    { label: "Customers", value: summary.active_customers_count ?? "-" }
+  ]);
+
+  result.innerHTML = "<h2>Latest Orders</h2>" + renderTable(p.latest_orders || [], orderColumns()) + rawPanel(p);
 }
 
 async function loadOrders() {
@@ -11667,7 +11457,7 @@ async function loadOrders() {
   showLoading("Orders");
   const data = await api("/api/v1/admin/orders");
   const p = payload(data);
-  result.innerHTML = renderTable(p.orders || [], orderColumns()) + renderDebug(p);
+  result.innerHTML = renderTable(p.orders || [], orderColumns()) + rawPanel(p);
 }
 
 async function loadClosedOrders() {
@@ -11675,7 +11465,7 @@ async function loadClosedOrders() {
   showLoading("Closed Orders");
   const data = await api("/api/v1/admin/closed-orders");
   const p = payload(data);
-  result.innerHTML = renderTable(p.orders || p.closed_orders || [], orderColumns()) + renderDebug(p);
+  result.innerHTML = renderTable(p.orders || p.closed_orders || [], orderColumns()) + rawPanel(p);
 }
 
 async function loadOpenRequests() {
@@ -11683,7 +11473,7 @@ async function loadOpenRequests() {
   showLoading("Open Requests");
   const data = await api("/api/v1/admin/open-requests");
   const p = payload(data);
-  result.innerHTML = renderTable(p.open_requests || p.requests || p.customer_requests || [], requestColumns()) + renderDebug(p);
+  result.innerHTML = renderTable(p.open_requests || p.requests || p.customer_requests || [], requestColumns()) + rawPanel(p);
 }
 
 async function loadProducts() {
@@ -11691,7 +11481,7 @@ async function loadProducts() {
   showLoading("Products");
   const data = await api("/api/v1/admin/products");
   const p = payload(data);
-  result.innerHTML = renderTable(p.products || [], productColumns()) + renderDebug(p);
+  result.innerHTML = renderTable(p.products || [], productColumns()) + rawPanel(p);
 }
 
 async function loadCategories() {
@@ -11699,7 +11489,7 @@ async function loadCategories() {
   showLoading("Product Categories");
   const data = await api("/api/v1/admin/product-categories");
   const p = payload(data);
-  result.innerHTML = renderTable(p.categories || p.product_categories || [], categoryColumns()) + renderDebug(p);
+  result.innerHTML = renderTable(p.categories || p.product_categories || [], categoryColumns()) + rawPanel(p);
 }
 
 async function loadMeetingPoints() {
@@ -11707,7 +11497,7 @@ async function loadMeetingPoints() {
   showLoading("Meeting Points");
   const data = await api("/api/v1/admin/meeting-points");
   const p = payload(data);
-  result.innerHTML = renderTable(p.meeting_points || [], meetingPointColumns()) + renderDebug(p);
+  result.innerHTML = renderTable(p.meeting_points || [], meetingPointColumns()) + rawPanel(p);
 }
 
 async function loadCustomers() {
@@ -11715,7 +11505,7 @@ async function loadCustomers() {
   showLoading("Customers");
   const data = await api("/api/v1/admin/customers");
   const p = payload(data);
-  result.innerHTML = renderTable(p.customers || [], customerColumns()) + renderDebug(p);
+  result.innerHTML = renderTable(p.customers || [], customerColumns()) + rawPanel(p);
 }
 
 async function loadSettings() {
@@ -11750,28 +11540,20 @@ const actions = {
 document.querySelectorAll("[data-action]").forEach((button) => {
   button.addEventListener("click", async () => {
     const action = button.getAttribute("data-action");
-    state.current = action;
 
     try {
       await actions[action]();
     } catch (error) {
       cards.innerHTML = "";
-      result.innerHTML = "<div class='empty'>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</div>";
+      result.innerHTML = "<div class='admin-v2-empty'>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</div>";
     }
   });
 });
 
-document.getElementById("logout")?.addEventListener("click", async () => {
-  try {
-    await logout();
-  } catch {
-    localStorage.removeItem("admin_v2_token");
-    window.location.href = "/admin-v2/login";
-  }
-});
+document.getElementById("logout")?.addEventListener("click", logout);
 
 loadDashboard().catch((error) => {
-  result.innerHTML = "<div class='empty'>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</div>";
+  result.innerHTML = "<div class='admin-v2-empty'>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</div>";
 });
 `;
 
@@ -11859,45 +11641,45 @@ function handleAdminV2LoginPage() {
 
 function handleAdminV2Page() {
   return new Response(`<!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CRM Delivery Admin v2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/static/admin-v2.css">
 </head>
 <body>
-  <header>
+  <div class="admin-header">
     <div>
       <h1>CRM Delivery Admin v2</h1>
-      <div class="small">API-powered admin interface. Current old admin remains available.</div>
+      <p class="admin-info-text">API-powered admin interface. Current old admin remains available.</p>
     </div>
-    <div>
-      <a class="button" href="/admin">Old Admin</a>
-      <button id="logout" class="danger">Logout</button>
+    <div class="header-actions">
+      <a href="/admin"><button type="button">Old Admin</button></a>
+      <button type="button" id="logout">Logout</button>
     </div>
-  </header>
+  </div>
 
-  <main>
-    <nav>
-      <button class="primary" data-action="dashboard">Dashboard</button>
-      <button data-action="orders">Orders</button>
-      <button data-action="closedOrders">Closed Orders</button>
-      <button data-action="openRequests">Open Requests</button>
-      <button data-action="products">Products</button>
-      <button data-action="categories">Product Categories</button>
-      <button data-action="meetingPoints">Meeting Points</button>
-      <button data-action="customers">Customers</button>
-      <button data-action="settings">Settings</button>
-      <a class="button" href="/admin/superadmin">Superadmin</a>
-    </nav>
+  <hr>
 
-    <section>
-      <h2 id="section-title">Dashboard</h2>
-      <div id="cards" class="grid"></div>
-      <pre id="result">Loading...</pre>
-    </section>
-  </main>
+  <div class="page-actions">
+    <button type="button" data-action="dashboard">General</button>
+    <button type="button" data-action="openRequests">Open Requests</button>
+    <button type="button" data-action="orders">Orders</button>
+    <button type="button" data-action="closedOrders">Closed Orders</button>
+    <button type="button" data-action="products">Products</button>
+    <button type="button" data-action="categories">Product Categories</button>
+    <button type="button" data-action="meetingPoints">Meeting Points</button>
+    <button type="button" data-action="customers">Customers</button>
+    <button type="button" data-action="settings">Settings</button>
+    <a href="/admin/superadmin"><button type="button">Superadmin</button></a>
+  </div>
+
+  <hr>
+
+  <h2 id="section-title">General</h2>
+  <div id="cards"></div>
+  <div id="result"></div>
 
   <script src="/static/admin-v2.js"></script>
 </body>
