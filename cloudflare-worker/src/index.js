@@ -11263,12 +11263,13 @@ async function loadDashboard() {
   showLoading("Dashboard");
   const data = await api("/api/v1/admin/dashboard");
   const payload = data.data || data;
+  const summary = payload.summary || payload;
 
   renderCards([
-    { label: "Open orders", value: payload.open_orders_count ?? payload.open_orders ?? "-" },
-    { label: "Closed orders", value: payload.closed_orders_count ?? payload.closed_orders ?? "-" },
-    { label: "Open requests", value: payload.open_requests_count ?? payload.open_requests ?? "-" },
-    { label: "Customers", value: payload.customers_count ?? payload.customers ?? "-" }
+    { label: "Open orders", value: summary.open_orders_count ?? summary.open_orders ?? "-" },
+    { label: "Closed orders", value: summary.closed_orders_count ?? summary.closed_orders ?? "-" },
+    { label: "Open requests", value: summary.open_requests_count ?? summary.open_requests ?? "-" },
+    { label: "Customers", value: summary.active_customers_count ?? summary.customers_count ?? summary.customers ?? "-" }
   ]);
 
   result.textContent = pretty(payload);
@@ -11282,7 +11283,7 @@ async function loadSection(name, path) {
 
 async function logout() {
   await api("/api/v1/admin/logout", { method: "POST" });
-  window.location.href = "/admin/login";
+  window.location.href = "/admin-v2/login";
 }
 
 const actions = {
@@ -11315,7 +11316,7 @@ document.getElementById("logout")?.addEventListener("click", async () => {
   try {
     await logout();
   } catch {
-    window.location.href = "/admin/login";
+    window.location.href = "/admin-v2/login";
   }
 });
 
@@ -11323,6 +11324,80 @@ loadDashboard().catch((error) => {
   result.textContent = error instanceof Error ? error.message : "Unknown error";
 });
 `;
+
+
+function handleAdminV2LoginPage() {
+  return new Response(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRM Delivery Admin v2 Login</title>
+  <link rel="stylesheet" href="/static/admin-v2.css">
+</head>
+<body>
+  <main style="display:block; max-width:520px; margin:40px auto;">
+    <section>
+      <h1>Admin v2 Login</h1>
+      <p class="small">Login to continue to the API-powered admin interface.</p>
+
+      <div class="card">
+        <label class="small">Username</label>
+        <input id="username" autocomplete="username" style="width:100%; margin:6px 0 14px; padding:10px; border-radius:10px; border:1px solid var(--border);">
+
+        <label class="small">Password</label>
+        <input id="password" type="password" autocomplete="current-password" style="width:100%; margin:6px 0 14px; padding:10px; border-radius:10px; border:1px solid var(--border);">
+
+        <button id="login" class="primary">Login</button>
+        <pre id="login-result" style="display:none;"></pre>
+      </div>
+
+      <p><a href="/admin/login">Use old login page</a></p>
+    </section>
+  </main>
+
+  <script>
+    const result = document.getElementById("login-result");
+
+    document.getElementById("login").addEventListener("click", async () => {
+      result.style.display = "block";
+      result.textContent = "Logging in...";
+
+      try {
+        const response = await fetch("/api/v1/admin/login", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value
+          })
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.ok === false) {
+          throw new Error(data.message || data.error || "Login failed");
+        }
+
+        window.location.href = "/admin-v2";
+      } catch (error) {
+        result.textContent = error instanceof Error ? error.message : "Login failed";
+      }
+    });
+
+    document.getElementById("password").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        document.getElementById("login").click();
+      }
+    });
+  </script>
+</body>
+</html>`, {
+    headers: { "content-type": "text/html; charset=utf-8" }
+  });
+}
+
 
 function handleAdminV2Page() {
   return new Response(`<!doctype html>
@@ -11423,11 +11498,18 @@ async function routeRequest(request, env) {
   if (url.pathname === "/admin/reset-password" && request.method === "GET") return handleResetPasswordPage();
   if (url.pathname === "/admin/reset-password" && request.method === "POST") return handleResetPassword(request, env);
 
+  if ((url.pathname === "/admin-v2/login" || url.pathname === "/admin-v2/login/") && request.method === "GET") {
+    return handleAdminV2LoginPage();
+  }
+
   let adminSession = null;
 
   if (url.pathname.startsWith("/admin")) {
     adminSession = await getAdminSession(request, env);
-    if (!adminSession) return redirectResponse("/admin/login");
+    if (!adminSession) {
+      if (url.pathname.startsWith("/admin-v2")) return redirectResponse("/admin-v2/login");
+      return redirectResponse("/admin/login");
+    }
 
     await cleanupOldAdminAuditLogs(env);
 
