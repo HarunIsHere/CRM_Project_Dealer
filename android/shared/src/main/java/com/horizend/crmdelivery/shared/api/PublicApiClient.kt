@@ -2,6 +2,7 @@ package com.horizend.crmdelivery.shared.api
 
 import com.horizend.crmdelivery.shared.ApiConfig
 import java.net.URL
+import org.json.JSONArray
 import org.json.JSONObject
 
 object PublicApiClient {
@@ -17,12 +18,7 @@ object PublicApiClient {
                 emptyList()
             } else {
                 List(paymentMethodsJson.length()) { methodIndex ->
-                    val method = paymentMethodsJson.getJSONObject(methodIndex)
-                    PaymentMethod(
-                        code = method.optString("code"),
-                        name = method.optString("name"),
-                        isActive = method.optBoolean("is_active", true)
-                    )
+                    parsePaymentMethod(paymentMethodsJson.getJSONObject(methodIndex))
                 }
             }
 
@@ -45,12 +41,86 @@ object PublicApiClient {
         val methods = json.getJSONArray("payment_methods")
 
         return List(methods.length()) { index ->
-            val item = methods.getJSONObject(index)
-            PaymentMethod(
-                code = item.optString("code"),
+            parsePaymentMethod(methods.getJSONObject(index))
+        }
+    }
+
+    fun getPublicCatalog(): PublicCatalog {
+        val json = JSONObject(URL(ApiConfig.PUBLIC_CATALOG).readText())
+        val catalog = json.getJSONObject("catalog")
+
+        val products = catalog.getJSONArray("products").toObjectList { item ->
+            CatalogProduct(
+                id = item.optLong("id"),
                 name = item.optString("name"),
-                isActive = item.optBoolean("is_active", true)
+                price = item.optLong("price"),
+                priceFormatted = item.optString("price_formatted"),
+                isActive = item.optBoolean("is_active", true),
+                categoryId = if (item.isNull("category_id")) null else item.optLong("category_id"),
+                categoryName = item.optString("category_name"),
+                aliases = item.optJSONArray("aliases").toStringList()
             )
         }
+
+        val categories = catalog.getJSONArray("categories").toObjectList { item ->
+            CatalogCategory(
+                id = item.optLong("id"),
+                name = item.optString("name")
+            )
+        }
+
+        val meetingPoints = catalog.getJSONArray("meeting_points").toObjectList { item ->
+            parseMeetingPoint(item)
+        }
+
+        val fulfillmentJson = catalog.optJSONObject("fulfillment") ?: JSONObject()
+
+        return PublicCatalog(
+            products = products,
+            categories = categories,
+            meetingPoints = meetingPoints,
+            fulfillment = FulfillmentOptions(
+                allowPreferredCustomerLocation = fulfillmentJson.optBoolean("allow_preferred_customer_location", true),
+                allowNewCustomerLocation = fulfillmentJson.optBoolean("allow_new_customer_location", true),
+                allowCustomerPickup = fulfillmentJson.optBoolean("allow_customer_pickup", true)
+            ),
+            allowedDeliveryCities = catalog.optJSONArray("allowed_delivery_cities").toStringList(),
+            languages = catalog.optJSONArray("languages").toStringList()
+        )
+    }
+
+    fun getPublicMeetingPoints(): List<MeetingPoint> {
+        val json = JSONObject(URL(ApiConfig.PUBLIC_MEETING_POINTS).readText())
+        return json.getJSONArray("meeting_points").toObjectList { item ->
+            parseMeetingPoint(item)
+        }
+    }
+
+    private fun parsePaymentMethod(item: JSONObject): PaymentMethod {
+        return PaymentMethod(
+            code = item.optString("code"),
+            name = item.optString("name"),
+            isActive = item.optBoolean("is_active", true)
+        )
+    }
+
+    private fun parseMeetingPoint(item: JSONObject): MeetingPoint {
+        return MeetingPoint(
+            id = item.optLong("id"),
+            name = item.optString("name"),
+            address = item.optString("address"),
+            googleMapsLink = item.optString("google_maps_link"),
+            isDefault = item.optBoolean("is_default", false),
+            isActive = item.optBoolean("is_active", true)
+        )
+    }
+
+    private fun JSONArray?.toStringList(): List<String> {
+        if (this == null) return emptyList()
+        return List(length()) { index -> optString(index) }
+    }
+
+    private fun <T> JSONArray.toObjectList(mapper: (JSONObject) -> T): List<T> {
+        return List(length()) { index -> mapper(getJSONObject(index)) }
     }
 }

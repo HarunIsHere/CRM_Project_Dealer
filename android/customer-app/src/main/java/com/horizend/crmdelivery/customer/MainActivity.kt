@@ -3,6 +3,8 @@ package com.horizend.crmdelivery.customer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,10 +30,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var result by remember { mutableStateOf("Ready.") }
+            val scrollState = rememberScrollState()
 
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    Column(modifier = Modifier.padding(24.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .verticalScroll(scrollState)
+                    ) {
                         Text(
                             text = "CRM Delivery Customer",
                             style = MaterialTheme.typography.headlineSmall
@@ -46,17 +53,30 @@ class MainActivity : ComponentActivity() {
                         Button(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
-                                result = "Loading..."
+                                result = "Loading catalog..."
                                 Thread {
                                     val output = runCatching {
-                                        val shops = PublicApiClient.getPublicShops()
+                                        val catalog = PublicApiClient.getPublicCatalog()
                                         val paymentMethods = PublicApiClient.getPublicPaymentMethods()
 
                                         buildString {
-                                            appendLine("Shops:")
-                                            shops.forEach { shop ->
-                                                appendLine("- ${shop.name} (${shop.slug})")
-                                                appendLine("  Payments: ${shop.paymentMethods.joinToString { it.name }}")
+                                            appendLine("Products:")
+                                            catalog.products.forEach { product ->
+                                                val category = product.categoryName.ifBlank { "Uncategorized" }
+                                                appendLine("- ${product.name} · ${product.priceFormatted} · $category")
+                                            }
+
+                                            appendLine()
+                                            appendLine("Categories:")
+                                            catalog.categories.forEach { category ->
+                                                appendLine("- ${category.name}")
+                                            }
+
+                                            appendLine()
+                                            appendLine("Meeting points:")
+                                            catalog.meetingPoints.forEach { point ->
+                                                appendLine("- ${point.name}")
+                                                appendLine("  ${point.googleMapsLink}")
                                             }
 
                                             appendLine()
@@ -64,6 +84,10 @@ class MainActivity : ComponentActivity() {
                                             paymentMethods.forEach { method ->
                                                 appendLine("- ${method.name} (${method.code})")
                                             }
+
+                                            appendLine()
+                                            appendLine("Delivery cities:")
+                                            appendLine(catalog.allowedDeliveryCities.joinToString(", "))
                                         }
                                     }.getOrElse { error ->
                                         error.message ?: "Unknown error"
@@ -75,7 +99,7 @@ class MainActivity : ComponentActivity() {
                                 }.start()
                             }
                         ) {
-                            Text("Load shops and payment methods")
+                            Text("Load catalog")
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))

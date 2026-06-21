@@ -23,9 +23,9 @@ struct CustomerHomeView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
-            Button("Load shops and payment methods") {
+            Button("Load catalog") {
                 Task {
-                    await loadFoundationData()
+                    await loadCatalog()
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -39,22 +39,49 @@ struct CustomerHomeView: View {
         .padding(24)
     }
 
-    private func loadFoundationData() async {
-        result = "Loading..."
+    private func loadCatalog() async {
+        result = "Loading catalog..."
 
         do {
-            async let shops = PublicApiClient.getPublicShops()
+            async let catalog = PublicApiClient.getPublicCatalog()
             async let paymentMethods = PublicApiClient.getPublicPaymentMethods()
 
-            let shopText = try await shops.map { shop in
-                "- \(shop.name) (\(shop.slug))\n  Payments: \(shop.paymentMethods.map { $0.name }.joined(separator: ", "))"
+            let catalogData = try await catalog
+            let paymentData = try await paymentMethods
+
+            let productText = catalogData.products.map { product in
+                let category = product.categoryName.isEmpty ? "Uncategorized" : product.categoryName
+                return "- \(product.name) · \(product.priceFormatted) · \(category)"
             }.joined(separator: "\n")
 
-            let paymentText = try await paymentMethods.map { method in
+            let categoryText = catalogData.categories.map { category in
+                "- \(category.name)"
+            }.joined(separator: "\n")
+
+            let meetingPointText = catalogData.meetingPoints.map { point in
+                "- \(point.name)\n  \(point.googleMapsLink)"
+            }.joined(separator: "\n")
+
+            let paymentText = paymentData.map { method in
                 "- \(method.name) (\(method.code))"
             }.joined(separator: "\n")
 
-            result = "Shops:\n\(shopText)\n\nPayment methods:\n\(paymentText)"
+            result = """
+            Products:
+            \(productText)
+
+            Categories:
+            \(categoryText)
+
+            Meeting points:
+            \(meetingPointText)
+
+            Payment methods:
+            \(paymentText)
+
+            Delivery cities:
+            \(catalogData.allowedDeliveryCities.joined(separator: ", "))
+            """
         } catch {
             result = error.localizedDescription
         }
