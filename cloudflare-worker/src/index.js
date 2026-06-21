@@ -11230,11 +11230,19 @@ function showLoading(name) {
 }
 
 async function api(path, options = {}) {
+  const token = localStorage.getItem("admin_v2_token");
+
+  if (!token && !path.endsWith("/login")) {
+    window.location.href = "/admin-v2/login";
+    throw new Error("Login required");
+  }
+
   const response = await fetch(path, {
     ...options,
     credentials: "same-origin",
     headers: {
       "content-type": "application/json",
+      ...(token ? { "authorization": "Bearer " + token } : {}),
       ...(options.headers || {})
     }
   });
@@ -11282,8 +11290,12 @@ async function loadSection(name, path) {
 }
 
 async function logout() {
-  await api("/api/v1/admin/logout", { method: "POST" });
-  window.location.href = "/admin-v2/login";
+  try {
+    await api("/api/v1/admin/logout", { method: "POST" });
+  } finally {
+    localStorage.removeItem("admin_v2_token");
+    window.location.href = "/admin-v2/login";
+  }
 }
 
 const actions = {
@@ -11380,6 +11392,14 @@ function handleAdminV2LoginPage() {
           throw new Error(data.message || data.error || "Login failed");
         }
 
+        const payload = data.data || data;
+        const token = payload.access_token || payload.token;
+
+        if (!token) {
+          throw new Error("Login succeeded, but no token was returned.");
+        }
+
+        localStorage.setItem("admin_v2_token", token);
         window.location.href = "/admin-v2";
       } catch (error) {
         result.textContent = error instanceof Error ? error.message : "Login failed";
@@ -11502,6 +11522,10 @@ async function routeRequest(request, env) {
     return handleAdminV2LoginPage();
   }
 
+  if ((url.pathname === "/admin-v2" || url.pathname === "/admin-v2/") && request.method === "GET") {
+    return handleAdminV2Page();
+  }
+
   let adminSession = null;
 
   if (url.pathname.startsWith("/admin")) {
@@ -11518,10 +11542,6 @@ async function routeRequest(request, env) {
     }
   }
 
-
-  if ((url.pathname === "/admin-v2" || url.pathname === "/admin-v2/") && request.method === "GET") {
-    return handleAdminV2Page();
-  }
 
   if ((url.pathname === "/admin" || url.pathname === "/admin/") && request.method === "GET") return handleAdminHome(env, adminSession);
   if ((url.pathname === "/admin/orders" || url.pathname === "/admin/orders/") && request.method === "GET") return handleAdminOrdersPage(env, adminSession);
