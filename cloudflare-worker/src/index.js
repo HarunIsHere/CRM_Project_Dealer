@@ -11219,6 +11219,15 @@ const result = document.getElementById("result");
 const title = document.getElementById("section-title");
 const cards = document.getElementById("cards");
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function pretty(value) {
   return JSON.stringify(value, null, 2);
 }
@@ -11226,7 +11235,7 @@ function pretty(value) {
 function showLoading(name) {
   title.textContent = name;
   cards.innerHTML = "";
-  result.textContent = "Loading...";
+  result.innerHTML = "Loading...";
 }
 
 async function api(path, options = {}) {
@@ -11249,11 +11258,33 @@ async function api(path, options = {}) {
 
   const data = await response.json().catch(() => ({}));
 
+  if (response.status === 401) {
+    localStorage.removeItem("admin_v2_token");
+    window.location.href = "/admin-v2/login";
+    throw new Error("Login expired");
+  }
+
   if (!response.ok || data.ok === false) {
     throw new Error(data.message || data.error || "Request failed");
   }
 
   return data;
+}
+
+function getPayload(data) {
+  return data.data || data;
+}
+
+function pickArray(payload, keys) {
+  for (const key of keys) {
+    if (Array.isArray(payload[key])) return payload[key];
+  }
+
+  for (const value of Object.values(payload)) {
+    if (Array.isArray(value)) return value;
+  }
+
+  return [];
 }
 
 function renderCards(items) {
@@ -11262,15 +11293,57 @@ function renderCards(items) {
   for (const item of items) {
     const div = document.createElement("div");
     div.className = "card";
-    div.innerHTML = "<span class='small'>" + item.label + "</span><strong>" + item.value + "</strong>";
+    div.innerHTML = "<span class='small'>" + escapeHtml(item.label) + "</span><strong>" + escapeHtml(item.value) + "</strong>";
     cards.appendChild(div);
   }
 }
 
+function formatCell(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  if (typeof value === "object") {
+    if (value.full_name) return value.full_name;
+    if (value.name) return value.name;
+    if (value.username) return value.username;
+    return pretty(value);
+  }
+  return value;
+}
+
+function renderTable(rows, columns = null) {
+  if (!rows.length) {
+    return "<p class='small'>No data found.</p>";
+  }
+
+  const keys = columns || Object.keys(rows[0]).slice(0, 10);
+
+  return [
+    "<table>",
+    "<thead><tr>" + keys.map((key) => "<th>" + escapeHtml(key) + "</th>").join("") + "</tr></thead>",
+    "<tbody>",
+    rows.map((row) => {
+      return "<tr>" + keys.map((key) => "<td>" + escapeHtml(formatCell(row[key])) + "</td>").join("") + "</tr>";
+    }).join(""),
+    "</tbody></table>"
+  ].join("");
+}
+
+function renderDetails(payload) {
+  return "<details style='margin-top:14px;' open><summary>Raw API data</summary><pre>" + escapeHtml(pretty(payload)) + "</pre></details>";
+}
+
+function renderPayload(name, data, keys, columns) {
+  const payload = getPayload(data);
+  const rows = pickArray(payload, keys);
+
+  result.innerHTML = renderTable(rows, columns) + renderDetails(payload);
+}
+
 async function loadDashboard() {
   showLoading("Dashboard");
+
   const data = await api("/api/v1/admin/dashboard");
-  const payload = data.data || data;
+  const payload = getPayload(data);
   const summary = payload.summary || payload;
 
   renderCards([
@@ -11280,13 +11353,22 @@ async function loadDashboard() {
     { label: "Customers", value: summary.active_customers_count ?? summary.customers_count ?? summary.customers ?? "-" }
   ]);
 
-  result.textContent = pretty(payload);
+  const latestOrders = payload.latest_orders || [];
+  result.innerHTML = "<h2>Latest orders</h2>" + renderTable(latestOrders, [
+    "id",
+    "customer_id",
+    "status",
+    "order_status",
+    "order_status_label",
+    "delivery_location_label",
+    "created_at"
+  ]) + renderDetails(payload);
 }
 
-async function loadSection(name, path) {
+async function loadSection(name, path, keys, columns) {
   showLoading(name);
   const data = await api(path);
-  result.textContent = pretty(data.data || data);
+  renderPayload(name, data, keys, columns);
 }
 
 async function logout() {
@@ -11300,14 +11382,64 @@ async function logout() {
 
 const actions = {
   dashboard: () => loadDashboard(),
-  orders: () => loadSection("Orders", "/api/v1/admin/orders"),
-  closedOrders: () => loadSection("Closed Orders", "/api/v1/admin/closed-orders"),
-  openRequests: () => loadSection("Open Requests", "/api/v1/admin/open-requests"),
-  products: () => loadSection("Products", "/api/v1/admin/products"),
-  categories: () => loadSection("Product Categories", "/api/v1/admin/product-categories"),
-  meetingPoints: () => loadSection("Meeting Points", "/api/v1/admin/meeting-points"),
-  customers: () => loadSection("Customers", "/api/v1/admin/customers"),
-  settings: () => loadSection("Settings", "/api/v1/admin/settings")
+  orders: () => loadSection("Orders", "/api/v1/admin/orders", ["orders"], [
+    "id",
+    "customer_id",
+    "status",
+    "order_status",
+    "order_status_label",
+    "delivery_location_label",
+    "created_at"
+  ]),
+  closedOrders: () => loadSection("Closed Orders", "/api/v1/admin/closed-orders", ["orders", "closed_orders"], [
+    "id",
+    "customer_id",
+    "status",
+    "order_status",
+    "order_status_label",
+    "delivered_at",
+    "closed_at"
+  ]),
+  openRequests: () => loadSection("Open Requests", "/api/v1/admin/open-requests", ["requests", "open_requests", "customer_requests"], [
+    "id",
+    "customer_id",
+    "status",
+    "request_type",
+    "message",
+    "created_at"
+  ]),
+  products: () => loadSection("Products", "/api/v1/admin/products", ["products"], [
+    "id",
+    "name",
+    "price",
+    "category_name",
+    "is_active",
+    "shop_id"
+  ]),
+  categories: () => loadSection("Product Categories", "/api/v1/admin/product-categories", ["categories", "product_categories"], [
+    "id",
+    "name",
+    "sort_order",
+    "is_active",
+    "shop_id"
+  ]),
+  meetingPoints: () => loadSection("Meeting Points", "/api/v1/admin/meeting-points", ["meeting_points"], [
+    "id",
+    "name",
+    "address",
+    "is_default",
+    "is_active",
+    "shop_id"
+  ]),
+  customers: () => loadSection("Customers", "/api/v1/admin/customers", ["customers"], [
+    "id",
+    "full_name",
+    "username",
+    "telegram_user_id",
+    "preferred_language",
+    "created_at"
+  ]),
+  settings: () => loadSection("Settings", "/api/v1/admin/settings", ["settings"], null)
 };
 
 document.querySelectorAll("[data-action]").forEach((button) => {
@@ -11319,7 +11451,7 @@ document.querySelectorAll("[data-action]").forEach((button) => {
       await actions[action]();
     } catch (error) {
       cards.innerHTML = "";
-      result.textContent = error instanceof Error ? error.message : "Unknown error";
+      result.innerHTML = "<pre>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</pre>";
     }
   });
 });
@@ -11328,12 +11460,13 @@ document.getElementById("logout")?.addEventListener("click", async () => {
   try {
     await logout();
   } catch {
+    localStorage.removeItem("admin_v2_token");
     window.location.href = "/admin-v2/login";
   }
 });
 
 loadDashboard().catch((error) => {
-  result.textContent = error instanceof Error ? error.message : "Unknown error";
+  result.innerHTML = "<pre>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</pre>";
 });
 `;
 
