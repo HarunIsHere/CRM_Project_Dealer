@@ -8730,6 +8730,74 @@ function apiOk(data = {}, status = 200) {
   return apiResponse({ ok: true, ...data }, status);
 }
 
+
+async function handlePublicShopsApi(env) {
+  const result = await env.DB.prepare(`
+    SELECT
+      s.id,
+      s.name,
+      s.slug,
+      s.description,
+      s.address,
+      s.google_maps_link,
+      s.phone,
+      s.is_active,
+      GROUP_CONCAT(
+        CASE
+          WHEN spm.is_enabled = 1 AND pm.is_active = 1
+          THEN pm.code || ':' || pm.name
+        END,
+        '|'
+      ) AS payment_methods
+    FROM shops s
+    LEFT JOIN shop_payment_methods spm ON spm.shop_id = s.id
+    LEFT JOIN payment_methods pm ON pm.code = spm.payment_method_code
+    WHERE s.is_active = 1
+    GROUP BY s.id
+    ORDER BY s.name ASC
+  `).all();
+
+  const shops = (result.results || []).map((shop) => ({
+    id: Number(shop.id),
+    name: shop.name || "",
+    slug: shop.slug || "",
+    description: shop.description || "",
+    address: shop.address || "",
+    google_maps_link: shop.google_maps_link || "",
+    phone: shop.phone || "",
+    is_active: Number(shop.is_active || 0) === 1,
+    payment_methods: String(shop.payment_methods || "")
+      .split("|")
+      .filter(Boolean)
+      .map((item) => {
+        const [code, ...nameParts] = item.split(":");
+        return {
+          code,
+          name: nameParts.join(":")
+        };
+      })
+  }));
+
+  return jsonResponse({ shops });
+}
+
+async function handlePublicPaymentMethodsApi(env) {
+  const result = await env.DB.prepare(`
+    SELECT code, name, is_active
+    FROM payment_methods
+    WHERE is_active = 1
+    ORDER BY id ASC
+  `).all();
+
+  return jsonResponse({
+    payment_methods: (result.results || []).map((method) => ({
+      code: method.code || "",
+      name: method.name || "",
+      is_active: Number(method.is_active || 0) === 1
+    }))
+  });
+}
+
 function apiError(code, message, status = 400, details = null) {
   const body = {
     ok: false,
@@ -10973,6 +11041,14 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/settings") {
     return handleApiAdminSettings(request, env);
+  }
+
+  if (url.pathname === "/api/v1/public/shops" && request.method === "GET") {
+    return handlePublicShopsApi(env);
+  }
+
+  if (url.pathname === "/api/v1/public/payment-methods" && request.method === "GET") {
+    return handlePublicPaymentMethodsApi(env);
   }
 
   if (url.pathname === "/api/v1/public/catalog") {

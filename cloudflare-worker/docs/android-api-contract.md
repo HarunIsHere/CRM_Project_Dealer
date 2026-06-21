@@ -266,3 +266,50 @@ Telegram webhook remains:
 Android apps do not use Telegram webhook. Android apps use /api/v1/...
 
 Both Android apps use the same Cloudflare Worker and D1 database as the Telegram bot and admin web panel.
+
+## Multi-Shop Public Foundation Endpoints
+
+### GET /api/v1/public/shops
+
+Returns active shops available to customer clients.
+
+Response shape:
+
+{
+  "shops": [
+    {
+      "id": 1,
+      "name": "Default Shop",
+      "slug": "default-shop",
+      "description": "Default shop for existing single-shop data",
+      "address": "",
+      "google_maps_link": "",
+      "phone": "",
+      "is_active": true,
+      "payment_methods": [
+        {
+          "code": "cash_delivery",
+          "name": "Cash on delivery"
+        }
+      ]
+    }
+  ]
+}
+
+### GET /api/v1/public/payment-methods
+
+Returns globally active payment methods.
+
+Response shape:
+
+{
+  "payment_methods": [
+    {
+      "code": "cash_delivery",
+      "name": "Cash on delivery",
+      "is_active": true
+    }
+  ]
+}
+
+These endpoints are read-only and are shared by Android, Apple, Telegram Mini App, and later customer-facing clients.
