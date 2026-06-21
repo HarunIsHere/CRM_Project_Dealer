@@ -5,85 +5,132 @@ import Shared
 struct CustomerApp: App {
     var body: some Scene {
         WindowGroup {
-            CustomerHomeView()
+            CustomerCatalogView()
         }
     }
 }
 
-struct CustomerHomeView: View {
-    @State private var result = "Ready."
+struct CustomerCatalogView: View {
+    private let sessionToken = "ios_customer_\(Int(Date().timeIntervalSince1970))"
+
+    @State private var products: [Product] = []
+    @State private var cart: CustomerCart?
+    @State private var message = "Loading catalog..."
+    @State private var isLoading = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("CRM Delivery Customer")
-                .font(.title2)
-                .bold()
+        NavigationStack {
+            List {
+                Section("Status") {
+                    Text(message)
+                    Text("Session: \(sessionToken)")
+                }
 
-            Text(ApiConfig.apiV1URL.absoluteString)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                Section("Cart") {
+                    Text("Items: \(cart?.itemCount ?? 0)")
+                    Text("Total: \(cart?.totalAmount ?? 0) \(cart?.currency ?? "EUR")")
 
-            Button("Load catalog") {
-                Task {
-                    await loadCatalog()
+                    ForEach(cart?.items ?? []) { item in
+                        HStack {
+                            Text("\(item.quantity) × \(item.productName)")
+                            Spacer()
+                            Text("\(item.lineTotal) \(cart?.currency ?? "EUR")")
+                        }
+                    }
+
+                    Button("Checkout") {
+                        Task {
+                            await checkout()
+                        }
+                    }
+                    .disabled((cart?.items.isEmpty ?? true) || isLoading)
+                }
+
+                Section("Products") {
+                    ForEach(products) { product in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(product.name)
+                                .font(.headline)
+                            Text("\(product.price) EUR")
+                            if let categoryName = product.categoryName, !categoryName.isEmpty {
+                                Text(categoryName)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Button("Add to cart") {
+                                Task {
+                                    await addToCart(product)
+                                }
+                            }
+                            .disabled(isLoading)
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
             }
-            .buttonStyle(.borderedProminent)
-
-            ScrollView {
-                Text(result)
-                    .font(.system(.footnote, design: .monospaced))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            .navigationTitle("Customer Shop")
+            .task {
+                await load()
+            }
+            .overlay {
+                if isLoading {
+                    ProgressView()
+                }
             }
         }
-        .padding(24)
     }
 
-    private func loadCatalog() async {
-        result = "Loading catalog..."
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
 
         do {
-            async let catalog = PublicApiClient.getPublicCatalog()
-            async let paymentMethods = PublicApiClient.getPublicPaymentMethods()
+            let catalogResponse = try await PublicApiClient.getPublicCatalog()
+            products = catalogResponse.catalog.products
 
-            let catalogData = try await catalog
-            let paymentData = try await paymentMethods
-
-            let productText = catalogData.products.map { product in
-                let category = product.categoryName.isEmpty ? "Uncategorized" : product.categoryName
-                return "- \(product.name) · \(product.priceFormatted) · \(category)"
-            }.joined(separator: "\n")
-
-            let categoryText = catalogData.categories.map { category in
-                "- \(category.name)"
-            }.joined(separator: "\n")
-
-            let meetingPointText = catalogData.meetingPoints.map { point in
-                "- \(point.name)\n  \(point.googleMapsLink)"
-            }.joined(separator: "\n")
-
-            let paymentText = paymentData.map { method in
-                "- \(method.name) (\(method.code))"
-            }.joined(separator: "\n")
-
-            result = """
-            Products:
-            \(productText)
-
-            Categories:
-            \(categoryText)
-
-            Meeting points:
-            \(meetingPointText)
-
-            Payment methods:
-            \(paymentText)
-
-            Delivery cities:
-            \(catalogData.allowedDeliveryCities.joined(separator: ", "))
-            """
+            let cartResponse = try await PublicApiClient.getCustomerCart(sessionToken: sessionToken)
+            cart = cartResponse.cart
+            message = "Catalog loaded"
         } catch {
-            result = error.localizedDescription
+            message = "Loading failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func addToCart(_ product: Product) async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let response = try await PublicApiClient.addCustomerCartItem(
+                sessionToken: sessionToken,
+                productId: product.id,
+                quantity: 1
+            )
+            cart = response.cart
+            message = "Added: \(product.name)"
+        } catch {
+            message = "Add failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func checkout() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let response = try await PublicApiClient.checkoutCustomerCart(
+                sessionToken: sessionToken,
+                customerName: "iOS Demo Customer",
+                phone: "+49123456789",
+                deliveryAddress: "Berlin",
+                paymentMethodCode: "cash_delivery",
+                notes: "iOS smoke checkout"
+            )
+            message = "Order created: \(response.order.publicOrderCode)"
+            let cartResponse = try await PublicApiClient.getCustomerCart(sessionToken: sessionToken)
+            cart = cartResponse.cart
+        } catch {
+            message = "Checkout failed: \(error.localizedDescription)"
         }
     }
 }

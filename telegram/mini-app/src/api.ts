@@ -1,81 +1,56 @@
-export const API_V1 = "https://crm.ayartuerk.me/api/v1";
+export const API_BASE_URL = "https://crm.ayartuerk.me/api/v1";
 
-export type PaymentMethod = {
-  code: string;
-  name: string;
-  is_active?: boolean;
-};
-
-export type Shop = {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  address: string;
-  google_maps_link: string;
-  phone: string;
-  is_active: boolean;
-  payment_methods: PaymentMethod[];
-};
-
-export type CatalogProduct = {
+export type Product = {
   id: number;
   name: string;
   price: number;
-  price_formatted: string;
-  is_active: boolean;
-  category_id: number | null;
-  category_name: string;
-  aliases: string[];
+  category_id?: number | null;
+  category_name?: string | null;
 };
 
-export type CatalogCategory = {
-  id: number;
-  name: string;
+export type CatalogResponse = {
+  ok: boolean;
+  catalog: {
+    products: Product[];
+  };
 };
 
-export type MeetingPoint = {
-  id: number;
-  name: string;
-  address: string;
-  google_maps_link: string;
-  is_default: boolean;
-  is_active: boolean;
+export type CustomerCartItem = {
+  product_id: number;
+  quantity: number;
+  product_name: string;
+  unit_price: number;
+  shop_id?: number | null;
+  shop_name?: string | null;
+  line_total: number;
 };
 
-export type FulfillmentOptions = {
-  allow_preferred_customer_location: boolean;
-  allow_new_customer_location: boolean;
-  allow_customer_pickup: boolean;
+export type CustomerCart = {
+  session_token: string;
+  items: CustomerCartItem[];
+  total_amount: number;
+  currency: string;
+  item_count: number;
 };
 
-export type PublicCatalog = {
-  products: CatalogProduct[];
-  categories: CatalogCategory[];
-  meeting_points: MeetingPoint[];
-  fulfillment: FulfillmentOptions;
-  allowed_delivery_cities: string[];
-  languages: string[];
+export type CustomerCartResponse = {
+  ok: boolean;
+  cart: CustomerCart;
 };
 
-type ShopsResponse = {
-  shops: Shop[];
+export type CustomerOrderResponse = {
+  ok: boolean;
+  order: {
+    id: number;
+    public_order_code: string;
+    status: string;
+    total_amount: number;
+    currency: string;
+  };
 };
 
-type PaymentMethodsResponse = {
-  payment_methods: PaymentMethod[];
-};
-
-type CatalogResponse = {
-  catalog: PublicCatalog;
-};
-
-type MeetingPointsResponse = {
-  meeting_points: MeetingPoint[];
-};
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init);
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`);
@@ -84,22 +59,41 @@ async function fetchJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function getPublicShops(): Promise<Shop[]> {
-  const data = await fetchJson<ShopsResponse>(`${API_V1}/public/shops`);
-  return data.shops;
+export function getPublicCatalog(): Promise<CatalogResponse> {
+  return fetchJson<CatalogResponse>(`${API_BASE_URL}/public/catalog`);
 }
 
-export async function getPublicPaymentMethods(): Promise<PaymentMethod[]> {
-  const data = await fetchJson<PaymentMethodsResponse>(`${API_V1}/public/payment-methods`);
-  return data.payment_methods;
+export function getCustomerCart(sessionToken: string): Promise<CustomerCartResponse> {
+  return fetchJson<CustomerCartResponse>(`${API_BASE_URL}/customer/cart?session_token=${encodeURIComponent(sessionToken)}`);
 }
 
-export async function getPublicCatalog(): Promise<PublicCatalog> {
-  const data = await fetchJson<CatalogResponse>(`${API_V1}/public/catalog`);
-  return data.catalog;
+export function addCustomerCartItem(sessionToken: string, productId: number, quantity: number): Promise<CustomerCartResponse> {
+  return fetchJson<CustomerCartResponse>(`${API_BASE_URL}/customer/cart/items`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      session_token: sessionToken,
+      product_id: productId,
+      quantity
+    })
+  });
 }
 
-export async function getPublicMeetingPoints(): Promise<MeetingPoint[]> {
-  const data = await fetchJson<MeetingPointsResponse>(`${API_V1}/public/meeting-points`);
-  return data.meeting_points;
+export function checkoutCustomerCart(sessionToken: string): Promise<CustomerOrderResponse> {
+  return fetchJson<CustomerOrderResponse>(`${API_BASE_URL}/customer/checkout`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      session_token: sessionToken,
+      customer_name: "Telegram Mini App Demo Customer",
+      phone: "+49123456789",
+      delivery_address: "Berlin",
+      payment_method_code: "cash_delivery",
+      notes: "Telegram mini app smoke checkout"
+    })
+  });
 }
