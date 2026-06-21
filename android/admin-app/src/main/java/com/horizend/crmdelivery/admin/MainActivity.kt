@@ -20,7 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.horizend.crmdelivery.shared.ApiConfig
-import java.net.URL
+import com.horizend.crmdelivery.shared.api.PublicApiClient
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,9 +49,22 @@ class MainActivity : ComponentActivity() {
                                 result = "Loading..."
                                 Thread {
                                     val output = runCatching {
-                                        val shops = URL(ApiConfig.PUBLIC_SHOPS).readText()
-                                        val payments = URL(ApiConfig.PUBLIC_PAYMENT_METHODS).readText()
-                                        "Shops:\n$shops\n\nPayment methods:\n$payments"
+                                        val shops = PublicApiClient.getPublicShops()
+                                        val paymentMethods = PublicApiClient.getPublicPaymentMethods()
+
+                                        buildString {
+                                            appendLine("Shops:")
+                                            shops.forEach { shop ->
+                                                appendLine("- ${shop.name} (${shop.slug})")
+                                                appendLine("  Payments: ${shop.paymentMethods.joinToString { it.name }}")
+                                            }
+
+                                            appendLine()
+                                            appendLine("Payment methods:")
+                                            paymentMethods.forEach { method ->
+                                                appendLine("- ${method.name} (${method.code})")
+                                            }
+                                        }
                                     }.getOrElse { error ->
                                         error.message ?: "Unknown error"
                                     }

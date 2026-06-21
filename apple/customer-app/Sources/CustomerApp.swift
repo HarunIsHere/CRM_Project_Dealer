@@ -43,16 +43,20 @@ struct CustomerHomeView: View {
         result = "Loading..."
 
         do {
-            async let shops = fetchText(ApiConfig.publicShopsURL)
-            async let payments = fetchText(ApiConfig.publicPaymentMethodsURL)
-            result = "Shops:\n\(try await shops)\n\nPayment methods:\n\(try await payments)"
+            async let shops = PublicApiClient.getPublicShops()
+            async let paymentMethods = PublicApiClient.getPublicPaymentMethods()
+
+            let shopText = try await shops.map { shop in
+                "- \(shop.name) (\(shop.slug))\n  Payments: \(shop.paymentMethods.map { $0.name }.joined(separator: ", "))"
+            }.joined(separator: "\n")
+
+            let paymentText = try await paymentMethods.map { method in
+                "- \(method.name) (\(method.code))"
+            }.joined(separator: "\n")
+
+            result = "Shops:\n\(shopText)\n\nPayment methods:\n\(paymentText)"
         } catch {
             result = error.localizedDescription
         }
-    }
-
-    private func fetchText(_ url: URL) async throws -> String {
-        let (data, _) = try await URLSession.shared.data(from: url)
-        return String(data: data, encoding: .utf8) ?? ""
     }
 }

@@ -1,4 +1,5 @@
 import "./styles.css";
+import { API_V1, getPublicPaymentMethods, getPublicShops } from "./api";
 
 declare global {
   interface Window {
@@ -6,152 +7,70 @@ declare global {
       WebApp?: {
         ready: () => void;
         expand: () => void;
-        initData: string;
-        initDataUnsafe?: {
-          user?: {
-            id?: number;
-            first_name?: string;
-            last_name?: string;
-            username?: string;
-            language_code?: string;
-          };
-          start_param?: string;
-        };
-        colorScheme?: "light" | "dark";
+        initDataUnsafe?: unknown;
       };
     };
   }
 }
 
-type PaymentMethod = {
-  code: string;
-  name: string;
-  is_active?: boolean;
-};
+const telegramApp = window.Telegram?.WebApp;
+telegramApp?.ready();
+telegramApp?.expand();
 
-type Shop = {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  address: string;
-  google_maps_link: string;
-  phone: string;
-  is_active: boolean;
-  payment_methods: PaymentMethod[];
-};
+const app = document.querySelector<HTMLDivElement>("#app");
 
-const API_V1 = "https://crm.ayartuerk.me/api/v1";
+if (!app) {
+  throw new Error("Missing app root");
+}
 
-const webApp = window.Telegram?.WebApp;
-webApp?.ready();
-webApp?.expand();
-
-const user = webApp?.initDataUnsafe?.user;
-const startParam = webApp?.initDataUnsafe?.start_param || "";
-
-document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
-  <section class="page">
-    <div class="card">
+app.innerHTML = `
+  <main class="shell">
+    <section class="card">
       <p class="eyebrow">CRM Delivery</p>
-      <h1>Telegram Mini App Foundation</h1>
-      <p class="muted">Shared customer shopping client for Telegram.</p>
+      <h1>Customer Mini App</h1>
+      <p class="muted">Shared API foundation is connected.</p>
 
-      <div class="info">
+      <div class="endpoint">
         <strong>API</strong>
         <span>${API_V1}</span>
       </div>
 
-      <div class="info">
-        <strong>Telegram user</strong>
-        <span>${user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username || user.id : "Not opened inside Telegram"}</span>
-      </div>
+      <button id="loadButton">Load shops and payment methods</button>
 
-      <div class="info">
-        <strong>Start parameter</strong>
-        <span>${startParam || "None"}</span>
-      </div>
-
-      <div class="actions">
-        <button id="loadButton">Load shops and payment methods</button>
-      </div>
-
-      <div id="content" class="content-block">Ready.</div>
-    </div>
-  </section>
+      <pre id="result">Ready.</pre>
+    </section>
+  </main>
 `;
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+const result = document.querySelector<HTMLPreElement>("#result");
+const loadButton = document.querySelector<HTMLButtonElement>("#loadButton");
 
-function renderPaymentMethods(methods: PaymentMethod[]): string {
-  if (!methods.length) return `<p class="muted">No payment methods found.</p>`;
+loadButton?.addEventListener("click", async () => {
+  if (!result) {
+    return;
+  }
 
-  return `
-    <ul class="list">
-      ${methods.map((method) => `
-        <li>
-          <strong>${escapeHtml(method.name)}</strong>
-          <span>${escapeHtml(method.code)}</span>
-        </li>
-      `).join("")}
-    </ul>
-  `;
-}
-
-function renderShops(shops: Shop[]): string {
-  if (!shops.length) return `<p class="muted">No shops found.</p>`;
-
-  return `
-    <div class="shop-list">
-      ${shops.map((shop) => `
-        <article class="shop-card">
-          <h2>${escapeHtml(shop.name)}</h2>
-          <p class="muted">${escapeHtml(shop.description || "No description yet.")}</p>
-          <p><strong>Slug:</strong> ${escapeHtml(shop.slug)}</p>
-          <p><strong>Payment:</strong> ${shop.payment_methods.map((method) => escapeHtml(method.name)).join(", ") || "No payment methods"}</p>
-        </article>
-      `).join("")}
-    </div>
-  `;
-}
-
-async function loadFoundationData(): Promise<void> {
-  const content = document.querySelector<HTMLDivElement>("#content")!;
-  content.textContent = "Loading...";
+  result.textContent = "Loading...";
 
   try {
-    const [shopsResponse, paymentMethodsResponse] = await Promise.all([
-      fetch(`${API_V1}/public/shops`),
-      fetch(`${API_V1}/public/payment-methods`)
+    const [shops, paymentMethods] = await Promise.all([
+      getPublicShops(),
+      getPublicPaymentMethods(),
     ]);
 
-    if (!shopsResponse.ok) throw new Error(`Shops request failed: ${shopsResponse.status}`);
-    if (!paymentMethodsResponse.ok) throw new Error(`Payment methods request failed: ${paymentMethodsResponse.status}`);
+    const shopText = shops
+      .map((shop) => {
+        const payments = shop.payment_methods.map((method) => method.name).join(", ");
+        return `- ${shop.name} (${shop.slug})\n  Payments: ${payments}`;
+      })
+      .join("\n");
 
-    const shopsData = await shopsResponse.json() as { shops: Shop[] };
-    const paymentMethodsData = await paymentMethodsResponse.json() as { payment_methods: PaymentMethod[] };
+    const paymentText = paymentMethods
+      .map((method) => `- ${method.name} (${method.code})`)
+      .join("\n");
 
-    content.innerHTML = `
-      <section>
-        <h2>Shops</h2>
-        ${renderShops(shopsData.shops || [])}
-      </section>
-
-      <section>
-        <h2>Payment methods</h2>
-        ${renderPaymentMethods(paymentMethodsData.payment_methods || [])}
-      </section>
-    `;
+    result.textContent = `Shops:\n${shopText}\n\nPayment methods:\n${paymentText}`;
   } catch (error) {
-    content.innerHTML = `<pre>${escapeHtml(error instanceof Error ? error.message : "Unknown error")}</pre>`;
+    result.textContent = error instanceof Error ? error.message : "Unknown error";
   }
-}
-
-document.querySelector<HTMLButtonElement>("#loadButton")!.addEventListener("click", loadFoundationData);
+});
