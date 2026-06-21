@@ -36,8 +36,15 @@ done
 
 echo "== Android build smoke tests =="
 
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-export PATH="$JAVA_HOME/bin:$PATH"
+if [ -d "/Applications/Android Studio.app/Contents/jbr/Contents/Home" ]; then
+  export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+elif command -v /usr/libexec/java_home >/dev/null 2>&1; then
+  export JAVA_HOME="$(/usr/libexec/java_home -v 17 2>/dev/null || true)"
+fi
+
+if [ -n "${JAVA_HOME:-}" ]; then
+  export PATH="$JAVA_HOME/bin:$PATH"
+fi
 
 cd android
 ./gradlew :shared:assemble :admin-app:assembleDebug :customer-app:assembleDebug
@@ -52,12 +59,18 @@ xcodebuild -project apple/CRMDeliveryApple.xcodeproj -scheme CustomerApp -sdk ip
 echo "== Telegram mini-app build smoke test =="
 
 cd telegram/mini-app
+if [ ! -d node_modules ]; then
+  npm ci
+fi
 npm run build
 cd ../..
 
 echo "== Cloudflare Worker smoke test =="
 
 cd cloudflare-worker
+if [ -f package-lock.json ] && [ ! -d node_modules ]; then
+  npm ci
+fi
 node --check src/index.js
 npx wrangler deploy --dry-run
 cd ..
