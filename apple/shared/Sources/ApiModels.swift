@@ -151,12 +151,12 @@ public struct AppInfo: Codable, Hashable {
 }
 
 
-public struct CustomerCartResponse: Codable {
+public struct CustomerCartResponse: Codable, Sendable {
     public let ok: Bool
     public let cart: CustomerCart
 }
 
-public struct CustomerCart: Codable, Hashable {
+public struct CustomerCart: Codable, Hashable, Sendable {
     public let sessionToken: String
     public let items: [CustomerCartItem]
     public let totalAmount: Int
@@ -172,7 +172,7 @@ public struct CustomerCart: Codable, Hashable {
     }
 }
 
-public struct CustomerCartItem: Codable, Identifiable, Hashable {
+public struct CustomerCartItem: Codable, Identifiable, Hashable, Sendable {
     public var id: Int { productId }
     public let productId: Int
     public let quantity: Int
@@ -238,17 +238,17 @@ public struct CheckoutRequest: Codable {
     }
 }
 
-public struct CustomerOrderResponse: Codable {
+public struct CustomerOrderResponse: Codable, Sendable {
     public let ok: Bool
     public let order: CustomerOrder
 }
 
-public struct CustomerOrdersResponse: Codable {
+public struct CustomerOrdersResponse: Codable, Sendable {
     public let ok: Bool
     public let orders: [CustomerOrderSummary]
 }
 
-public struct CustomerOrderSummary: Codable, Identifiable, Hashable {
+public struct CustomerOrderSummary: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let publicOrderCode: String
     public let status: String
@@ -264,7 +264,7 @@ public struct CustomerOrderSummary: Codable, Identifiable, Hashable {
     }
 }
 
-public struct CustomerOrder: Codable, Identifiable, Hashable {
+public struct CustomerOrder: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let publicOrderCode: String
     public let sessionToken: String
@@ -284,7 +284,7 @@ public struct CustomerOrder: Codable, Identifiable, Hashable {
     }
 }
 
-public struct CustomerOrderItem: Codable, Identifiable, Hashable {
+public struct CustomerOrderItem: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let customerOrderId: Int
     public let productId: Int

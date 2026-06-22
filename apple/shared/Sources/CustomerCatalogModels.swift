@@ -9,7 +9,7 @@ public struct CustomerCatalog: Codable {
     public let products: [CustomerProduct]
 }
 
-public struct CustomerProduct: Codable, Identifiable, Hashable {
+public struct CustomerProduct: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let name: String
     public let price: Int
