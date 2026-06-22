@@ -36,7 +36,7 @@ public struct PublicCatalog: Codable {
     }
 }
 
-public struct Shop: Codable, Identifiable, Hashable {
+public struct Shop: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let name: String
     public let slug: String
@@ -60,7 +60,7 @@ public struct Shop: Codable, Identifiable, Hashable {
     }
 }
 
-public struct PaymentMethod: Codable, Identifiable, Hashable {
+public struct PaymentMethod: Codable, Identifiable, Hashable, Sendable {
     public var id: String { code }
 
     public let code: String
@@ -74,7 +74,7 @@ public struct PaymentMethod: Codable, Identifiable, Hashable {
     }
 }
 
-public struct Product: Codable, Identifiable, Hashable {
+public struct Product: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let name: String
     public let price: Double
@@ -96,7 +96,7 @@ public struct Product: Codable, Identifiable, Hashable {
     }
 }
 
-public struct ProductCategory: Codable, Identifiable, Hashable {
+public struct ProductCategory: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let name: String
 }
@@ -110,7 +110,7 @@ public struct PublicMeetingPointsResponse: Codable {
     }
 }
 
-public struct MeetingPoint: Codable, Identifiable, Hashable {
+public struct MeetingPoint: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let name: String
     public let address: String
