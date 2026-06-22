@@ -9241,6 +9241,85 @@ async function handleApiAdminOrders(request, env, closed = false) {
   });
 }
 
+async function handleApiAdminCustomerAppOrders(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const orders = await env.DB.prepare(`
+    SELECT
+      o.id,
+      o.public_order_code,
+      o.session_token,
+      o.status,
+      o.total_amount,
+      o.currency,
+      o.customer_name,
+      o.phone,
+      o.delivery_address,
+      o.payment_method_code,
+      o.notes,
+      o.created_at,
+      o.updated_at,
+      COUNT(i.id) AS item_count,
+      json_group_array(
+        json_object(
+          'id', i.id,
+          'product_id', i.product_id,
+          'product_name', i.product_name,
+          'quantity', i.quantity,
+          'unit_price', i.unit_price,
+          'line_total', i.line_total,
+          'shop_id', i.shop_id,
+          'shop_name', i.shop_name
+        )
+      ) AS items_json
+    FROM customer_orders_v2 o
+    LEFT JOIN customer_order_items_v2 i ON i.order_id = o.id
+    GROUP BY o.id
+    ORDER BY o.created_at DESC, o.id DESC
+    LIMIT 200
+  `).all();
+
+  const mappedOrders = (orders.results || []).map((order) => {
+    let items = [];
+    try {
+      items = JSON.parse(order.items_json || "[]").filter((item) => item && item.id !== null);
+    } catch (_) {
+      items = [];
+    }
+
+    return {
+      id: order.id,
+      public_order_code: order.public_order_code,
+      session_token: order.session_token,
+      status: order.status,
+      total_amount: order.total_amount,
+      currency: order.currency,
+      customer_name: order.customer_name,
+      phone: order.phone,
+      delivery_address: order.delivery_address,
+      payment_method_code: order.payment_method_code,
+      notes: order.notes,
+      item_count: order.item_count || items.length,
+      items,
+      created_at: order.created_at,
+      updated_at: order.updated_at
+    };
+  });
+
+  return apiOk({
+    orders: mappedOrders,
+    count: mappedOrders.length
+  });
+}
+
 
 const API_ALLOWED_ORDER_STATUSES = new Set([
   "in_progress",
@@ -11009,6 +11088,10 @@ async function handleApiV1(request, env) {
     return handleApiAdminOrders(request, env, true);
   }
 
+  if (url.pathname === "/api/v1/admin/customer-app-orders") {
+    return handleApiAdminCustomerAppOrders(request, env);
+  }
+
   const adminOrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/status$/);
   if (adminOrderStatusMatch) {
     return handleApiAdminOrderStatus(request, env, Number(adminOrderStatusMatch[1]));
@@ -11400,6 +11483,21 @@ function orderColumns() {
   ];
 }
 
+function customerAppOrderColumns() {
+  return [
+    { label: "ID", value: (r) => r.id },
+    { label: "Code", value: (r) => r.public_order_code },
+    { label: "Customer", value: (r) => r.customer_name || "" },
+    { label: "Phone", value: (r) => r.phone || "" },
+    { label: "Status", value: (r) => badge(r.status), html: true },
+    { label: "Items", value: (r) => r.item_count ?? "" },
+    { label: "Total", value: (r) => String(r.total_amount ?? "") + " " + String(r.currency ?? "") },
+    { label: "Payment", value: (r) => r.payment_method_code || "" },
+    { label: "Delivery", value: (r) => r.delivery_address || "" },
+    { label: "Created", value: (r) => formatDate(r.created_at) }
+  ];
+}
+
 function requestColumns() {
   return [
     { label: "Customer", value: (r) => r.customer?.full_name || r.customer_id || "" },
@@ -11498,6 +11596,14 @@ async function loadClosedOrders() {
   result.innerHTML = renderTable(p.orders || p.closed_orders || [], orderColumns()) + rawPanel(p);
 }
 
+async function loadCustomerAppOrders() {
+  setActive("customerAppOrders");
+  showLoading("Customer App Orders");
+  const data = await api("/api/v1/admin/customer-app-orders");
+  const p = payload(data);
+  result.innerHTML = renderTable(p.orders || [], customerAppOrderColumns()) + rawPanel(p);
+}
+
 async function loadOpenRequests() {
   setActive("openRequests");
   showLoading("Open Requests");
@@ -11559,6 +11665,7 @@ const actions = {
   dashboard: loadDashboard,
   orders: loadOrders,
   closedOrders: loadClosedOrders,
+  customerAppOrders: loadCustomerAppOrders,
   openRequests: loadOpenRequests,
   products: loadProducts,
   categories: loadCategories,
@@ -11697,6 +11804,7 @@ function handleAdminV2Page() {
     <button type="button" data-action="openRequests">Open Requests</button>
     <button type="button" data-action="orders">Orders</button>
     <button type="button" data-action="closedOrders">Closed Orders</button>
+    <button type="button" data-action="customerAppOrders">Customer App Orders</button>
     <button type="button" data-action="products">Products</button>
     <button type="button" data-action="categories">Product Categories</button>
     <button type="button" data-action="meetingPoints">Meeting Points</button>
