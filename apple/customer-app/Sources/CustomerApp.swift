@@ -14,6 +14,7 @@ struct CustomerShopView: View {
     private let sessionToken = "ios_customer_\(Int(Date().timeIntervalSince1970))"
 
     @State private var products: [CustomerProduct] = []
+    @State private var orders: [CustomerOrderSummary] = []
     @State private var cart: CustomerCart?
     @State private var message = "Loading shop..."
     @State private var isLoading = false
@@ -44,6 +45,23 @@ struct CustomerShopView: View {
                         }
                     }
                     .disabled((cart?.items.isEmpty ?? true) || isLoading)
+                }
+
+                Section("Orders") {
+                    if orders.isEmpty {
+                        Text("No orders yet")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(orders) { order in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(order.publicOrderCode)
+                                    .font(.headline)
+                                Text("Status: \(order.status)")
+                                Text("Total: \(order.totalAmount) \(order.currency)")
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
                 }
 
                 Section("Products") {
@@ -94,6 +112,8 @@ struct CustomerShopView: View {
             products = try await CustomerApiClient.getCustomerProducts()
             let cartResponse = try await CustomerApiClient.getCustomerCart(sessionToken: sessionToken)
             cart = cartResponse.cart
+            let ordersResponse = try await CustomerApiClient.getCustomerOrders(sessionToken: sessionToken)
+            orders = ordersResponse.orders
             message = "Shop loaded"
         } catch {
             message = "Loading failed: \(error.localizedDescription)"
@@ -133,6 +153,8 @@ struct CustomerShopView: View {
             message = "Order created: \(response.order.publicOrderCode)"
             let cartResponse = try await CustomerApiClient.getCustomerCart(sessionToken: sessionToken)
             cart = cartResponse.cart
+            let ordersResponse = try await CustomerApiClient.getCustomerOrders(sessionToken: sessionToken)
+            orders = ordersResponse.orders
         } catch {
             message = "Checkout failed: \(error.localizedDescription)"
         }

@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.horizend.crmdelivery.shared.api.CustomerApiClient
 import com.horizend.crmdelivery.shared.api.CustomerCart
+import com.horizend.crmdelivery.shared.api.CustomerOrderSummary
 import com.horizend.crmdelivery.shared.api.CustomerProduct
 import kotlinx.coroutines.launch
 
@@ -50,6 +51,7 @@ private fun CustomerShopScreen() {
     val sessionToken = remember { "android_customer_${System.currentTimeMillis()}" }
 
     var products by remember { mutableStateOf<List<CustomerProduct>>(emptyList()) }
+    var orders by remember { mutableStateOf<List<CustomerOrderSummary>>(emptyList()) }
     var cart by remember { mutableStateOf<CustomerCart?>(null) }
     var message by remember { mutableStateOf("Loading shop...") }
     var loading by remember { mutableStateOf(false) }
@@ -66,11 +68,24 @@ private fun CustomerShopScreen() {
         }
     }
 
+    fun refreshOrders() {
+        scope.launch {
+            runCatching {
+                CustomerApiClient.getCustomerOrders(sessionToken).orders
+            }.onSuccess {
+                orders = it
+            }.onFailure {
+                message = "Orders error: ${it.message}"
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         loading = true
         runCatching {
             products = CustomerApiClient.getCustomerProducts()
             cart = CustomerApiClient.getCustomerCart(sessionToken).cart
+            orders = CustomerApiClient.getCustomerOrders(sessionToken).orders
         }.onSuccess {
             message = "Shop loaded"
         }.onFailure {
@@ -129,6 +144,7 @@ private fun CustomerShopScreen() {
                             }.onSuccess {
                                 message = "Order created: ${it.order.publicOrderCode}"
                                 refreshCart()
+                                refreshOrders()
                             }.onFailure {
                                 message = "Checkout failed: ${it.message}"
                             }
@@ -137,6 +153,22 @@ private fun CustomerShopScreen() {
                     }
                 ) {
                     Text("Checkout")
+                }
+            }
+        }
+
+        Text("Orders", style = MaterialTheme.typography.titleLarge)
+
+        if (orders.isEmpty()) {
+            Text("No orders yet")
+        } else {
+            orders.forEach { order ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(order.publicOrderCode, style = MaterialTheme.typography.titleMedium)
+                        Text("Status: ${order.status}")
+                        Text("Total: ${order.totalAmount} ${order.currency}")
+                    }
                 }
             }
         }
