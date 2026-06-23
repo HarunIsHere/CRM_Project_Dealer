@@ -11483,6 +11483,44 @@ function orderColumns() {
   ];
 }
 
+let customerAppOrderCache = [];
+
+function renderCustomerAppOrderItems(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return "<div class='admin-v2-empty'>No order items found.</div>";
+  }
+
+  return renderTable(items, [
+    { label: "Product", value: (r) => r.product_name || "" },
+    { label: "Quantity", value: (r) => r.quantity ?? "" },
+    { label: "Unit", value: (r) => r.unit_price ?? "" },
+    { label: "Line Total", value: (r) => r.line_total ?? "" },
+    { label: "Shop", value: (r) => r.shop_name || r.shop_id || "" }
+  ]);
+}
+
+function renderCustomerAppOrderDetail(order) {
+  if (!order) {
+    return "<div class='admin-v2-empty'>Order not found.</div>";
+  }
+
+  return [
+    "<section class='card' style='margin-top:16px;'>",
+    "<h2>Customer App Order " + escapeHtml(order.public_order_code || order.id) + "</h2>",
+    "<p class='small'>Status: " + badge(order.status) + "</p>",
+    "<p><strong>Customer:</strong> " + escapeHtml(order.customer_name || "") + "</p>",
+    "<p><strong>Phone:</strong> " + escapeHtml(order.phone || "") + "</p>",
+    "<p><strong>Delivery:</strong> " + escapeHtml(order.delivery_address || "") + "</p>",
+    "<p><strong>Payment:</strong> " + escapeHtml(order.payment_method_code || "") + "</p>",
+    "<p><strong>Total:</strong> " + escapeHtml(String(order.total_amount ?? "")) + " " + escapeHtml(order.currency || "") + "</p>",
+    "<p><strong>Created:</strong> " + escapeHtml(formatDate(order.created_at)) + "</p>",
+    "<h3>Items</h3>",
+    renderCustomerAppOrderItems(order.items || []),
+    rawPanel(order),
+    "</section>"
+  ].join("");
+}
+
 function customerAppOrderColumns() {
   return [
     { label: "ID", value: (r) => r.id },
@@ -11494,7 +11532,8 @@ function customerAppOrderColumns() {
     { label: "Total", value: (r) => String(r.total_amount ?? "") + " " + String(r.currency ?? "") },
     { label: "Payment", value: (r) => r.payment_method_code || "" },
     { label: "Delivery", value: (r) => r.delivery_address || "" },
-    { label: "Created", value: (r) => formatDate(r.created_at) }
+    { label: "Created", value: (r) => formatDate(r.created_at) },
+    { label: "Details", value: (r) => "<button type='button' data-customer-app-order-id='" + escapeHtml(r.id) + "'>View</button>", html: true }
   ];
 }
 
@@ -11601,7 +11640,8 @@ async function loadCustomerAppOrders() {
   showLoading("Customer App Orders");
   const data = await api("/api/v1/admin/customer-app-orders");
   const p = payload(data);
-  result.innerHTML = renderTable(p.orders || [], customerAppOrderColumns()) + rawPanel(p);
+  customerAppOrderCache = p.orders || [];
+  result.innerHTML = renderTable(customerAppOrderCache, customerAppOrderColumns()) + "<div id='customer-app-order-detail'></div>" + rawPanel(p);
 }
 
 async function loadOpenRequests() {
@@ -11685,6 +11725,20 @@ document.querySelectorAll("[data-action]").forEach((button) => {
       result.innerHTML = "<div class='admin-v2-empty'>" + escapeHtml(error instanceof Error ? error.message : "Unknown error") + "</div>";
     }
   });
+});
+
+result.addEventListener("click", (event) => {
+  const button = event.target?.closest?.("[data-customer-app-order-id]");
+  if (!button) return;
+
+  const orderId = Number(button.getAttribute("data-customer-app-order-id"));
+  const order = customerAppOrderCache.find((item) => Number(item.id) === orderId);
+  const detail = document.getElementById("customer-app-order-detail");
+
+  if (detail) {
+    detail.innerHTML = renderCustomerAppOrderDetail(order);
+    detail.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 });
 
 document.getElementById("logout")?.addEventListener("click", logout);
