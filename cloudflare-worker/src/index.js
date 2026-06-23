@@ -9330,6 +9330,77 @@ const API_ALLOWED_ORDER_STATUSES = new Set([
   "delivered"
 ]);
 
+async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
+  if (request.method !== "PATCH" && request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  let body = {};
+
+  try {
+    body = await request.json();
+  } catch (_) {
+    body = {};
+  }
+
+  const status = String(body.status || "").trim();
+  const allowedStatuses = new Set([
+    "new",
+    "pending",
+    "accepted",
+    "preparing",
+    "ready",
+    "out_for_delivery",
+    "delivered",
+    "cancelled",
+    "closed"
+  ]);
+
+  if (!allowedStatuses.has(status)) {
+    return apiError("invalid_status", "Invalid order status.", 400);
+  }
+
+  const now = new Date().toISOString();
+
+  const updateResult = await env.DB.prepare(`
+    UPDATE customer_orders_v2
+    SET status = ?, updated_at = ?
+    WHERE id = ?
+  `).bind(status, now, orderId).run();
+
+  if (!updateResult.meta || updateResult.meta.changes === 0) {
+    return apiError("not_found", "Customer app order not found.", 404);
+  }
+
+  const order = await env.DB.prepare(`
+    SELECT
+      id,
+      public_order_code,
+      session_token,
+      status,
+      total_amount,
+      currency,
+      customer_name,
+      phone,
+      delivery_address,
+      payment_method_code,
+      notes,
+      created_at,
+      updated_at
+    FROM customer_orders_v2
+    WHERE id = ?
+  `).bind(orderId).first();
+
+  return apiOk({ order });
+}
+
+
 async function getOrderApiRowById(env, orderId) {
   const result = await env.DB.prepare(`
     SELECT
@@ -11088,6 +11159,11 @@ async function handleApiV1(request, env) {
     return handleApiAdminOrders(request, env, true);
   }
 
+  const customerAppOrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/status$/);
+  if (customerAppOrderStatusMatch) {
+    return handleApiAdminCustomerAppOrderStatus(request, env, Number(customerAppOrderStatusMatch[1]));
+  }
+
   if (url.pathname === "/api/v1/admin/customer-app-orders") {
     return handleApiAdminCustomerAppOrders(request, env);
   }
@@ -11521,6 +11597,56 @@ function renderCustomerAppOrderDetail(order) {
   ].join("");
 }
 
+function renderCustomerAppOrderStatusActions(order) {
+  if (!order) return "";
+
+  const statuses = [
+    ["new", "New"],
+    ["accepted", "Accepted"],
+    ["preparing", "Preparing"],
+    ["ready", "Ready"],
+    ["out_for_delivery", "Out for delivery"],
+    ["delivered", "Delivered"],
+    ["cancelled", "Cancelled"],
+    ["closed", "Closed"]
+  ];
+
+  let html = '<section class="panel"><h3>Update Status</h3><div class="toolbar">';
+
+  for (const item of statuses) {
+    const value = item[0];
+    const label = item[1];
+    const active = String(order.status || "") === value ? " active" : "";
+    html += '<button type="button" class="' + active + '" data-customer-app-order-status="' + value + '" data-customer-app-order-id="' + order.id + '">' + label + '</button>';
+  }
+
+  html += '</div></section>';
+  return html;
+}
+
+async function updateCustomerAppOrderStatus(orderId, status) {
+  const data = await api("/api/v1/admin/customer-app-orders/" + orderId + "/status", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status })
+  });
+
+  const p = payload(data);
+  const updated = p.order || {};
+
+  customerAppOrderCache = customerAppOrderCache.map((order) => {
+    if (Number(order.id) !== Number(orderId)) return order;
+    return { ...order, ...updated };
+  });
+
+  const order = customerAppOrderCache.find((item) => Number(item.id) === Number(orderId));
+  const detail = document.getElementById("customer-app-order-detail");
+
+  if (detail) {
+    detail.innerHTML = renderCustomerAppOrderDetail(order) + renderCustomerAppOrderStatusActions(order);
+  }
+}
+
 function customerAppOrderColumns() {
   return [
     { label: "ID", value: (r) => r.id },
@@ -11738,6 +11864,26 @@ result.addEventListener("click", (event) => {
   if (detail) {
     detail.innerHTML = renderCustomerAppOrderDetail(order);
     detail.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+});
+
+result.addEventListener("click", async (event) => {
+  const button = event.target?.closest?.("[data-customer-app-order-status]");
+  if (!button) return;
+
+  const orderId = Number(button.getAttribute("data-customer-app-order-id"));
+  const status = button.getAttribute("data-customer-app-order-status");
+
+  if (!orderId || !status) return;
+
+  button.disabled = true;
+
+  try {
+    await updateCustomerAppOrderStatus(orderId, status);
+  } catch (error) {
+    alert(error?.message || "Could not update order status.");
+  } finally {
+    button.disabled = false;
   }
 });
 
