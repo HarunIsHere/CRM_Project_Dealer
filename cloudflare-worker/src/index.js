@@ -9267,6 +9267,26 @@ async function handleApiAdminCustomerAppOrders(request, env) {
       o.notes,
       o.created_at,
       o.updated_at,
+      (
+        SELECT json_group_array(
+          json_object(
+            'id', h.id,
+            'previous_status', h.previous_status,
+            'new_status', h.new_status,
+            'changed_by_admin_id', h.changed_by_admin_id,
+            'changed_by_admin_username', h.changed_by_admin_username,
+            'note', h.note,
+            'created_at', h.created_at
+          )
+        )
+        FROM (
+          SELECT *
+          FROM customer_order_status_history_v2
+          WHERE order_id = o.id
+          ORDER BY created_at DESC, id DESC
+          LIMIT 50
+        ) h
+      ) AS status_history_json,
       COUNT(i.id) AS item_count,
       json_group_array(
         json_object(
@@ -9295,6 +9315,13 @@ async function handleApiAdminCustomerAppOrders(request, env) {
       items = [];
     }
 
+    let status_history = [];
+    try {
+      status_history = JSON.parse(order.status_history_json || "[]").filter((item) => item && item.id !== null);
+    } catch (_) {
+      status_history = [];
+    }
+
     return {
       id: order.id,
       public_order_code: order.public_order_code,
@@ -9309,6 +9336,7 @@ async function handleApiAdminCustomerAppOrders(request, env) {
       notes: order.notes,
       item_count: order.item_count || items.length,
       items,
+      status_history,
       created_at: order.created_at,
       updated_at: order.updated_at
     };
@@ -9368,6 +9396,18 @@ async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
 
   const now = new Date().toISOString();
 
+  const existingOrder = await env.DB.prepare(`
+    SELECT id, status
+    FROM customer_orders_v2
+    WHERE id = ?
+  `).bind(orderId).first();
+
+  if (!existingOrder) {
+    return apiError("not_found", "Customer app order not found.", 404);
+  }
+
+  const previousStatus = existingOrder.status || null;
+
   const updateResult = await env.DB.prepare(`
     UPDATE customer_orders_v2
     SET status = ?, updated_at = ?
@@ -9377,6 +9417,27 @@ async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
   if (!updateResult.meta || updateResult.meta.changes === 0) {
     return apiError("not_found", "Customer app order not found.", 404);
   }
+
+  await env.DB.prepare(`
+    INSERT INTO customer_order_status_history_v2 (
+      order_id,
+      previous_status,
+      new_status,
+      changed_by_admin_id,
+      changed_by_admin_username,
+      note,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    orderId,
+    previousStatus,
+    status,
+    session.admin?.id || session.id || null,
+    session.admin?.username || session.username || null,
+    null,
+    now
+  ).run();
 
   const order = await env.DB.prepare(`
     SELECT
@@ -11674,6 +11735,26 @@ function renderCustomerAppOrdersList() {
   ].join("");
 }
 
+function renderCustomerAppOrderStatusHistory(order) {
+  const history = Array.isArray(order?.status_history) ? order.status_history : [];
+
+  if (!history.length) {
+    return "<section class='panel'><h3>Status History</h3><div class='admin-v2-empty'>No status history yet.</div></section>";
+  }
+
+  return [
+    "<section class='panel'>",
+    "<h3>Status History</h3>",
+    renderTable(history, [
+      { label: "From", value: (r) => r.previous_status || "" },
+      { label: "To", value: (r) => badge(r.new_status), html: true },
+      { label: "Admin", value: (r) => r.changed_by_admin_username || r.changed_by_admin_id || "" },
+      { label: "When", value: (r) => formatDate(r.created_at) }
+    ]),
+    "</section>"
+  ].join("");
+}
+
 function renderCustomerAppOrderStatusActions(order) {
   if (!order) return "";
 
@@ -11713,7 +11794,22 @@ async function updateCustomerAppOrderStatus(orderId, status) {
 
   customerAppOrderCache = customerAppOrderCache.map((order) => {
     if (Number(order.id) !== Number(orderId)) return order;
-    return { ...order, ...updated };
+
+    const historyEntry = {
+      id: Date.now(),
+      previous_status: order.status || "",
+      new_status: updated.status || status,
+      changed_by_admin_id: "",
+      changed_by_admin_username: "current admin",
+      note: "",
+      created_at: new Date().toISOString()
+    };
+
+    return {
+      ...order,
+      ...updated,
+      status_history: [historyEntry, ...(order.status_history || [])]
+    };
   });
 
   const order = customerAppOrderCache.find((item) => Number(item.id) === Number(orderId));
