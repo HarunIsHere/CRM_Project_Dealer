@@ -9378,6 +9378,7 @@ async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
   }
 
   const status = String(body.status || "").trim();
+  const note = String(body.note || "").trim();
   const allowedStatuses = new Set([
     "new",
     "pending",
@@ -11749,6 +11750,7 @@ function renderCustomerAppOrderStatusHistory(order) {
       { label: "From", value: (r) => r.previous_status || "" },
       { label: "To", value: (r) => badge(r.new_status), html: true },
       { label: "Admin", value: (r) => r.changed_by_admin_username || r.changed_by_admin_id || "" },
+      { label: "Note", value: (r) => r.note || "" },
       { label: "When", value: (r) => formatDate(r.created_at) }
     ]),
     "</section>"
@@ -11769,7 +11771,7 @@ function renderCustomerAppOrderStatusActions(order) {
     ["closed", "Closed"]
   ];
 
-  let html = '<section class="panel"><h3>Update Status</h3><div class="toolbar">';
+  let html = '<section class="panel"><h3>Update Status</h3><label>Note <input id="customer-app-order-status-note" type="text" placeholder="Optional note for status history"></label><div class="toolbar">';
 
   for (const item of statuses) {
     const value = item[0];
@@ -11783,10 +11785,13 @@ function renderCustomerAppOrderStatusActions(order) {
 }
 
 async function updateCustomerAppOrderStatus(orderId, status) {
+  const noteInput = document.getElementById("customer-app-order-status-note");
+  const note = noteInput?.value || "";
+
   const data = await api("/api/v1/admin/customer-app-orders/" + orderId + "/status", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status, note })
   });
 
   const p = payload(data);
@@ -11801,7 +11806,7 @@ async function updateCustomerAppOrderStatus(orderId, status) {
       new_status: updated.status || status,
       changed_by_admin_id: "",
       changed_by_admin_username: "current admin",
-      note: "",
+      note: note,
       created_at: new Date().toISOString()
     };
 
@@ -11819,6 +11824,8 @@ async function updateCustomerAppOrderStatus(orderId, status) {
   if (detail) {
     detail.innerHTML = renderCustomerAppOrderDetail(order) + renderCustomerAppOrderStatusActions(order);
   }
+
+  if (noteInput) noteInput.value = "";
 }
 
 function customerAppOrderColumns() {
