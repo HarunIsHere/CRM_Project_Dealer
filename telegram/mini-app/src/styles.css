@@ -52,6 +52,7 @@ button:disabled {
 }
 
 .product,
+.order,
 .row {
   display: flex;
   align-items: center;
@@ -64,4 +65,13 @@ button:disabled {
 .muted {
   color: #6b7280;
   font-size: 13px;
+}
+
+
+.order h3 {
+  margin: 0 0 8px;
+}
+
+.order p {
+  margin: 4px 0;
 }

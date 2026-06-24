@@ -38,15 +38,35 @@ export type CustomerCartResponse = {
   cart: CustomerCart;
 };
 
+export type CustomerOrderStatusHistory = {
+  id: number;
+  order_id?: number | null;
+  previous_status?: string | null;
+  new_status: string;
+  changed_by_admin_username?: string | null;
+  note?: string | null;
+  created_at?: string | null;
+};
+
+export type CustomerOrderSummary = {
+  id: number;
+  public_order_code: string;
+  status: string;
+  total_amount: number;
+  currency: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  status_history?: CustomerOrderStatusHistory[];
+};
+
 export type CustomerOrderResponse = {
   ok: boolean;
-  order: {
-    id: number;
-    public_order_code: string;
-    status: string;
-    total_amount: number;
-    currency: string;
-  };
+  order: CustomerOrderSummary;
+};
+
+export type CustomerOrdersResponse = {
+  ok: boolean;
+  orders: CustomerOrderSummary[];
 };
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -65,6 +85,10 @@ export function getPublicCatalog(): Promise<CatalogResponse> {
 
 export function getCustomerCart(sessionToken: string): Promise<CustomerCartResponse> {
   return fetchJson<CustomerCartResponse>(`${API_BASE_URL}/customer/cart?session_token=${encodeURIComponent(sessionToken)}`);
+}
+
+export function getCustomerOrders(sessionToken: string): Promise<CustomerOrdersResponse> {
+  return fetchJson<CustomerOrdersResponse>(`${API_BASE_URL}/customer/orders?session_token=${encodeURIComponent(sessionToken)}`);
 }
 
 export function addCustomerCartItem(sessionToken: string, productId: number, quantity: number): Promise<CustomerCartResponse> {
