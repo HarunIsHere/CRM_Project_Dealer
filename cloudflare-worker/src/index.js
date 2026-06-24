@@ -11560,6 +11560,8 @@ function orderColumns() {
 }
 
 let customerAppOrderCache = [];
+let customerAppOrderRawPayload = null;
+let customerAppOrderFilters = { status: "", search: "" };
 
 function renderCustomerAppOrderItems(items) {
   if (!Array.isArray(items) || !items.length) {
@@ -11594,6 +11596,81 @@ function renderCustomerAppOrderDetail(order) {
     renderCustomerAppOrderItems(order.items || []),
     rawPanel(order),
     "</section>"
+  ].join("");
+}
+
+function renderCustomerAppOrderFilters() {
+  const status = customerAppOrderFilters.status || "";
+  const search = customerAppOrderFilters.search || "";
+
+  return [
+    "<section class='panel' style='margin-bottom:16px;'>",
+    "<h3>Filter Customer App Orders</h3>",
+    "<div class='toolbar'>",
+    "<label>Status <select id='customer-app-order-status-filter'>",
+    "<option value=''>All</option>",
+    "<option value='new'" + (status === "new" ? " selected" : "") + ">New</option>",
+    "<option value='pending'" + (status === "pending" ? " selected" : "") + ">Pending</option>",
+    "<option value='accepted'" + (status === "accepted" ? " selected" : "") + ">Accepted</option>",
+    "<option value='preparing'" + (status === "preparing" ? " selected" : "") + ">Preparing</option>",
+    "<option value='ready'" + (status === "ready" ? " selected" : "") + ">Ready</option>",
+    "<option value='out_for_delivery'" + (status === "out_for_delivery" ? " selected" : "") + ">Out for delivery</option>",
+    "<option value='delivered'" + (status === "delivered" ? " selected" : "") + ">Delivered</option>",
+    "<option value='cancelled'" + (status === "cancelled" ? " selected" : "") + ">Cancelled</option>",
+    "<option value='closed'" + (status === "closed" ? " selected" : "") + ">Closed</option>",
+    "</select></label>",
+    "<label>Search <input id='customer-app-order-search-filter' type='search' placeholder='Code, customer, phone, address' value='" + escapeHtml(search) + "'></label>",
+    "<button type='button' id='customer-app-order-clear-filters'>Clear</button>",
+    "</div>",
+    "</section>"
+  ].join("");
+}
+
+function getFilteredCustomerAppOrders() {
+  const status = String(customerAppOrderFilters.status || "").toLowerCase();
+  const search = String(customerAppOrderFilters.search || "").trim().toLowerCase();
+
+  return customerAppOrderCache.filter((order) => {
+    if (status && String(order.status || "").toLowerCase() !== status) {
+      return false;
+    }
+
+    if (!search) {
+      return true;
+    }
+
+    const haystack = [
+      order.id,
+      order.public_order_code,
+      order.customer_name,
+      order.phone,
+      order.delivery_address,
+      order.payment_method_code,
+      order.status,
+      order.total_amount,
+      order.currency
+    ].map((value) => String(value ?? "").toLowerCase()).join(" ");
+
+    return haystack.includes(search);
+  });
+}
+
+function refreshCustomerAppOrdersTable() {
+  const table = document.getElementById("customer-app-orders-table");
+  if (!table) return;
+
+  const filteredOrders = getFilteredCustomerAppOrders();
+  table.innerHTML = renderTable(filteredOrders, customerAppOrderColumns());
+}
+
+function renderCustomerAppOrdersList() {
+  return [
+    renderCustomerAppOrderFilters(),
+    "<div id='customer-app-orders-table'>",
+    renderTable(getFilteredCustomerAppOrders(), customerAppOrderColumns()),
+    "</div>",
+    "<div id='customer-app-order-detail'></div>",
+    rawPanel(customerAppOrderRawPayload || { orders: customerAppOrderCache })
   ].join("");
 }
 
@@ -11640,6 +11717,7 @@ async function updateCustomerAppOrderStatus(orderId, status) {
   });
 
   const order = customerAppOrderCache.find((item) => Number(item.id) === Number(orderId));
+  refreshCustomerAppOrdersTable();
   const detail = document.getElementById("customer-app-order-detail");
 
   if (detail) {
@@ -11767,7 +11845,8 @@ async function loadCustomerAppOrders() {
   const data = await api("/api/v1/admin/customer-app-orders");
   const p = payload(data);
   customerAppOrderCache = p.orders || [];
-  result.innerHTML = renderTable(customerAppOrderCache, customerAppOrderColumns()) + "<div id='customer-app-order-detail'></div>" + rawPanel(p);
+  customerAppOrderRawPayload = p;
+  result.innerHTML = renderCustomerAppOrdersList();
 }
 
 async function loadOpenRequests() {
@@ -11885,6 +11964,40 @@ result.addEventListener("click", async (event) => {
   } finally {
     button.disabled = false;
   }
+});
+
+result.addEventListener("input", (event) => {
+  const target = event.target;
+  if (!target) return;
+
+  if (target.id === "customer-app-order-search-filter") {
+    customerAppOrderFilters.search = target.value || "";
+    refreshCustomerAppOrdersTable();
+  }
+});
+
+result.addEventListener("change", (event) => {
+  const target = event.target;
+  if (!target) return;
+
+  if (target.id === "customer-app-order-status-filter") {
+    customerAppOrderFilters.status = target.value || "";
+    refreshCustomerAppOrdersTable();
+  }
+});
+
+result.addEventListener("click", (event) => {
+  const button = event.target?.closest?.("#customer-app-order-clear-filters");
+  if (!button) return;
+
+  customerAppOrderFilters = { status: "", search: "" };
+  const statusFilter = document.getElementById("customer-app-order-status-filter");
+  const searchFilter = document.getElementById("customer-app-order-search-filter");
+
+  if (statusFilter) statusFilter.value = "";
+  if (searchFilter) searchFilter.value = "";
+
+  refreshCustomerAppOrdersTable();
 });
 
 document.getElementById("logout")?.addEventListener("click", logout);
