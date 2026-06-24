@@ -81,6 +81,22 @@ data class CustomerOrdersResponse(
 )
 
 @Serializable
+data class CustomerOrderStatusHistory(
+    val id: Int,
+    @SerialName("order_id")
+    val orderId: Int? = null,
+    @SerialName("previous_status")
+    val previousStatus: String? = null,
+    @SerialName("new_status")
+    val newStatus: String,
+    @SerialName("changed_by_admin_username")
+    val changedByAdminUsername: String? = null,
+    val note: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
 data class CustomerOrderSummary(
     val id: Int,
     @SerialName("public_order_code")
@@ -100,7 +116,9 @@ data class CustomerOrderSummary(
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    @SerialName("status_history")
+    val statusHistory: List<CustomerOrderStatusHistory> = emptyList()
 )
 
 @Serializable
@@ -126,6 +144,8 @@ data class CustomerOrder(
     val createdAt: String? = null,
     @SerialName("updated_at")
     val updatedAt: String? = null,
+    @SerialName("status_history")
+    val statusHistory: List<CustomerOrderStatusHistory> = emptyList(),
     val items: List<CustomerOrderItem> = emptyList()
 )
 

@@ -57,6 +57,13 @@ struct CustomerShopView: View {
                                 Text(order.publicOrderCode)
                                     .font(.headline)
                                 Text("Status: \(order.status)")
+
+                                if let history = order.statusHistory?.first {
+                                    Text("Last update: \(history.newStatus)" + ((history.note?.isEmpty == false) ? " · \(history.note ?? "")" : ""))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
                                 Text("Total: \(order.totalAmount) \(order.currency)")
                             }
                             .padding(.vertical, 4)

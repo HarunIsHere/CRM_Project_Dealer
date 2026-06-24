@@ -9301,7 +9301,7 @@ async function handleApiAdminCustomerAppOrders(request, env) {
         )
       ) AS items_json
     FROM customer_orders_v2 o
-    LEFT JOIN customer_order_items_v2 i ON i.order_id = o.id
+    LEFT JOIN customer_order_items_v2 i ON i.customer_order_id = o.id
     GROUP BY o.id
     ORDER BY o.created_at DESC, o.id DESC
     LIMIT 200
@@ -9454,7 +9454,27 @@ async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
       payment_method_code,
       notes,
       created_at,
-      updated_at
+      updated_at,
+      (
+        SELECT json_group_array(
+          json_object(
+            'id', h.id,
+            'order_id', h.order_id,
+            'previous_status', h.previous_status,
+            'new_status', h.new_status,
+            'changed_by_admin_username', h.changed_by_admin_username,
+            'note', h.note,
+            'created_at', h.created_at
+          )
+        )
+        FROM (
+          SELECT *
+          FROM customer_order_status_history_v2
+          WHERE order_id = customer_orders_v2.id
+          ORDER BY created_at DESC, id DESC
+          LIMIT 50
+        ) h
+      ) AS status_history_json
     FROM customer_orders_v2
     WHERE id = ?
   `).bind(orderId).first();
@@ -12669,6 +12689,35 @@ async function handleCustomerCheckoutApi(request, env) {
   return customerApiJson({ ok: true, order }, 201);
 }
 
+function parseCustomerOrderStatusHistoryJson(statusHistoryJson) {
+  if (!statusHistoryJson) return [];
+
+  try {
+    return JSON.parse(statusHistoryJson).filter((item) => item && item.id !== null);
+  } catch (_) {
+    return [];
+  }
+}
+
+async function getCustomerOrderStatusHistory(env, orderId) {
+  const rows = await env.DB.prepare(`
+    SELECT
+      id,
+      order_id,
+      previous_status,
+      new_status,
+      changed_by_admin_username,
+      note,
+      created_at
+    FROM customer_order_status_history_v2
+    WHERE order_id = ?
+    ORDER BY created_at DESC, id DESC
+    LIMIT 50
+  `).bind(orderId).all();
+
+  return rows.results || [];
+}
+
 async function getCustomerOrder(env, orderId, sessionToken) {
   const order = await env.DB.prepare(`
     SELECT *
@@ -12687,9 +12736,12 @@ async function getCustomerOrder(env, orderId, sessionToken) {
     ORDER BY id ASC
   `).bind(orderId).all();
 
+  const history = await getCustomerOrderStatusHistory(env, orderId);
+
   return {
     ...order,
-    items: items.results || []
+    items: items.results || [],
+    status_history: history
   };
 }
 
@@ -12716,7 +12768,13 @@ async function handleCustomerOrdersApi(request, env) {
     ORDER BY created_at DESC, id DESC
   `).bind(sessionToken).all();
 
-  return customerApiJson({ ok: true, orders: orders.results || [] });
+  return customerApiJson({
+    ok: true,
+    orders: (orders.results || []).map((order) => ({
+      ...order,
+      status_history: parseCustomerOrderStatusHistoryJson(order.status_history_json)
+    }))
+  });
 }
 
 async function handleCustomerOrderDetailApi(request, env, url) {

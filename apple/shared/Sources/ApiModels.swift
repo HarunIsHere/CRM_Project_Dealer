@@ -248,12 +248,33 @@ public struct CustomerOrdersResponse: Codable, Sendable {
     public let orders: [CustomerOrderSummary]
 }
 
+public struct CustomerOrderStatusHistory: Codable, Identifiable, Hashable, Sendable {
+    public let id: Int
+    public let orderId: Int?
+    public let previousStatus: String?
+    public let newStatus: String
+    public let changedByAdminUsername: String?
+    public let note: String?
+    public let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case orderId = "order_id"
+        case previousStatus = "previous_status"
+        case newStatus = "new_status"
+        case changedByAdminUsername = "changed_by_admin_username"
+        case note
+        case createdAt = "created_at"
+    }
+}
+
 public struct CustomerOrderSummary: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let publicOrderCode: String
     public let status: String
     public let totalAmount: Int
     public let currency: String
+    public let statusHistory: [CustomerOrderStatusHistory]?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -261,6 +282,7 @@ public struct CustomerOrderSummary: Codable, Identifiable, Hashable, Sendable {
         case status
         case totalAmount = "total_amount"
         case currency
+        case statusHistory = "status_history"
     }
 }
 
@@ -271,6 +293,7 @@ public struct CustomerOrder: Codable, Identifiable, Hashable, Sendable {
     public let status: String
     public let totalAmount: Int
     public let currency: String
+    public let statusHistory: [CustomerOrderStatusHistory]?
     public let items: [CustomerOrderItem]
 
     enum CodingKeys: String, CodingKey {
@@ -280,6 +303,7 @@ public struct CustomerOrder: Codable, Identifiable, Hashable, Sendable {
         case status
         case totalAmount = "total_amount"
         case currency
+        case statusHistory = "status_history"
         case items
     }
 }

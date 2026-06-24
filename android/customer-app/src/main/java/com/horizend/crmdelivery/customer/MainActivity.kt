@@ -167,6 +167,13 @@ private fun CustomerShopScreen() {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(order.publicOrderCode, style = MaterialTheme.typography.titleMedium)
                         Text("Status: ${order.status}")
+                        order.statusHistory.firstOrNull()?.let { history ->
+                            val noteText = history.note?.takeIf { it.isNotBlank() }?.let { note -> " · $note" } ?: ""
+                            Text("Last update: ${history.newStatus}$noteText")
+                        }
+                        order.updatedAt?.takeIf { it.isNotBlank() }?.let { updatedAt ->
+                            Text("Updated: $updatedAt")
+                        }
                         Text("Total: ${order.totalAmount} ${order.currency}")
                     }
                 }
