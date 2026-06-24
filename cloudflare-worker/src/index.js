@@ -11659,7 +11659,7 @@ function customerAppOrderColumns() {
     { label: "Payment", value: (r) => r.payment_method_code || "" },
     { label: "Delivery", value: (r) => r.delivery_address || "" },
     { label: "Created", value: (r) => formatDate(r.created_at) },
-    { label: "Details", value: (r) => "<button type='button' data-customer-app-order-id='" + escapeHtml(r.id) + "'>View</button>", html: true }
+    { label: "Details", value: (r) => "<button type='button' data-customer-app-order-detail-id='" + escapeHtml(r.id) + "'>View</button>", html: true }
   ];
 }
 
@@ -11854,15 +11854,15 @@ document.querySelectorAll("[data-action]").forEach((button) => {
 });
 
 result.addEventListener("click", (event) => {
-  const button = event.target?.closest?.("[data-customer-app-order-id]");
+  const button = event.target?.closest?.("[data-customer-app-order-detail-id]");
   if (!button) return;
 
-  const orderId = Number(button.getAttribute("data-customer-app-order-id"));
+  const orderId = Number(button.getAttribute("data-customer-app-order-detail-id"));
   const order = customerAppOrderCache.find((item) => Number(item.id) === orderId);
   const detail = document.getElementById("customer-app-order-detail");
 
   if (detail) {
-    detail.innerHTML = renderCustomerAppOrderDetail(order);
+    detail.innerHTML = renderCustomerAppOrderDetail(order) + renderCustomerAppOrderStatusActions(order);
     detail.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 });
