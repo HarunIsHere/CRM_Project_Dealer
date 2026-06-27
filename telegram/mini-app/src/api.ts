@@ -15,21 +15,40 @@ export type CatalogResponse = {
   };
 };
 
+export type CustomerSessionStartResponse = {
+  ok: boolean;
+  session: {
+    access_token: string;
+    token_type: string;
+    expires_at: string;
+  };
+  customer: {
+    id: number;
+    full_name: string;
+    username: string;
+    preferred_language: string;
+  };
+};
+
 export type CustomerCartItem = {
-  product_id: number;
+  id?: number | null;
+  product_id?: number | null;
+  name?: string | null;
+  product_name?: string | null;
   quantity: number;
-  product_name: string;
-  unit_price: number;
-  shop_id?: number | null;
-  shop_name?: string | null;
-  line_total: number;
+  price_snapshot?: number | null;
+  unit_price?: number | null;
+  line_total?: number | null;
 };
 
 export type CustomerCart = {
-  session_token: string;
+  id?: number | null;
+  status?: string;
+  order_status?: string;
   items: CustomerCartItem[];
   total_amount: number;
-  currency: string;
+  total_formatted?: string;
+  currency?: string;
   item_count: number;
 };
 
@@ -50,10 +69,13 @@ export type CustomerOrderStatusHistory = {
 
 export type CustomerOrderSummary = {
   id: number;
-  public_order_code: string;
-  status: string;
+  public_order_code?: string | null;
+  status?: string;
+  order_status?: string;
+  order_status_label?: string;
   total_amount: number;
-  currency: string;
+  total_formatted?: string;
+  currency?: string;
   created_at?: string | null;
   updated_at?: string | null;
   status_history?: CustomerOrderStatusHistory[];
@@ -61,7 +83,8 @@ export type CustomerOrderSummary = {
 
 export type CustomerOrderResponse = {
   ok: boolean;
-  order: CustomerOrderSummary;
+  order: CustomerOrderSummary | null;
+  cart?: CustomerCart;
 };
 
 export type CustomerOrdersResponse = {
@@ -79,45 +102,70 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function authHeaders(accessToken: string): HeadersInit {
+  return {
+    "authorization": `Bearer ${accessToken}`,
+    "content-type": "application/json"
+  };
+}
+
 export function getPublicCatalog(): Promise<CatalogResponse> {
   return fetchJson<CatalogResponse>(`${API_BASE_URL}/public/catalog`);
 }
 
-export function getCustomerCart(sessionToken: string): Promise<CustomerCartResponse> {
-  return fetchJson<CustomerCartResponse>(`${API_BASE_URL}/customer/cart?session_token=${encodeURIComponent(sessionToken)}`);
-}
-
-export function getCustomerOrders(sessionToken: string): Promise<CustomerOrdersResponse> {
-  return fetchJson<CustomerOrdersResponse>(`${API_BASE_URL}/customer/orders?session_token=${encodeURIComponent(sessionToken)}`);
-}
-
-export function addCustomerCartItem(sessionToken: string, productId: number, quantity: number): Promise<CustomerCartResponse> {
-  return fetchJson<CustomerCartResponse>(`${API_BASE_URL}/customer/cart/items`, {
+export function startCustomerSession(input: {
+  deviceId: string;
+  fullName: string;
+  username: string;
+  language: string;
+}): Promise<CustomerSessionStartResponse> {
+  return fetchJson<CustomerSessionStartResponse>(`${API_BASE_URL}/customer/session/start`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      session_token: sessionToken,
+      device_id: input.deviceId,
+      platform: "telegram-mini-app",
+      app_version: "0.1.0",
+      full_name: input.fullName,
+      username: input.username,
+      language: input.language
+    })
+  });
+}
+
+export function getCustomerCart(accessToken: string): Promise<CustomerCartResponse> {
+  return fetchJson<CustomerCartResponse>(`${API_BASE_URL}/customer/cart`, {
+    headers: authHeaders(accessToken)
+  });
+}
+
+export function getCustomerOrders(accessToken: string): Promise<CustomerOrdersResponse> {
+  return fetchJson<CustomerOrdersResponse>(`${API_BASE_URL}/customer/orders`, {
+    headers: authHeaders(accessToken)
+  });
+}
+
+export function addCustomerCartItem(accessToken: string, productId: number, quantity: number): Promise<CustomerCartResponse> {
+  return fetchJson<CustomerCartResponse>(`${API_BASE_URL}/customer/cart/items`, {
+    method: "POST",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({
       product_id: productId,
       quantity
     })
   });
 }
 
-export function checkoutCustomerCart(sessionToken: string): Promise<CustomerOrderResponse> {
-  return fetchJson<CustomerOrderResponse>(`${API_BASE_URL}/customer/checkout`, {
+export function checkoutCustomerCart(accessToken: string): Promise<CustomerOrderResponse> {
+  return fetchJson<CustomerOrderResponse>(`${API_BASE_URL}/customer/checkout/address`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
+    headers: authHeaders(accessToken),
     body: JSON.stringify({
-      session_token: sessionToken,
-      customer_name: "Telegram Mini App Demo Customer",
-      phone: "+49123456789",
-      delivery_address: "Berlin",
-      payment_method_code: "cash_delivery",
-      notes: "Telegram mini app smoke checkout"
+      address: "Berlin",
+      location_label: "Berlin",
+      delivery_note: "Telegram mini app checkout"
     })
   });
 }
