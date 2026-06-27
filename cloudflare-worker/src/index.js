@@ -1,4 +1,5 @@
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
+const TELEGRAM_MINI_APP_URL = "https://crm.ayartuerk.me/telegram/mini-app";
 
 const TELEGRAM_MINI_APP_ASSETS = {
   "/assets/index-1kHC7FGz.css": {
@@ -2019,16 +2020,34 @@ function getMenuOptionByCallback(callbackData) {
   return null;
 }
 
-function getMenuKeyboard(language = "en") {
+function getTelegramMiniAppButton(language = "en") {
+  const labels = {
+    en: "Open Customer Shop",
+    de: "Kunden-Shop öffnen",
+    tr: "Müşteri mağazasını aç",
+    ar: "افتح متجر العملاء",
+    ru: "Открыть магазин"
+  };
   const lang = safeLang(language);
   return {
-    inline_keyboard: Object.values(MENU_OPTIONS).map((option) => [
+    text: labels[lang] || labels.en,
+    web_app: { url: TELEGRAM_MINI_APP_URL }
+  };
+}
+
+function getMenuKeyboard(language = "en") {
+  const lang = safeLang(language);
+  const rows = [
+    [getTelegramMiniAppButton(lang)],
+    ...Object.values(MENU_OPTIONS).map((option) => [
       {
         text: option.labels[lang] || option.labels.en,
         callback_data: option.callback_data
       }
     ])
-  };
+  ];
+
+  return { inline_keyboard: rows };
 }
 
 function getLanguageKeyboard(language = "en") {
@@ -2992,6 +3011,7 @@ async function getActiveUncategorizedProducts(env) {
 function getProductMenuKeyboard(products, language = "en") {
   const ui = getCustomerProductUiText(language);
   const rows = [
+    [getTelegramMiniAppButton(language)],
     [{ text: ui.show_categories, callback_data: "product_show_categories" }],
     [{ text: ui.special_request, callback_data: "product_special_request" }]
   ];
@@ -3257,6 +3277,7 @@ function getAfterAddToBasketKeyboard(language = "en") {
   const ui = getCartUiText(language);
   return {
     inline_keyboard: [
+      [getTelegramMiniAppButton(language)],
       [{ text: ui.continue_shopping, callback_data: "basket_continue" }],
       [{ text: ui.modify_basket, callback_data: "basket_view" }],
       [{ text: ui.checkout, callback_data: "basket_checkout" }]
@@ -3287,6 +3308,7 @@ function getBasketKeyboard(items, language = "en") {
     ]);
   }
 
+  rows.push([getTelegramMiniAppButton(language)]);
   rows.push([
     { text: ui.continue_shopping, callback_data: "basket_continue" },
     { text: ui.checkout, callback_data: "basket_checkout" }
