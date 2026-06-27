@@ -8198,11 +8198,18 @@ async function handleTelegramCommand(env, message, customer, text) {
   const command = parts[0].split("@")[0];
 
   if (command === "/start") {
+    const language = customer.preferred_language || customer.language || "en";
+
     await setCustomerState(env, customer.id, null);
     await setSetting(env, `pending_product_quantity_${customer.id}`, "");
     await setSetting(env, `pending_basket_quantity_item_${customer.id}`, "");
     await setSetting(env, `pending_product_fulfillment_request_${customer.id}`, "");
-    await sendTelegramMessage(env, message.chat.id, "CRM Delivery Bot is running.");
+    await sendTelegramMessage(
+      env,
+      message.chat.id,
+      "CRM Delivery Bot is running. Choose an option:",
+      getMenuKeyboard(language)
+    );
     return;
   }
 
