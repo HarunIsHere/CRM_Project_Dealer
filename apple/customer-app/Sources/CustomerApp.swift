@@ -71,7 +71,7 @@ struct CustomerShopView: View {
                                         .foregroundStyle(.secondary)
                                 }
 
-                                Text("Total: \(order.totalFormatted ?? "\(order.totalAmount) \(order.currency)")")
+                                Text("Total: \(order.totalFormatted ?? "\(order.totalAmount) \(order.currency ?? "EUR")")")
                             }
                             .padding(.vertical, 4)
                         }

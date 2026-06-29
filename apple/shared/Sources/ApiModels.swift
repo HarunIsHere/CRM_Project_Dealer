@@ -211,7 +211,7 @@ public struct CustomerCart: Codable, Hashable, Sendable {
     public let items: [CustomerCartItem]
     public let totalAmount: Int
     public let totalFormatted: String?
-    public let currency: String
+    public let currency: String?
     public let itemCount: Int
     public let createdAt: String?
     public let updatedAt: String?
@@ -342,7 +342,7 @@ public struct CustomerOrderSummary: Codable, Identifiable, Hashable, Sendable {
     public let adminStatusNote: String?
     public let totalAmount: Int
     public let totalFormatted: String?
-    public let currency: String
+    public let currency: String?
     public let itemCount: Int?
     public let customerName: String?
     public let phone: String?
@@ -391,7 +391,7 @@ public struct CustomerOrder: Codable, Identifiable, Hashable, Sendable {
     public let adminStatusNote: String?
     public let totalAmount: Int
     public let totalFormatted: String?
-    public let currency: String
+    public let currency: String?
     public let itemCount: Int?
     public let customerName: String?
     public let phone: String?
