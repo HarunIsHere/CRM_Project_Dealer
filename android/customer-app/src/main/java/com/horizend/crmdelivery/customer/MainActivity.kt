@@ -48,18 +48,50 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun CustomerShopScreen() {
     val scope = rememberCoroutineScope()
-    val sessionToken = remember { "android_customer_${System.currentTimeMillis()}" }
+    val deviceId = remember { "android_customer_${System.currentTimeMillis()}" }
 
+    var accessToken by remember { mutableStateOf<String?>(null) }
     var products by remember { mutableStateOf<List<CustomerProduct>>(emptyList()) }
     var orders by remember { mutableStateOf<List<CustomerOrderSummary>>(emptyList()) }
     var cart by remember { mutableStateOf<CustomerCart?>(null) }
     var message by remember { mutableStateOf("Loading shop...") }
     var loading by remember { mutableStateOf(false) }
 
+    suspend fun ensureSession(): String {
+        accessToken?.takeIf { it.isNotBlank() }?.let { return it }
+
+        val response = CustomerApiClient.startCustomerSession(
+            deviceId = deviceId,
+            platform = "android-customer-app",
+            appVersion = "0.1.0",
+            fullName = "Android Demo Customer",
+            username = "android_customer",
+            language = "en"
+        )
+
+        accessToken = response.session.accessToken
+        return response.session.accessToken
+    }
+
+    fun orderTitle(order: CustomerOrderSummary): String =
+        order.publicOrderCode.takeIf { it.isNotBlank() } ?: "Order #${order.id}"
+
+    fun orderStatus(order: CustomerOrderSummary): String =
+        order.orderStatusLabel?.takeIf { it.isNotBlank() }
+            ?: order.orderStatus?.takeIf { it.isNotBlank() }
+            ?: order.status
+
+    fun itemName(itemName: String?, fallback: String?): String =
+        itemName?.takeIf { it.isNotBlank() } ?: fallback?.takeIf { it.isNotBlank() } ?: "Product"
+
+    fun itemLineTotal(lineTotal: Int?, unitPrice: Int?, quantity: Int): Int =
+        lineTotal ?: ((unitPrice ?: 0) * quantity)
+
     fun refreshCart() {
         scope.launch {
             runCatching {
-                CustomerApiClient.getCustomerCart(sessionToken).cart
+                val token = ensureSession()
+                CustomerApiClient.getCustomerCart(token).cart
             }.onSuccess {
                 cart = it
             }.onFailure {
@@ -71,7 +103,8 @@ private fun CustomerShopScreen() {
     fun refreshOrders() {
         scope.launch {
             runCatching {
-                CustomerApiClient.getCustomerOrders(sessionToken).orders
+                val token = ensureSession()
+                CustomerApiClient.getCustomerOrders(token).orders
             }.onSuccess {
                 orders = it
             }.onFailure {
@@ -83,9 +116,10 @@ private fun CustomerShopScreen() {
     LaunchedEffect(Unit) {
         loading = true
         runCatching {
+            val token = ensureSession()
             products = CustomerApiClient.getCustomerProducts()
-            cart = CustomerApiClient.getCustomerCart(sessionToken).cart
-            orders = CustomerApiClient.getCustomerOrders(sessionToken).orders
+            cart = CustomerApiClient.getCustomerCart(token).cart
+            orders = CustomerApiClient.getCustomerOrders(token).orders
         }.onSuccess {
             message = "Shop loaded"
         }.onFailure {
@@ -103,7 +137,7 @@ private fun CustomerShopScreen() {
     ) {
         Text("Customer Shop", style = MaterialTheme.typography.headlineMedium)
         Text(message)
-        Text("Session: $sessionToken")
+        Text("Device: $deviceId")
 
         if (loading) {
             CircularProgressIndicator()
@@ -112,16 +146,17 @@ private fun CustomerShopScreen() {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Cart", style = MaterialTheme.typography.titleLarge)
+                Text("Status: ${cart?.orderStatus ?: "in_progress"}")
                 Text("Items: ${cart?.itemCount ?: 0}")
-                Text("Total: ${cart?.totalAmount ?: 0} ${cart?.currency ?: "EUR"}")
+                Text("Total: ${cart?.totalFormatted ?: "${cart?.totalAmount ?: 0} ${cart?.currency ?: "EUR"}"}")
 
                 cart?.items.orEmpty().forEach { item ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("${item.quantity} × ${item.productName}")
-                        Text("${item.lineTotal} ${cart?.currency ?: "EUR"}")
+                        Text("${item.quantity} × ${itemName(item.productName, item.name)}")
+                        Text("${itemLineTotal(item.lineTotal, item.unitPrice ?: item.priceSnapshot, item.quantity)} ${cart?.currency ?: "EUR"}")
                     }
                 }
 
@@ -133,16 +168,14 @@ private fun CustomerShopScreen() {
                         scope.launch {
                             loading = true
                             runCatching {
+                                val token = ensureSession()
                                 CustomerApiClient.checkoutCustomerCart(
-                                    sessionToken = sessionToken,
-                                    customerName = "Android Demo Customer",
-                                    phone = "+49123456789",
+                                    accessToken = token,
                                     deliveryAddress = "Berlin",
-                                    paymentMethodCode = "cash_delivery",
                                     notes = "Android checkout from catalog"
                                 )
                             }.onSuccess {
-                                message = "Order created: ${it.order.publicOrderCode}"
+                                message = "Checkout submitted: ${it.order?.let { order -> order.publicOrderCode.takeIf { code -> code.isNotBlank() } ?: "Order #${order.id}" } ?: "active order"}"
                                 refreshCart()
                                 refreshOrders()
                             }.onFailure {
@@ -165,8 +198,11 @@ private fun CustomerShopScreen() {
             orders.forEach { order ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(order.publicOrderCode, style = MaterialTheme.typography.titleMedium)
-                        Text("Status: ${order.status}")
+                        Text(orderTitle(order), style = MaterialTheme.typography.titleMedium)
+                        Text("Status: ${orderStatus(order)}")
+                        order.deliveryLocationLabel?.takeIf { it.isNotBlank() }?.let { location ->
+                            Text("Location: $location")
+                        }
                         order.statusHistory.firstOrNull()?.let { history ->
                             val noteText = history.note?.takeIf { it.isNotBlank() }?.let { note -> " · $note" } ?: ""
                             Text("Last update: ${history.newStatus}$noteText")
@@ -174,7 +210,7 @@ private fun CustomerShopScreen() {
                         order.updatedAt?.takeIf { it.isNotBlank() }?.let { updatedAt ->
                             Text("Updated: $updatedAt")
                         }
-                        Text("Total: ${order.totalAmount} ${order.currency}")
+                        Text("Total: ${order.totalFormatted ?: "${order.totalAmount} ${order.currency}"}")
                     }
                 }
             }
@@ -200,14 +236,16 @@ private fun CustomerShopScreen() {
                             scope.launch {
                                 loading = true
                                 runCatching {
+                                    val token = ensureSession()
                                     CustomerApiClient.addCustomerCartItem(
-                                        sessionToken = sessionToken,
+                                        accessToken = token,
                                         productId = product.id,
                                         quantity = 1
                                     )
                                 }.onSuccess {
                                     cart = it.cart
                                     message = "Added: ${product.name}"
+                                    refreshOrders()
                                 }.onFailure {
                                     message = "Add failed: ${it.message}"
                                 }

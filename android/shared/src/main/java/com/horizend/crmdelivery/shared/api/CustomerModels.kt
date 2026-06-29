@@ -4,6 +4,33 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class CustomerSessionStartRequest(
+    @SerialName("device_id")
+    val deviceId: String,
+    val platform: String,
+    @SerialName("app_version")
+    val appVersion: String,
+    @SerialName("full_name")
+    val fullName: String,
+    val username: String = "",
+    val language: String = "en"
+)
+
+@Serializable
+data class CustomerSessionStartResponse(
+    val ok: Boolean,
+    val session: CustomerSession
+)
+
+@Serializable
+data class CustomerSession(
+    @SerialName("access_token")
+    val accessToken: String,
+    @SerialName("expires_at")
+    val expiresAt: String? = null
+)
+
+@Serializable
 data class CustomerCartResponse(
     val ok: Boolean,
     val cart: CustomerCart
@@ -11,37 +38,61 @@ data class CustomerCartResponse(
 
 @Serializable
 data class CustomerCart(
+    val id: Int? = null,
+    val status: String = "active",
+    @SerialName("order_status")
+    val orderStatus: String = "in_progress",
+    @SerialName("delivery_location_label")
+    val deliveryLocationLabel: String? = null,
+    @SerialName("delivery_google_maps_link")
+    val deliveryGoogleMapsLink: String? = null,
+    @SerialName("delivery_note")
+    val deliveryNote: String? = null,
+    @SerialName("admin_status_note")
+    val adminStatusNote: String? = null,
     @SerialName("session_token")
-    val sessionToken: String,
-    val items: List<CustomerCartItem>,
+    val sessionToken: String = "",
+    val items: List<CustomerCartItem> = emptyList(),
     @SerialName("total_amount")
-    val totalAmount: Int,
-    val currency: String,
+    val totalAmount: Int = 0,
+    @SerialName("total_formatted")
+    val totalFormatted: String? = null,
+    val currency: String = "EUR",
     @SerialName("item_count")
-    val itemCount: Int
+    val itemCount: Int = 0,
+    @SerialName("created_at")
+    val createdAt: String? = null,
+    @SerialName("updated_at")
+    val updatedAt: String? = null
 )
 
 @Serializable
 data class CustomerCartItem(
+    val id: Int? = null,
     @SerialName("product_id")
-    val productId: Int,
-    val quantity: Int,
+    val productId: Int? = null,
+    @SerialName("item_type")
+    val itemType: String? = null,
+    val quantity: Int = 1,
     @SerialName("product_name")
-    val productName: String,
+    val productName: String? = null,
+    val name: String? = null,
     @SerialName("unit_price")
-    val unitPrice: Int,
+    val unitPrice: Int? = null,
+    @SerialName("price_snapshot")
+    val priceSnapshot: Int? = null,
     @SerialName("shop_id")
     val shopId: Int? = null,
     @SerialName("shop_name")
     val shopName: String? = null,
     @SerialName("line_total")
-    val lineTotal: Int
+    val lineTotal: Int? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
 )
 
 @Serializable
 data class AddCartItemRequest(
-    @SerialName("session_token")
-    val sessionToken: String,
     @SerialName("product_id")
     val productId: Int,
     val quantity: Int
@@ -49,40 +100,34 @@ data class AddCartItemRequest(
 
 @Serializable
 data class UpdateCartItemRequest(
-    @SerialName("session_token")
-    val sessionToken: String,
     val quantity: Int
 )
 
 @Serializable
 data class CheckoutRequest(
-    @SerialName("session_token")
-    val sessionToken: String,
-    @SerialName("customer_name")
-    val customerName: String,
-    val phone: String,
-    @SerialName("delivery_address")
-    val deliveryAddress: String,
-    @SerialName("payment_method_code")
-    val paymentMethodCode: String,
-    val notes: String
+    val address: String,
+    @SerialName("location_label")
+    val locationLabel: String,
+    @SerialName("delivery_note")
+    val deliveryNote: String
 )
 
 @Serializable
 data class CustomerOrderResponse(
     val ok: Boolean,
-    val order: CustomerOrder
+    val order: CustomerOrder? = null,
+    val cart: CustomerCart? = null
 )
 
 @Serializable
 data class CustomerOrdersResponse(
     val ok: Boolean,
-    val orders: List<CustomerOrderSummary>
+    val orders: List<CustomerOrderSummary> = emptyList()
 )
 
 @Serializable
 data class CustomerOrderStatusHistory(
-    val id: Int,
+    val id: Int? = null,
     @SerialName("order_id")
     val orderId: Int? = null,
     @SerialName("previous_status")
@@ -100,11 +145,27 @@ data class CustomerOrderStatusHistory(
 data class CustomerOrderSummary(
     val id: Int,
     @SerialName("public_order_code")
-    val publicOrderCode: String,
-    val status: String,
+    val publicOrderCode: String = "",
+    val status: String = "active",
+    @SerialName("order_status")
+    val orderStatus: String? = null,
+    @SerialName("order_status_label")
+    val orderStatusLabel: String? = null,
+    @SerialName("delivery_location_label")
+    val deliveryLocationLabel: String? = null,
+    @SerialName("delivery_google_maps_link")
+    val deliveryGoogleMapsLink: String? = null,
+    @SerialName("delivery_note")
+    val deliveryNote: String? = null,
+    @SerialName("admin_status_note")
+    val adminStatusNote: String? = null,
     @SerialName("total_amount")
-    val totalAmount: Int,
-    val currency: String,
+    val totalAmount: Int = 0,
+    @SerialName("total_formatted")
+    val totalFormatted: String? = null,
+    val currency: String = "EUR",
+    @SerialName("item_count")
+    val itemCount: Int = 0,
     @SerialName("customer_name")
     val customerName: String? = null,
     val phone: String? = null,
@@ -125,13 +186,29 @@ data class CustomerOrderSummary(
 data class CustomerOrder(
     val id: Int,
     @SerialName("public_order_code")
-    val publicOrderCode: String,
+    val publicOrderCode: String = "",
     @SerialName("session_token")
-    val sessionToken: String,
-    val status: String,
+    val sessionToken: String = "",
+    val status: String = "active",
+    @SerialName("order_status")
+    val orderStatus: String? = null,
+    @SerialName("order_status_label")
+    val orderStatusLabel: String? = null,
+    @SerialName("delivery_location_label")
+    val deliveryLocationLabel: String? = null,
+    @SerialName("delivery_google_maps_link")
+    val deliveryGoogleMapsLink: String? = null,
+    @SerialName("delivery_note")
+    val deliveryNote: String? = null,
+    @SerialName("admin_status_note")
+    val adminStatusNote: String? = null,
     @SerialName("total_amount")
-    val totalAmount: Int,
-    val currency: String,
+    val totalAmount: Int = 0,
+    @SerialName("total_formatted")
+    val totalFormatted: String? = null,
+    val currency: String = "EUR",
+    @SerialName("item_count")
+    val itemCount: Int = 0,
     @SerialName("customer_name")
     val customerName: String? = null,
     val phone: String? = null,
@@ -151,20 +228,23 @@ data class CustomerOrder(
 
 @Serializable
 data class CustomerOrderItem(
-    val id: Int,
+    val id: Int? = null,
     @SerialName("customer_order_id")
-    val customerOrderId: Int,
+    val customerOrderId: Int? = null,
     @SerialName("product_id")
-    val productId: Int,
+    val productId: Int? = null,
     @SerialName("product_name")
-    val productName: String,
+    val productName: String? = null,
+    val name: String? = null,
     @SerialName("shop_id")
     val shopId: Int? = null,
-    val quantity: Int,
+    val quantity: Int = 1,
     @SerialName("unit_price")
-    val unitPrice: Int,
+    val unitPrice: Int? = null,
+    @SerialName("price_snapshot")
+    val priceSnapshot: Int? = null,
     @SerialName("line_total")
-    val lineTotal: Int,
+    val lineTotal: Int? = null,
     @SerialName("created_at")
     val createdAt: String? = null
 )

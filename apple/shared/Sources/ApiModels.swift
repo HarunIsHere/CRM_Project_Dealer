@@ -151,96 +151,158 @@ public struct AppInfo: Codable, Hashable {
 }
 
 
+
+public struct CustomerSessionStartRequest: Codable {
+    public let deviceId: String
+    public let platform: String
+    public let appVersion: String
+    public let fullName: String
+    public let username: String
+    public let language: String
+
+    public init(deviceId: String, platform: String, appVersion: String, fullName: String, username: String = "", language: String = "en") {
+        self.deviceId = deviceId
+        self.platform = platform
+        self.appVersion = appVersion
+        self.fullName = fullName
+        self.username = username
+        self.language = language
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case deviceId = "device_id"
+        case platform
+        case appVersion = "app_version"
+        case fullName = "full_name"
+        case username
+        case language
+    }
+}
+
+public struct CustomerSessionStartResponse: Codable, Sendable {
+    public let ok: Bool
+    public let session: CustomerSession
+}
+
+public struct CustomerSession: Codable, Sendable {
+    public let accessToken: String
+    public let expiresAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case expiresAt = "expires_at"
+    }
+}
+
 public struct CustomerCartResponse: Codable, Sendable {
     public let ok: Bool
     public let cart: CustomerCart
 }
 
 public struct CustomerCart: Codable, Hashable, Sendable {
-    public let sessionToken: String
+    public let id: Int?
+    public let status: String?
+    public let orderStatus: String?
+    public let deliveryLocationLabel: String?
+    public let deliveryGoogleMapsLink: String?
+    public let deliveryNote: String?
+    public let adminStatusNote: String?
+    public let sessionToken: String?
     public let items: [CustomerCartItem]
     public let totalAmount: Int
+    public let totalFormatted: String?
     public let currency: String
     public let itemCount: Int
+    public let createdAt: String?
+    public let updatedAt: String?
 
     enum CodingKeys: String, CodingKey {
+        case id
+        case status
+        case orderStatus = "order_status"
+        case deliveryLocationLabel = "delivery_location_label"
+        case deliveryGoogleMapsLink = "delivery_google_maps_link"
+        case deliveryNote = "delivery_note"
+        case adminStatusNote = "admin_status_note"
         case sessionToken = "session_token"
         case items
         case totalAmount = "total_amount"
+        case totalFormatted = "total_formatted"
         case currency
         case itemCount = "item_count"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
     }
 }
 
 public struct CustomerCartItem: Codable, Identifiable, Hashable, Sendable {
-    public var id: Int { productId }
-    public let productId: Int
+    public var id: Int { itemId ?? productId ?? 0 }
+    public let itemId: Int?
+    public let productId: Int?
+    public let itemType: String?
     public let quantity: Int
-    public let productName: String
-    public let unitPrice: Int
+    public let productName: String?
+    public let name: String?
+    public let unitPrice: Int?
+    public let priceSnapshot: Int?
     public let shopId: Int?
     public let shopName: String?
-    public let lineTotal: Int
+    public let lineTotal: Int?
+    public let createdAt: String?
 
     enum CodingKeys: String, CodingKey {
+        case itemId = "id"
         case productId = "product_id"
+        case itemType = "item_type"
         case quantity
         case productName = "product_name"
+        case name
         case unitPrice = "unit_price"
+        case priceSnapshot = "price_snapshot"
         case shopId = "shop_id"
         case shopName = "shop_name"
         case lineTotal = "line_total"
+        case createdAt = "created_at"
     }
 }
 
 public struct AddCartItemRequest: Codable {
-    public let sessionToken: String
     public let productId: Int
     public let quantity: Int
 
-    public init(sessionToken: String, productId: Int, quantity: Int) {
-        self.sessionToken = sessionToken
+    public init(productId: Int, quantity: Int) {
         self.productId = productId
         self.quantity = quantity
     }
 
     enum CodingKeys: String, CodingKey {
-        case sessionToken = "session_token"
         case productId = "product_id"
         case quantity
     }
 }
 
 public struct CheckoutRequest: Codable {
-    public let sessionToken: String
-    public let customerName: String
-    public let phone: String
-    public let deliveryAddress: String
-    public let paymentMethodCode: String
-    public let notes: String
+    public let address: String
+    public let locationLabel: String
+    public let deliveryNote: String
 
-    public init(sessionToken: String, customerName: String, phone: String, deliveryAddress: String, paymentMethodCode: String, notes: String) {
-        self.sessionToken = sessionToken
-        self.customerName = customerName
-        self.phone = phone
-        self.deliveryAddress = deliveryAddress
-        self.paymentMethodCode = paymentMethodCode
-        self.notes = notes
+    public init(address: String, locationLabel: String, deliveryNote: String) {
+        self.address = address
+        self.locationLabel = locationLabel
+        self.deliveryNote = deliveryNote
     }
 
     enum CodingKeys: String, CodingKey {
-        case sessionToken = "session_token"
-        case customerName = "customer_name"
-        case phone
-        case deliveryAddress = "delivery_address"
-        case paymentMethodCode = "payment_method_code"
-        case notes
+        case address
+        case locationLabel = "location_label"
+        case deliveryNote = "delivery_note"
     }
 }
 
 public struct CustomerOrderResponse: Codable, Sendable {
     public let ok: Bool
-    public let order: CustomerOrder
+    public let order: CustomerOrder?
+    public let cart: CustomerCart?
 }
 
 public struct CustomerOrdersResponse: Codable, Sendable {
@@ -249,7 +311,7 @@ public struct CustomerOrdersResponse: Codable, Sendable {
 }
 
 public struct CustomerOrderStatusHistory: Codable, Identifiable, Hashable, Sendable {
-    public let id: Int
+    public let id: Int?
     public let orderId: Int?
     public let previousStatus: String?
     public let newStatus: String
@@ -270,29 +332,74 @@ public struct CustomerOrderStatusHistory: Codable, Identifiable, Hashable, Senda
 
 public struct CustomerOrderSummary: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
-    public let publicOrderCode: String
-    public let status: String
+    public let publicOrderCode: String?
+    public let status: String?
+    public let orderStatus: String?
+    public let orderStatusLabel: String?
+    public let deliveryLocationLabel: String?
+    public let deliveryGoogleMapsLink: String?
+    public let deliveryNote: String?
+    public let adminStatusNote: String?
     public let totalAmount: Int
+    public let totalFormatted: String?
     public let currency: String
+    public let itemCount: Int?
+    public let customerName: String?
+    public let phone: String?
+    public let deliveryAddress: String?
+    public let paymentMethodCode: String?
+    public let notes: String?
+    public let createdAt: String?
+    public let updatedAt: String?
     public let statusHistory: [CustomerOrderStatusHistory]?
 
     enum CodingKeys: String, CodingKey {
         case id
         case publicOrderCode = "public_order_code"
         case status
+        case orderStatus = "order_status"
+        case orderStatusLabel = "order_status_label"
+        case deliveryLocationLabel = "delivery_location_label"
+        case deliveryGoogleMapsLink = "delivery_google_maps_link"
+        case deliveryNote = "delivery_note"
+        case adminStatusNote = "admin_status_note"
         case totalAmount = "total_amount"
+        case totalFormatted = "total_formatted"
         case currency
+        case itemCount = "item_count"
+        case customerName = "customer_name"
+        case phone
+        case deliveryAddress = "delivery_address"
+        case paymentMethodCode = "payment_method_code"
+        case notes
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
         case statusHistory = "status_history"
     }
 }
 
 public struct CustomerOrder: Codable, Identifiable, Hashable, Sendable {
     public let id: Int
-    public let publicOrderCode: String
-    public let sessionToken: String
-    public let status: String
+    public let publicOrderCode: String?
+    public let sessionToken: String?
+    public let status: String?
+    public let orderStatus: String?
+    public let orderStatusLabel: String?
+    public let deliveryLocationLabel: String?
+    public let deliveryGoogleMapsLink: String?
+    public let deliveryNote: String?
+    public let adminStatusNote: String?
     public let totalAmount: Int
+    public let totalFormatted: String?
     public let currency: String
+    public let itemCount: Int?
+    public let customerName: String?
+    public let phone: String?
+    public let deliveryAddress: String?
+    public let paymentMethodCode: String?
+    public let notes: String?
+    public let createdAt: String?
+    public let updatedAt: String?
     public let statusHistory: [CustomerOrderStatusHistory]?
     public let items: [CustomerOrderItem]
 
@@ -301,32 +408,53 @@ public struct CustomerOrder: Codable, Identifiable, Hashable, Sendable {
         case publicOrderCode = "public_order_code"
         case sessionToken = "session_token"
         case status
+        case orderStatus = "order_status"
+        case orderStatusLabel = "order_status_label"
+        case deliveryLocationLabel = "delivery_location_label"
+        case deliveryGoogleMapsLink = "delivery_google_maps_link"
+        case deliveryNote = "delivery_note"
+        case adminStatusNote = "admin_status_note"
         case totalAmount = "total_amount"
+        case totalFormatted = "total_formatted"
         case currency
+        case itemCount = "item_count"
+        case customerName = "customer_name"
+        case phone
+        case deliveryAddress = "delivery_address"
+        case paymentMethodCode = "payment_method_code"
+        case notes
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
         case statusHistory = "status_history"
         case items
     }
 }
 
 public struct CustomerOrderItem: Codable, Identifiable, Hashable, Sendable {
-    public let id: Int
-    public let customerOrderId: Int
-    public let productId: Int
-    public let productName: String
+    public var id: Int { itemId ?? productId ?? 0 }
+    public let itemId: Int?
+    public let customerOrderId: Int?
+    public let productId: Int?
+    public let productName: String?
+    public let name: String?
     public let shopId: Int?
     public let quantity: Int
-    public let unitPrice: Int
-    public let lineTotal: Int
+    public let unitPrice: Int?
+    public let priceSnapshot: Int?
+    public let lineTotal: Int?
+    public let createdAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id
+        case itemId = "id"
         case customerOrderId = "customer_order_id"
         case productId = "product_id"
         case productName = "product_name"
+        case name
         case shopId = "shop_id"
         case quantity
         case unitPrice = "unit_price"
+        case priceSnapshot = "price_snapshot"
         case lineTotal = "line_total"
+        case createdAt = "created_at"
     }
 }
-

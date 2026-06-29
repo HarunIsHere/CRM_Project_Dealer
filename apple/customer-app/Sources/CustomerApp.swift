@@ -11,8 +11,9 @@ struct CustomerApp: App {
 }
 
 struct CustomerShopView: View {
-    private let sessionToken = "ios_customer_\(Int(Date().timeIntervalSince1970))"
+    private let deviceId = "ios_customer_\(Int(Date().timeIntervalSince1970))"
 
+    @State private var accessToken: String?
     @State private var products: [CustomerProduct] = []
     @State private var orders: [CustomerOrderSummary] = []
     @State private var cart: CustomerCart?
@@ -24,18 +25,19 @@ struct CustomerShopView: View {
             List {
                 Section("Status") {
                     Text(message)
-                    Text("Session: \(sessionToken)")
+                    Text("Device: \(deviceId)")
                 }
 
                 Section("Cart") {
+                    Text("Status: \(cart?.orderStatus ?? "in_progress")")
                     Text("Items: \(cart?.itemCount ?? 0)")
-                    Text("Total: \(cart?.totalAmount ?? 0) \(cart?.currency ?? "EUR")")
+                    Text("Total: \(cart?.totalFormatted ?? "\(cart?.totalAmount ?? 0) \(cart?.currency ?? "EUR")")")
 
                     ForEach(cart?.items ?? []) { item in
                         HStack {
-                            Text("\(item.quantity) × \(item.productName)")
+                            Text("\(item.quantity) × \(item.productName ?? item.name ?? "Product")")
                             Spacer()
-                            Text("\(item.lineTotal) \(cart?.currency ?? "EUR")")
+                            Text("\(item.lineTotal ?? ((item.unitPrice ?? item.priceSnapshot ?? 0) * item.quantity)) \(cart?.currency ?? "EUR")")
                         }
                     }
 
@@ -54,9 +56,14 @@ struct CustomerShopView: View {
                     } else {
                         ForEach(orders) { order in
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(order.publicOrderCode)
+                                Text(order.publicOrderCode?.isEmpty == false ? order.publicOrderCode! : "Order #\(order.id)")
                                     .font(.headline)
-                                Text("Status: \(order.status)")
+
+                                Text("Status: \(order.orderStatusLabel ?? order.orderStatus ?? order.status ?? "active")")
+
+                                if let location = order.deliveryLocationLabel, !location.isEmpty {
+                                    Text("Location: \(location)")
+                                }
 
                                 if let history = order.statusHistory?.first {
                                     Text("Last update: \(history.newStatus)" + ((history.note?.isEmpty == false) ? " · \(history.note ?? "")" : ""))
@@ -64,7 +71,7 @@ struct CustomerShopView: View {
                                         .foregroundStyle(.secondary)
                                 }
 
-                                Text("Total: \(order.totalAmount) \(order.currency)")
+                                Text("Total: \(order.totalFormatted ?? "\(order.totalAmount) \(order.currency)")")
                             }
                             .padding(.vertical, 4)
                         }
@@ -111,15 +118,34 @@ struct CustomerShopView: View {
         }
     }
 
+    private func ensureSession() async throws -> String {
+        if let accessToken, !accessToken.isEmpty {
+            return accessToken
+        }
+
+        let response = try await CustomerApiClient.startCustomerSession(
+            deviceId: deviceId,
+            platform: "ios-customer-app",
+            appVersion: "0.1.0",
+            fullName: "iOS Demo Customer",
+            username: "ios_customer",
+            language: "en"
+        )
+
+        accessToken = response.session.accessToken
+        return response.session.accessToken
+    }
+
     private func load() async {
         isLoading = true
         defer { isLoading = false }
 
         do {
+            let token = try await ensureSession()
             products = try await CustomerApiClient.getCustomerProducts()
-            let cartResponse = try await CustomerApiClient.getCustomerCart(sessionToken: sessionToken)
+            let cartResponse = try await CustomerApiClient.getCustomerCart(accessToken: token)
             cart = cartResponse.cart
-            let ordersResponse = try await CustomerApiClient.getCustomerOrders(sessionToken: sessionToken)
+            let ordersResponse = try await CustomerApiClient.getCustomerOrders(accessToken: token)
             orders = ordersResponse.orders
             message = "Shop loaded"
         } catch {
@@ -127,17 +153,27 @@ struct CustomerShopView: View {
         }
     }
 
+    private func refreshOrdersAndCart() async throws {
+        let token = try await ensureSession()
+        let cartResponse = try await CustomerApiClient.getCustomerCart(accessToken: token)
+        cart = cartResponse.cart
+        let ordersResponse = try await CustomerApiClient.getCustomerOrders(accessToken: token)
+        orders = ordersResponse.orders
+    }
+
     private func addToCart(_ product: CustomerProduct) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
+            let token = try await ensureSession()
             let response = try await CustomerApiClient.addCustomerCartItem(
-                sessionToken: sessionToken,
+                accessToken: token,
                 productId: product.id,
                 quantity: 1
             )
             cart = response.cart
+            try await refreshOrdersAndCart()
             message = "Added: \(product.name)"
         } catch {
             message = "Add failed: \(error.localizedDescription)"
@@ -149,19 +185,14 @@ struct CustomerShopView: View {
         defer { isLoading = false }
 
         do {
+            let token = try await ensureSession()
             let response = try await CustomerApiClient.checkoutCustomerCart(
-                sessionToken: sessionToken,
-                customerName: "iOS Demo Customer",
-                phone: "+49123456789",
+                accessToken: token,
                 deliveryAddress: "Berlin",
-                paymentMethodCode: "cash_delivery",
                 notes: "iOS checkout from catalog"
             )
-            message = "Order created: \(response.order.publicOrderCode)"
-            let cartResponse = try await CustomerApiClient.getCustomerCart(sessionToken: sessionToken)
-            cart = cartResponse.cart
-            let ordersResponse = try await CustomerApiClient.getCustomerOrders(sessionToken: sessionToken)
-            orders = ordersResponse.orders
+            message = "Checkout submitted: \(response.order?.publicOrderCode?.isEmpty == false ? response.order!.publicOrderCode! : response.order.map { "Order #\($0.id)" } ?? "active order")"
+            try await refreshOrdersAndCart()
         } catch {
             message = "Checkout failed: \(error.localizedDescription)"
         }

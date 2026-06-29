@@ -3,9 +3,9 @@ package com.horizend.crmdelivery.shared.api
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.header
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
-import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -27,6 +27,7 @@ object CustomerApiClient {
         }
     }
 
+    private fun bearer(accessToken: String): String = "Bearer $accessToken"
 
     suspend fun getCustomerProducts(): List<CustomerProduct> =
         httpClient.get("$customerApiBaseUrl/public/catalog")
@@ -34,47 +35,66 @@ object CustomerApiClient {
             .catalog
             .products
 
-    suspend fun getCustomerCart(sessionToken: String): CustomerCartResponse =
-        httpClient.get("$customerApiBaseUrl/customer/cart") {
-            parameter("session_token", sessionToken)
-        }.body()
-
-    suspend fun addCustomerCartItem(sessionToken: String, productId: Int, quantity: Int): CustomerCartResponse =
-        httpClient.post("$customerApiBaseUrl/customer/cart/items") {
-            contentType(ContentType.Application.Json)
-            setBody(AddCartItemRequest(sessionToken = sessionToken, productId = productId, quantity = quantity))
-        }.body()
-
-    suspend fun updateCustomerCartItem(sessionToken: String, productId: Int, quantity: Int): CustomerCartResponse =
-        httpClient.patch("$customerApiBaseUrl/customer/cart/items/$productId") {
-            contentType(ContentType.Application.Json)
-            setBody(UpdateCartItemRequest(sessionToken = sessionToken, quantity = quantity))
-        }.body()
-
-    suspend fun checkoutCustomerCart(
-        sessionToken: String,
-        customerName: String,
-        phone: String,
-        deliveryAddress: String,
-        paymentMethodCode: String,
-        notes: String
-    ): CustomerOrderResponse =
-        httpClient.post("$customerApiBaseUrl/customer/checkout") {
+    suspend fun startCustomerSession(
+        deviceId: String,
+        platform: String,
+        appVersion: String,
+        fullName: String,
+        username: String = "",
+        language: String = "en"
+    ): CustomerSessionStartResponse =
+        httpClient.post("$customerApiBaseUrl/customer/session/start") {
             contentType(ContentType.Application.Json)
             setBody(
-                CheckoutRequest(
-                    sessionToken = sessionToken,
-                    customerName = customerName,
-                    phone = phone,
-                    deliveryAddress = deliveryAddress,
-                    paymentMethodCode = paymentMethodCode,
-                    notes = notes
+                CustomerSessionStartRequest(
+                    deviceId = deviceId,
+                    platform = platform,
+                    appVersion = appVersion,
+                    fullName = fullName,
+                    username = username,
+                    language = language
                 )
             )
         }.body()
 
-    suspend fun getCustomerOrders(sessionToken: String): CustomerOrdersResponse =
+    suspend fun getCustomerCart(accessToken: String): CustomerCartResponse =
+        httpClient.get("$customerApiBaseUrl/customer/cart") {
+            header("Authorization", bearer(accessToken))
+        }.body()
+
+    suspend fun addCustomerCartItem(accessToken: String, productId: Int, quantity: Int): CustomerCartResponse =
+        httpClient.post("$customerApiBaseUrl/customer/cart/items") {
+            header("Authorization", bearer(accessToken))
+            contentType(ContentType.Application.Json)
+            setBody(AddCartItemRequest(productId = productId, quantity = quantity))
+        }.body()
+
+    suspend fun updateCustomerCartItem(accessToken: String, itemId: Int, quantity: Int): CustomerCartResponse =
+        httpClient.patch("$customerApiBaseUrl/customer/cart/items/$itemId") {
+            header("Authorization", bearer(accessToken))
+            contentType(ContentType.Application.Json)
+            setBody(UpdateCartItemRequest(quantity = quantity))
+        }.body()
+
+    suspend fun checkoutCustomerCart(
+        accessToken: String,
+        deliveryAddress: String,
+        notes: String
+    ): CustomerOrderResponse =
+        httpClient.post("$customerApiBaseUrl/customer/checkout/address") {
+            header("Authorization", bearer(accessToken))
+            contentType(ContentType.Application.Json)
+            setBody(
+                CheckoutRequest(
+                    address = deliveryAddress,
+                    locationLabel = deliveryAddress,
+                    deliveryNote = notes
+                )
+            )
+        }.body()
+
+    suspend fun getCustomerOrders(accessToken: String): CustomerOrdersResponse =
         httpClient.get("$customerApiBaseUrl/customer/orders") {
-            parameter("session_token", sessionToken)
+            header("Authorization", bearer(accessToken))
         }.body()
 }
