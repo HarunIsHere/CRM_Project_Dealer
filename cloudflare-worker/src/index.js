@@ -1,54 +1,16 @@
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
-const TELEGRAM_MINI_APP_URL = "https://crm.ayartuerk.me/telegram/mini-app";
-
-const TELEGRAM_MINI_APP_ASSETS = {
-  "/assets/index-1kHC7FGz.css": {
-    "bodyBase64": "OnJvb3R7Zm9udC1mYW1pbHk6SW50ZXIsdWktc2Fucy1zZXJpZixzeXN0ZW0tdWksLWFwcGxlLXN5c3RlbSxCbGlua01hY1N5c3RlbUZvbnQsU2Vnb2UgVUksc2Fucy1zZXJpZjtjb2xvcjojMTIxMjEyO2JhY2tncm91bmQ6I2Y2ZjdmYn1ib2R5e21hcmdpbjowfWJ1dHRvbntib3JkZXI6MDtib3JkZXItcmFkaXVzOjEycHg7YmFja2dyb3VuZDojMTExODI3O2NvbG9yOiNmZmY7cGFkZGluZzoxMHB4IDE0cHg7Zm9udC13ZWlnaHQ6NzAwfWJ1dHRvbjpkaXNhYmxlZHtvcGFjaXR5Oi40NX0uc2hlbGx7bWF4LXdpZHRoOjcyMHB4O21hcmdpbjowIGF1dG87cGFkZGluZzoxOHB4fS5oZXJve3BhZGRpbmc6MjBweH0uZXllYnJvd3t0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7bGV0dGVyLXNwYWNpbmc6LjA4ZW07Zm9udC1zaXplOjEycHg7Y29sb3I6IzZiNzI4MH0uY2FyZHtiYWNrZ3JvdW5kOiNmZmY7Ym9yZGVyLXJhZGl1czoxOHB4O3BhZGRpbmc6MThweDttYXJnaW46MTRweCAwO2JveC1zaGFkb3c6MCA4cHggMzBweCAjMGYxNzJhMTR9Lmxpc3R7ZGlzcGxheTpncmlkO2dhcDoxMHB4fS5wcm9kdWN0LC5vcmRlciwucm93e2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7anVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47Z2FwOjEycHg7Ym9yZGVyLXRvcDoxcHggc29saWQgI2VkZjBmNTtwYWRkaW5nLXRvcDoxMHB4fS5tdXRlZHtjb2xvcjojNmI3MjgwO2ZvbnQtc2l6ZToxM3B4fS5vcmRlciBoM3ttYXJnaW46MCAwIDhweH0ub3JkZXIgcHttYXJnaW46NHB4IDB9Cg==",
-    "contentType": "text/css; charset=utf-8"
-  },
-  "/assets/index-BlTBXuvm.js": {
-    "bodyBase64": "KGZ1bmN0aW9uKCl7Y29uc3Qgbz1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCJsaW5rIikucmVsTGlzdDtpZihvJiZvLnN1cHBvcnRzJiZvLnN1cHBvcnRzKCJtb2R1bGVwcmVsb2FkIikpcmV0dXJuO2Zvcihjb25zdCB0IG9mIGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJ2xpbmtbcmVsPSJtb2R1bGVwcmVsb2FkIl0nKSlpKHQpO25ldyBNdXRhdGlvbk9ic2VydmVyKHQ9Pntmb3IoY29uc3QgYyBvZiB0KWlmKGMudHlwZT09PSJjaGlsZExpc3QiKWZvcihjb25zdCBfIG9mIGMuYWRkZWROb2RlcylfLnRhZ05hbWU9PT0iTElOSyImJl8ucmVsPT09Im1vZHVsZXByZWxvYWQiJiZpKF8pfSkub2JzZXJ2ZShkb2N1bWVudCx7Y2hpbGRMaXN0OiEwLHN1YnRyZWU6ITB9KTtmdW5jdGlvbiBzKHQpe2NvbnN0IGM9e307cmV0dXJuIHQuaW50ZWdyaXR5JiYoYy5pbnRlZ3JpdHk9dC5pbnRlZ3JpdHkpLHQucmVmZXJyZXJQb2xpY3kmJihjLnJlZmVycmVyUG9saWN5PXQucmVmZXJyZXJQb2xpY3kpLHQuY3Jvc3NPcmlnaW49PT0idXNlLWNyZWRlbnRpYWxzIj9jLmNyZWRlbnRpYWxzPSJpbmNsdWRlIjp0LmNyb3NzT3JpZ2luPT09ImFub255bW91cyI/Yy5jcmVkZW50aWFscz0ib21pdCI6Yy5jcmVkZW50aWFscz0ic2FtZS1vcmlnaW4iLGN9ZnVuY3Rpb24gaSh0KXtpZih0LmVwKXJldHVybjt0LmVwPSEwO2NvbnN0IGM9cyh0KTtmZXRjaCh0LmhyZWYsYyl9fSkoKTtjb25zdCBwPSJodHRwczovL2NybS5heWFydHVlcmsubWUvYXBpL3YxIjthc3luYyBmdW5jdGlvbiBtKGUsbyl7Y29uc3Qgcz1hd2FpdCBmZXRjaChlLG8pO2lmKCFzLm9rKXRocm93IG5ldyBFcnJvcihgUmVxdWVzdCBmYWlsZWQ6ICR7cy5zdGF0dXN9YCk7cmV0dXJuIHMuanNvbigpfWZ1bmN0aW9uIHkoZSl7cmV0dXJue2F1dGhvcml6YXRpb246YEJlYXJlciAke2V9YCwiY29udGVudC10eXBlIjoiYXBwbGljYXRpb24vanNvbiJ9fWZ1bmN0aW9uIEUoKXtyZXR1cm4gbShgJHtwfS9wdWJsaWMvY2F0YWxvZ2ApfWZ1bmN0aW9uIEkoZSl7cmV0dXJuIG0oYCR7cH0vY3VzdG9tZXIvc2Vzc2lvbi9zdGFydGAse21ldGhvZDoiUE9TVCIsaGVhZGVyczp7ImNvbnRlbnQtdHlwZSI6ImFwcGxpY2F0aW9uL2pzb24ifSxib2R5OkpTT04uc3RyaW5naWZ5KHtkZXZpY2VfaWQ6ZS5kZXZpY2VJZCxwbGF0Zm9ybToidGVsZWdyYW0tbWluaS1hcHAiLGFwcF92ZXJzaW9uOiIwLjEuMCIsZnVsbF9uYW1lOmUuZnVsbE5hbWUsdXNlcm5hbWU6ZS51c2VybmFtZSxsYW5ndWFnZTplLmxhbmd1YWdlfSl9KX1mdW5jdGlvbiBDKGUpe3JldHVybiBtKGAke3B9L2N1c3RvbWVyL2NhcnRgLHtoZWFkZXJzOnkoZSl9KX1mdW5jdGlvbiBiKGUpe3JldHVybiBtKGAke3B9L2N1c3RvbWVyL29yZGVyc2Ase2hlYWRlcnM6eShlKX0pfWZ1bmN0aW9uIEwoZSxvLHMpe3JldHVybiBtKGAke3B9L2N1c3RvbWVyL2NhcnQvaXRlbXNgLHttZXRob2Q6IlBPU1QiLGhlYWRlcnM6eShlKSxib2R5OkpTT04uc3RyaW5naWZ5KHtwcm9kdWN0X2lkOm8scXVhbnRpdHk6c30pfSl9ZnVuY3Rpb24gTihlKXtyZXR1cm4gbShgJHtwfS9jdXN0b21lci9jaGVja291dC9hZGRyZXNzYCx7bWV0aG9kOiJQT1NUIixoZWFkZXJzOnkoZSksYm9keTpKU09OLnN0cmluZ2lmeSh7YWRkcmVzczoiQmVybGluIixsb2NhdGlvbl9sYWJlbDoiQmVybGluIixkZWxpdmVyeV9ub3RlOiJUZWxlZ3JhbSBtaW5pIGFwcCBjaGVja291dCJ9KX0pfXZhciBTO2NvbnN0IGQ9KFM9d2luZG93LlRlbGVncmFtKT09bnVsbD92b2lkIDA6Uy5XZWJBcHA7ZD09bnVsbHx8ZC5yZWFkeSgpO2Q9PW51bGx8fGQuZXhwYW5kKCk7dmFyIE87Y29uc3QgYT0oTz1kPT1udWxsP3ZvaWQgMDpkLmluaXREYXRhVW5zYWZlKT09bnVsbD92b2lkIDA6Ty51c2VyLHY9YHRlbGVncmFtXyR7KGE9PW51bGw/dm9pZCAwOmEuaWQpPz8iYnJvd3Nlcl9kZW1vIn1gLHc9YGNybV9jdXN0b21lcl9hY2Nlc3NfdG9rZW5fJHt2fWA7bGV0IGw9bG9jYWxTdG9yYWdlLmdldEl0ZW0odyl8fCIiLFI9W10scj1udWxsLGg9W10sdT0iTG9hZGluZyBjYXRhbG9nLi4uIjtjb25zdCBmPWRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoIiNhcHAiKTtmdW5jdGlvbiBuKGUpe3JldHVybiBTdHJpbmcoZT8/IiIpLnJlcGxhY2VBbGwoIiYiLCImYW1wOyIpLnJlcGxhY2VBbGwoIjwiLCImbHQ7IikucmVwbGFjZUFsbCgiPiIsIiZndDsiKS5yZXBsYWNlQWxsKCciJywiJnF1b3Q7IikucmVwbGFjZUFsbCgiJyIsIiYjMDM5OyIpfWZ1bmN0aW9uIEEoZSl7cmV0dXJuIGUucHJvZHVjdF9uYW1lfHxlLm5hbWV8fCJQcm9kdWN0In1mdW5jdGlvbiBQKGUpe3JldHVybiBlLmxpbmVfdG90YWwhPT12b2lkIDAmJmUubGluZV90b3RhbCE9PW51bGw/TnVtYmVyKGUubGluZV90b3RhbHx8MCk6TnVtYmVyKGUucHJpY2Vfc25hcHNob3Q/P2UudW5pdF9wcmljZT8/MCkqTnVtYmVyKGUucXVhbnRpdHl8fDEpfWZ1bmN0aW9uIGsoZSl7cmV0dXJuIGUucHVibGljX29yZGVyX2NvZGV8fGBPcmRlciAjJHtlLmlkfWB9ZnVuY3Rpb24gVChlKXtyZXR1cm4gZS5vcmRlcl9zdGF0dXNfbGFiZWx8fGUub3JkZXJfc3RhdHVzfHxlLnN0YXR1c3x8Im5ldyJ9ZnVuY3Rpb24gcShlKXt2YXIgdDtjb25zdCBvPSh0PWUuc3RhdHVzX2hpc3RvcnkpPT1udWxsP3ZvaWQgMDp0WzBdLHM9byE9bnVsbCYmby5ub3RlP2AgwrcgJHtuKG8ubm90ZSl9YDoiIixpPShvPT1udWxsP3ZvaWQgMDpvLmNyZWF0ZWRfYXQpfHxlLnVwZGF0ZWRfYXR8fCIiO3JldHVybmAKICAgIDxwPlN0YXR1czogPHN0cm9uZz4ke24oVChlKSl9PC9zdHJvbmc+PC9wPgogICAgJHtvP2A8cCBjbGFzcz0ibXV0ZWQiPkxhc3QgdXBkYXRlOiAke24oby5uZXdfc3RhdHVzKX0ke3N9PC9wPmA6IiJ9CiAgICAke2k/YDxwIGNsYXNzPSJtdXRlZCI+VXBkYXRlZDogJHtuKGkpfTwvcD5gOiIifQogIGB9ZnVuY3Rpb24gZygpe3ZhciBzLGk7aWYoIWYpcmV0dXJuO2NvbnN0IGU9KHI9PW51bGw/dm9pZCAwOnIuaXRlbXMpPz9bXSxvPShyPT1udWxsP3ZvaWQgMDpyLmN1cnJlbmN5KT8/IkVVUiI7Zi5pbm5lckhUTUw9YAogICAgPG1haW4gY2xhc3M9InNoZWxsIj4KICAgICAgPHNlY3Rpb24gY2xhc3M9Imhlcm8iPgogICAgICAgIDxwIGNsYXNzPSJleWVicm93Ij5DUk0gRGVsaXZlcnk8L3A+CiAgICAgICAgPGgxPkN1c3RvbWVyIFNob3A8L2gxPgogICAgICAgIDxwPiR7bih1KX08L3A+CiAgICAgICAgPHAgY2xhc3M9Im11dGVkIj5EZXZpY2U6ICR7bih2KX08L3A+CiAgICAgIDwvc2VjdGlvbj4KCiAgICAgIDxzZWN0aW9uIGNsYXNzPSJjYXJkIj4KICAgICAgICA8aDI+Q2FydDwvaDI+CiAgICAgICAgPHA+SXRlbXM6ICR7KHI9PW51bGw/dm9pZCAwOnIuaXRlbV9jb3VudCk/PzB9PC9wPgogICAgICAgIDxwPlRvdGFsOiAke24oKHI9PW51bGw/dm9pZCAwOnIudG90YWxfZm9ybWF0dGVkKT8/YCR7KHI9PW51bGw/dm9pZCAwOnIudG90YWxfYW1vdW50KT8/MH0gJHtvfWApfTwvcD4KICAgICAgICA8ZGl2IGNsYXNzPSJsaXN0Ij4KICAgICAgICAgICR7ZS5sZW5ndGg/ZS5tYXAodD0+YAogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0icm93Ij4KICAgICAgICAgICAgICAgICAgPHNwYW4+JHtuKHQucXVhbnRpdHkpfSDDlyAke24oQSh0KSl9PC9zcGFuPgogICAgICAgICAgICAgICAgICA8c3Ryb25nPiR7bihQKHQpKX0gJHtuKG8pfTwvc3Ryb25nPgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgYCkuam9pbigiIik6JzxwIGNsYXNzPSJtdXRlZCI+Q2FydCBpcyBlbXB0eS48L3A+J30KICAgICAgICA8L2Rpdj4KICAgICAgICA8YnV0dG9uIGlkPSJjaGVja291dC1idXR0b24iICR7ZS5sZW5ndGg/IiI6ImRpc2FibGVkIn0+Q2hlY2tvdXQ8L2J1dHRvbj4KICAgICAgPC9zZWN0aW9uPgoKICAgICAgPHNlY3Rpb24gY2xhc3M9ImNhcmQiPgogICAgICAgIDxoMj5PcmRlcnM8L2gyPgogICAgICAgIDxidXR0b24gaWQ9InJlZnJlc2gtb3JkZXJzLWJ1dHRvbiI+UmVmcmVzaCBvcmRlcnM8L2J1dHRvbj4KICAgICAgICA8ZGl2IGNsYXNzPSJsaXN0Ij4KICAgICAgICAgICR7aC5sZW5ndGg/aC5tYXAodD0+YAogICAgICAgICAgICAgICAgPGFydGljbGUgY2xhc3M9Im9yZGVyIj4KICAgICAgICAgICAgICAgICAgPGRpdj4KICAgICAgICAgICAgICAgICAgICA8aDM+JHtuKGsodCkpfTwvaDM+CiAgICAgICAgICAgICAgICAgICAgJHtxKHQpfQogICAgICAgICAgICAgICAgICAgIDxwPlRvdGFsOiAke24odC50b3RhbF9mb3JtYXR0ZWQ/P2Ake3QudG90YWxfYW1vdW50fSAke3QuY3VycmVuY3k/PyJFVVIifWApfTwvcD4KICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8L2FydGljbGU+CiAgICAgICAgICAgICAgYCkuam9pbigiIik6JzxwIGNsYXNzPSJtdXRlZCI+Tm8gb3JkZXJzIHlldC48L3A+J30KICAgICAgICA8L2Rpdj4KICAgICAgPC9zZWN0aW9uPgoKICAgICAgPHNlY3Rpb24gY2xhc3M9ImNhcmQiPgogICAgICAgIDxoMj5Qcm9kdWN0czwvaDI+CiAgICAgICAgPGRpdiBjbGFzcz0ibGlzdCI+CiAgICAgICAgICAke1IubWFwKHQ9PmAKICAgICAgICAgICAgPGFydGljbGUgY2xhc3M9InByb2R1Y3QiPgogICAgICAgICAgICAgIDxkaXY+CiAgICAgICAgICAgICAgICA8aDM+JHtuKHQubmFtZSl9PC9oMz4KICAgICAgICAgICAgICAgIDxwPiR7bih0LnByaWNlKX0gRVVSPC9wPgogICAgICAgICAgICAgICAgPHAgY2xhc3M9Im11dGVkIj4ke24odC5jYXRlZ29yeV9uYW1lPz8iIil9PC9wPgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIDxidXR0b24gZGF0YS1wcm9kdWN0LWlkPSIke3QuaWR9Ij5BZGQ8L2J1dHRvbj4KICAgICAgICAgICAgPC9hcnRpY2xlPgogICAgICAgICAgYCkuam9pbigiIil9CiAgICAgICAgPC9kaXY+CiAgICAgIDwvc2VjdGlvbj4KICAgIDwvbWFpbj4KICBgLGYucXVlcnlTZWxlY3RvckFsbCgiYnV0dG9uW2RhdGEtcHJvZHVjdC1pZF0iKS5mb3JFYWNoKHQ9Pnt0LmFkZEV2ZW50TGlzdGVuZXIoImNsaWNrIixhc3luYygpPT57Y29uc3QgYz1OdW1iZXIodC5kYXRhc2V0LnByb2R1Y3RJZCk7YXdhaXQgSihjKX0pfSksKHM9Zi5xdWVyeVNlbGVjdG9yKCIjY2hlY2tvdXQtYnV0dG9uIikpPT1udWxsfHxzLmFkZEV2ZW50TGlzdGVuZXIoImNsaWNrIixhc3luYygpPT57YXdhaXQgTSgpfSksKGk9Zi5xdWVyeVNlbGVjdG9yKCIjcmVmcmVzaC1vcmRlcnMtYnV0dG9uIikpPT1udWxsfHxpLmFkZEV2ZW50TGlzdGVuZXIoImNsaWNrIixhc3luYygpPT57YXdhaXQgaigpfSl9YXN5bmMgZnVuY3Rpb24gJCgpe2lmKGwpcmV0dXJuIGw7Y29uc3QgZT1bYT09bnVsbD92b2lkIDA6YS5maXJzdF9uYW1lLGE9PW51bGw/dm9pZCAwOmEubGFzdF9uYW1lXS5maWx0ZXIoQm9vbGVhbikuam9pbigiICIpfHwiVGVsZWdyYW0gTWluaSBBcHAgQ3VzdG9tZXIiLG89KGE9PW51bGw/dm9pZCAwOmEudXNlcm5hbWUpfHwiIixzPSgoYT09bnVsbD92b2lkIDA6YS5sYW5ndWFnZV9jb2RlKXx8ImVuIikuc2xpY2UoMCwyKTtyZXR1cm4gbD0oYXdhaXQgSSh7ZGV2aWNlSWQ6dixmdWxsTmFtZTplLHVzZXJuYW1lOm8sbGFuZ3VhZ2U6c30pKS5zZXNzaW9uLmFjY2Vzc190b2tlbixsb2NhbFN0b3JhZ2Uuc2V0SXRlbSh3LGwpLGx9YXN5bmMgZnVuY3Rpb24gaigpe3RyeXtjb25zdCBlPWF3YWl0ICQoKTtoPShhd2FpdCBiKGUpKS5vcmRlcnN9Y2F0Y2goZSl7dT1gT3JkZXIgbG9hZGluZyBmYWlsZWQ6ICR7ZSBpbnN0YW5jZW9mIEVycm9yP2UubWVzc2FnZTpTdHJpbmcoZSl9YH1nKCl9YXN5bmMgZnVuY3Rpb24gQigpe3RyeXtjb25zdCBlPWF3YWl0ICQoKTtSPShhd2FpdCBFKCkpLmNhdGFsb2cucHJvZHVjdHMscj0oYXdhaXQgQyhlKSkuY2FydCxoPShhd2FpdCBiKGUpKS5vcmRlcnMsdT0iQ2F0YWxvZyBsb2FkZWQifWNhdGNoKGUpe2xvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKHcpLGw9IiIsdT1gTG9hZGluZyBmYWlsZWQ6ICR7ZSBpbnN0YW5jZW9mIEVycm9yP2UubWVzc2FnZTpTdHJpbmcoZSl9YH1nKCl9YXN5bmMgZnVuY3Rpb24gSihlKXt0cnl7Y29uc3Qgbz1hd2FpdCAkKCk7cj0oYXdhaXQgTChvLGUsMSkpLmNhcnQsdT0iUHJvZHVjdCBhZGRlZCJ9Y2F0Y2gobyl7dT1gQWRkIGZhaWxlZDogJHtvIGluc3RhbmNlb2YgRXJyb3I/by5tZXNzYWdlOlN0cmluZyhvKX1gfWcoKX1hc3luYyBmdW5jdGlvbiBNKCl7dHJ5e2NvbnN0IGU9YXdhaXQgJCgpLG89YXdhaXQgTihlKTt1PW8ub3JkZXI/YE9yZGVyIGNyZWF0ZWQ6ICR7ayhvLm9yZGVyKX1gOiJDaGVja291dCBjb21wbGV0ZWQiLHI9KGF3YWl0IEMoZSkpLmNhcnQsaD0oYXdhaXQgYihlKSkub3JkZXJzfWNhdGNoKGUpe3U9YENoZWNrb3V0IGZhaWxlZDogJHtlIGluc3RhbmNlb2YgRXJyb3I/ZS5tZXNzYWdlOlN0cmluZyhlKX1gfWcoKX1CKCk7Cg==",
-    "contentType": "application/javascript; charset=utf-8"
-  },
-  "/index.html": {
-    "bodyBase64": "PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KICA8aGVhZD4KICAgIDxtZXRhIGNoYXJzZXQ9IlVURi04IiAvPgogICAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiIC8+CiAgICA8dGl0bGU+Q1JNIERlbGl2ZXJ5IE1pbmkgQXBwPC90aXRsZT4KICAgIDxzY3JpcHQgc3JjPSJodHRwczovL3RlbGVncmFtLm9yZy9qcy90ZWxlZ3JhbS13ZWItYXBwLmpzIj48L3NjcmlwdD4KICAgIDxzY3JpcHQgdHlwZT0ibW9kdWxlIiBjcm9zc29yaWdpbiBzcmM9Ii90ZWxlZ3JhbS9taW5pLWFwcC9hc3NldHMvaW5kZXgtQmxUQlh1dm0uanMiPjwvc2NyaXB0PgogICAgPGxpbmsgcmVsPSJzdHlsZXNoZWV0IiBjcm9zc29yaWdpbiBocmVmPSIvdGVsZWdyYW0vbWluaS1hcHAvYXNzZXRzL2luZGV4LTFrSEM3Rkd6LmNzcyI+CiAgPC9oZWFkPgogIDxib2R5PgogICAgPG1haW4gaWQ9ImFwcCI+PC9tYWluPgogIDwvYm9keT4KPC9odG1sPgo=",
-    "contentType": "text/html; charset=utf-8"
-  }
-};
+const TELEGRAM_MINI_APP_URL = "https://crm-delivery-mini-app.pages.dev";
 
 function getTelegramMiniAppAssetResponse(pathname) {
-  let assetPath = null;
-
   if (pathname === "/telegram/mini-app" || pathname === "/telegram/mini-app/") {
-    assetPath = "/index.html";
-  } else if (pathname.startsWith("/telegram/mini-app/")) {
-    assetPath = pathname.slice("/telegram/mini-app".length);
+    return Response.redirect(TELEGRAM_MINI_APP_URL, 302);
   }
 
-  if (!assetPath) return null;
-
-  const asset = TELEGRAM_MINI_APP_ASSETS[assetPath];
-  if (!asset) return null;
-
-  const raw = atob(asset.bodyBase64);
-  const bytes = new Uint8Array(raw.length);
-
-  for (let index = 0; index < raw.length; index += 1) {
-    bytes[index] = raw.charCodeAt(index);
+  if (pathname.startsWith("/telegram/mini-app/")) {
+    return Response.redirect(TELEGRAM_MINI_APP_URL, 302);
   }
 
-  const headers = {
-    "content-type": asset.contentType,
-    "x-content-type-options": "nosniff"
-  };
-
-  if (assetPath === "/index.html") {
-    headers["cache-control"] = "no-store";
-  } else {
-    headers["cache-control"] = "public, max-age=31536000, immutable";
-  }
-
-  return new Response(bytes, { headers });
+  return null;
 }
 
 const ADMIN_CSS = ':root {\n    --bg: #f4f6f8;\n    --panel: #ffffff;\n    --text: #1f2937;\n    --muted: #6b7280;\n    --border: #d9dee7;\n    --primary: #2563eb;\n    --primary-hover: #1d4ed8;\n    --danger: #dc2626;\n    --success: #16a34a;\n    --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);\n    --radius: 14px;\n}\n\n* {\n    box-sizing: border-box;\n}\n\nbody {\n    margin: 0;\n    padding: 24px;\n    background: var(--bg);\n    color: var(--text);\n    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;\n    font-size: 15px;\n    line-height: 1.45;\n}\n\nh1 {\n    margin: 0 0 18px;\n    font-size: 28px;\n    letter-spacing: -0.03em;\n}\n\nh2 {\n    margin: 28px 0 12px;\n    font-size: 20px;\n    letter-spacing: -0.02em;\n}\n\nh3 {\n    margin: 22px 0 10px;\n    font-size: 17px;\n}\n\np {\n    margin: 10px 0;\n}\n\na {\n    color: var(--primary);\n    text-decoration: none;\n}\n\na:hover {\n    text-decoration: underline;\n}\n\nform {\n    margin: 0;\n}\n\nbody > form,\nbody > p,\nbody > table,\nbody > div,\nbody > h2 + form,\nbody > h3 + form {\n    max-width: 1200px;\n}\n\nbody > table,\n#open-requests-container,\nform:not([style*="display:inline"]) {\n    background: var(--panel);\n    border: 1px solid var(--border);\n    border-radius: var(--radius);\n    box-shadow: var(--shadow);\n    padding: 16px;\n    margin-bottom: 18px;\n}\n\ntable {\n    width: 100%;\n    border-collapse: collapse;\n    background: var(--panel);\n    border: 1px solid var(--border) !important;\n    border-radius: var(--radius);\n    overflow: hidden;\n}\n\nth,\ntd {\n    border: 1px solid var(--border) !important;\n    padding: 10px;\n    text-align: left;\n    vertical-align: top;\n}\n\nth {\n    background: #eef2f7;\n    font-weight: 700;\n    color: #111827;\n}\n\ntr:nth-child(even) td {\n    background: #fafbfc;\n}\n\ninput,\nselect,\ntextarea {\n    width: 100%;\n    max-width: 720px;\n    border: 1px solid var(--border);\n    border-radius: 10px;\n    padding: 9px 10px;\n    font: inherit;\n    background: #fff;\n    color: var(--text);\n}\n\ninput[type="checkbox"],\ninput[type="radio"] {\n    width: auto;\n    margin-right: 6px;\n}\n\ntextarea {\n    min-height: 84px;\n    resize: vertical;\n}\n\nbutton {\n    appearance: none;\n    border: 0;\n    border-radius: 10px;\n    background: var(--primary);\n    color: #fff;\n    padding: 9px 13px;\n    font: inherit;\n    font-weight: 650;\n    cursor: pointer;\n    margin: 3px 4px 3px 0;\n}\n\nbutton:hover {\n    background: var(--primary-hover);\n}\n\nbutton[type="submit"] {\n    background: var(--primary);\n}\n\nform[action*="logout"] button,\nform[action*="delete"] button {\n    background: var(--danger);\n}\n\nform[action*="logout"] button:hover,\nform[action*="delete"] button:hover {\n    background: #b91c1c;\n}\n\np[style*="color:red"],\n.error {\n    color: var(--danger) !important;\n    background: #fef2f2;\n    border: 1px solid #fecaca;\n    padding: 10px 12px;\n    border-radius: 10px;\n}\n\np[style*="color:green"],\n.success {\n    color: var(--success) !important;\n    background: #f0fdf4;\n    border: 1px solid #bbf7d0;\n    padding: 10px 12px;\n    border-radius: 10px;\n}\n\n.page-actions {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin: 14px 0 22px;\n}\n\n.page-actions form {\n    background: transparent;\n    border: 0;\n    box-shadow: none;\n    padding: 0;\n    margin: 0;\n}\n\n@media (max-width: 760px) {\n    body {\n        padding: 14px;\n        font-size: 14px;\n    }\n\n    h1 {\n        font-size: 23px;\n    }\n\n    h2 {\n        font-size: 18px;\n    }\n\n    body > table,\n    #open-requests-container,\n    form:not([style*="display:inline"]) {\n        padding: 12px;\n        border-radius: 12px;\n        overflow-x: auto;\n    }\n\n    table {\n        min-width: 720px;\n        display: block;\n        overflow-x: auto;\n        white-space: nowrap;\n    }\n\n    input,\n    select,\n    textarea {\n        max-width: none;\n    }\n\n    button {\n        width: 100%;\n        margin: 4px 0;\n    }\n\n    form[style*="display:inline"] button,\n    td button {\n        width: auto;\n    }\n\n    .page-actions {\n        display: block;\n    }\n}\n\n.request-action-button {\n    width: 135px;\n    text-align: center;\n}\n\n/* Compact admin UI adjustment */\nbody {\n    font-size: 13px;\n    padding: 18px;\n}\n\nh1 {\n    font-size: 24px;\n    margin-bottom: 14px;\n}\n\nh2 {\n    font-size: 17px;\n    margin: 22px 0 10px;\n}\n\nh3 {\n    font-size: 15px;\n}\n\nbutton {\n    padding: 6px 10px;\n    font-size: 13px;\n    border-radius: 8px;\n    margin: 2px 3px 2px 0;\n}\n\ninput,\nselect,\ntextarea {\n    font-size: 13px;\n    padding: 7px 9px;\n    border-radius: 8px;\n}\n\nth,\ntd {\n    padding: 7px 8px;\n}\n\nbody > table,\n#open-requests-container,\nform:not([style*="display:inline"]) {\n    padding: 12px;\n    margin-bottom: 14px;\n}\n\n.request-action-button {\n    width: 110px;\n}\n\n@media (max-width: 760px) {\n    body {\n        font-size: 13px;\n        padding: 10px;\n    }\n\n    h1 {\n        font-size: 21px;\n    }\n\n    h2 {\n        font-size: 16px;\n    }\n\n    button {\n        font-size: 13px;\n        padding: 7px 9px;\n    }\n\n    th,\n    td {\n        padding: 6px 7px;\n    }\n}\n\nhr {\n    max-width: 1200px;\n    border: 0;\n    border-top: 1px solid var(--border);\n    margin: 14px 0 18px;\n}\n\n.admin-header {\n    max-width: 1200px;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    gap: 12px;\n    margin-bottom: 10px;\n}\n\n.admin-header h1 {\n    margin: 0;\n}\n\n.header-actions {\n    display: flex;\n    align-items: center;\n    gap: 8px;\n}\n\n.header-actions form {\n    background: transparent;\n    border: 0;\n    box-shadow: none;\n    padding: 0;\n    margin: 0;\n}\n\n@media (max-width: 760px) {\n    .admin-header {\n        align-items: flex-start;\n        flex-direction: column;\n    }\n\n    .header-actions {\n        width: 100%;\n        display: grid;\n        grid-template-columns: 1fr 1fr;\n    }\n\n    .header-actions a,\n    .header-actions form {\n        width: 100%;\n    }\n\n    .header-actions button {\n        width: 100%;\n    }\n}\n\n.admin-header {\n    background: transparent;\n    border: 0;\n    box-shadow: none;\n    padding: 0;\n}\n\n.header-actions {\n    display: flex;\n    gap: 8px;\n}\n\n.header-actions form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 0 !important;\n}\n\n.header-actions a {\n    display: inline-block;\n}\n\nhr + hr {\n    margin-top: -10px;\n}\n\n@media (max-width: 760px) {\n    .admin-header {\n        flex-direction: column;\n        align-items: flex-start;\n    }\n\n    .header-actions {\n        display: grid;\n        grid-template-columns: 1fr 1fr;\n        width: 100%;\n    }\n}\n\n.all-done-header-form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 6px 0 0 0 !important;\n}\n\n.all-done-header-form button {\n    width: 90px;\n}\n#open-requests-container table th:nth-child(9),\n#open-requests-container table td:nth-child(9) {\n    width: 125px;\n    min-width: 125px;\n    max-width: 125px;\n    padding: 7px 8px;\n}\n\n#open-requests-container table td:nth-child(9) form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 0 0 5px 0 !important;\n}\n\n#open-requests-container table td:nth-child(9) button,\n.request-action-button {\n    width: 110px;\n    margin: 0 0 5px 0 !important;\n}\n\n.all-done-header-form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 0 !important;\n}\n\n.all-done-header-form button {\n    width: 90px;\n}\n\n.open-requests-table-actions {\n    max-width: 1200px;\n    display: flex;\n    justify-content: flex-end;\n    margin: 0 0 8px 0;\n}\n\n.open-requests-table-actions form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 0 !important;\n}\n\n.open-requests-table-actions button {\n    width: 90px;\n}\n\n.admin-info-text {\n    max-width: 1200px;\n    background: #eef2ff;\n    border: 1px solid #c7d2fe;\n    border-radius: 10px;\n    padding: 10px 12px;\n    color: #1e3a8a;\n    margin: 10px 0 18px;\n}\n';
@@ -6049,6 +6011,7 @@ function getOrderStatusLabel(status) {
     waiting_location: "Waiting location",
     ready_to_delivery: "Ready to delivery",
     on_the_way: "On the way",
+    cancelled: "Cancelled",
     not_delivered: "Not delivered",
     delivered: "Delivered"
   }[status] || status;
@@ -8825,12 +8788,27 @@ async function handleTelegramWebhook(request, env) {
 }
 
 
+const API_CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+  "access-control-allow-headers": "content-type,authorization,x-customer-session-token",
+  "access-control-max-age": "86400"
+};
+
+function apiCorsPreflight() {
+  return new Response(null, {
+    status: 204,
+    headers: API_CORS_HEADERS
+  });
+}
+
 function apiResponse(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store"
+      "cache-control": "no-store",
+      ...API_CORS_HEADERS
     }
   });
 }
@@ -9320,184 +9298,52 @@ async function handleApiAdminOrders(request, env, closed = false) {
   });
 }
 
-async function handleApiAdminCustomerAppOrders(request, env) {
-  if (request.method !== "GET") {
-    return apiError("method_not_allowed", "Method not allowed.", 405);
+async function getV2AdminOrders(env, orderId = null) {
+  const whereOrder = orderId ? "WHERE id = ?" : "";
+  const stmt = env.DB.prepare(`
+    SELECT *
+    FROM customer_orders_v2
+    ${whereOrder}
+    ORDER BY datetime(updated_at) DESC, id DESC
+    LIMIT 300
+  `);
+
+  const result = orderId ? await stmt.bind(orderId).all() : await stmt.all();
+  const orders = [];
+
+  for (const order of result.results || []) {
+    orders.push(await mapV2OrderForApi(env, order));
   }
 
-  const session = await requireApiAdminSession(request, env);
-
-  if (!session) {
-    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
-  }
-
-  const orders = await env.DB.prepare(`
-    SELECT
-      o.id,
-      o.public_order_code,
-      o.session_token,
-      o.status,
-      o.total_amount,
-      o.currency,
-      o.customer_name,
-      o.phone,
-      o.delivery_address,
-      o.payment_method_code,
-      o.notes,
-      o.created_at,
-      o.updated_at,
-      (
-        SELECT json_group_array(
-          json_object(
-            'id', h.id,
-            'previous_status', h.previous_status,
-            'new_status', h.new_status,
-            'changed_by_admin_id', h.changed_by_admin_id,
-            'changed_by_admin_username', h.changed_by_admin_username,
-            'note', h.note,
-            'created_at', h.created_at
-          )
-        )
-        FROM (
-          SELECT *
-          FROM customer_order_status_history_v2
-          WHERE order_id = o.id
-          ORDER BY created_at DESC, id DESC
-          LIMIT 50
-        ) h
-      ) AS status_history_json,
-      COUNT(i.id) AS item_count,
-      json_group_array(
-        json_object(
-          'id', i.id,
-          'product_id', i.product_id,
-          'product_name', i.product_name,
-          'quantity', i.quantity,
-          'unit_price', i.unit_price,
-          'line_total', i.line_total,
-          'shop_id', i.shop_id,
-          'shop_name', i.shop_name
-        )
-      ) AS items_json
-    FROM customer_orders_v2 o
-    LEFT JOIN customer_order_items_v2 i ON i.customer_order_id = o.id
-    GROUP BY o.id
-    ORDER BY o.created_at DESC, o.id DESC
-    LIMIT 200
-  `).all();
-
-  const mappedOrders = (orders.results || []).map((order) => {
-    let items = [];
-    try {
-      items = JSON.parse(order.items_json || "[]").filter((item) => item && item.id !== null);
-    } catch (_) {
-      items = [];
-    }
-
-    let status_history = [];
-    try {
-      status_history = JSON.parse(order.status_history_json || "[]").filter((item) => item && item.id !== null);
-    } catch (_) {
-      status_history = [];
-    }
-
-    return {
-      id: order.id,
-      public_order_code: order.public_order_code,
-      session_token: order.session_token,
-      status: order.status,
-      total_amount: order.total_amount,
-      currency: order.currency,
-      customer_name: order.customer_name,
-      phone: order.phone,
-      delivery_address: order.delivery_address,
-      payment_method_code: order.payment_method_code,
-      notes: order.notes,
-      item_count: order.item_count || items.length,
-      items,
-      status_history,
-      created_at: order.created_at,
-      updated_at: order.updated_at
-    };
-  });
-
-  return apiOk({
-    orders: mappedOrders,
-    count: mappedOrders.length
-  });
+  return orders;
 }
 
+async function getV2AdminOrder(env, orderId) {
+  const orders = await getV2AdminOrders(env, orderId);
+  return orders[0] || null;
+}
 
-const API_ALLOWED_ORDER_STATUSES = new Set([
-  "in_progress",
-  "waiting_location",
-  "ready_to_delivery",
-  "on_the_way",
-  "not_delivered",
-  "delivered"
-]);
+async function getV2RawOrder(env, orderId) {
+  return await env.DB.prepare("SELECT * FROM customer_orders_v2 WHERE id = ?")
+    .bind(orderId)
+    .first();
+}
 
-async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
-  if (request.method !== "PATCH" && request.method !== "POST") {
-    return apiError("method_not_allowed", "Method not allowed.", 405);
+async function getV2RawGroup(env, groupId, orderId = null) {
+  if (orderId) {
+    return await env.DB.prepare(`
+      SELECT *
+      FROM order_addition_groups_v2
+      WHERE id = ? AND customer_order_id = ?
+    `).bind(groupId, orderId).first();
   }
 
-  const session = await requireApiAdminSession(request, env);
+  return await env.DB.prepare("SELECT * FROM order_addition_groups_v2 WHERE id = ?")
+    .bind(groupId)
+    .first();
+}
 
-  if (!session) {
-    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
-  }
-
-  let body = {};
-
-  try {
-    body = await request.json();
-  } catch (_) {
-    body = {};
-  }
-
-  const status = String(body.status || "").trim();
-  const note = String(body.note || "").trim();
-  const allowedStatuses = new Set([
-    "new",
-    "pending",
-    "accepted",
-    "preparing",
-    "ready",
-    "out_for_delivery",
-    "delivered",
-    "cancelled",
-    "closed"
-  ]);
-
-  if (!allowedStatuses.has(status)) {
-    return apiError("invalid_status", "Invalid order status.", 400);
-  }
-
-  const now = new Date().toISOString();
-
-  const existingOrder = await env.DB.prepare(`
-    SELECT id, status
-    FROM customer_orders_v2
-    WHERE id = ?
-  `).bind(orderId).first();
-
-  if (!existingOrder) {
-    return apiError("not_found", "Customer app order not found.", 404);
-  }
-
-  const previousStatus = existingOrder.status || null;
-
-  const updateResult = await env.DB.prepare(`
-    UPDATE customer_orders_v2
-    SET status = ?, updated_at = ?
-    WHERE id = ?
-  `).bind(status, now, orderId).run();
-
-  if (!updateResult.meta || updateResult.meta.changes === 0) {
-    return apiError("not_found", "Customer app order not found.", 404);
-  }
-
+async function addV2OrderHistory(env, orderId, previousStatus, newStatus, session, note = "") {
   await env.DB.prepare(`
     INSERT INTO customer_order_status_history_v2 (
       order_id,
@@ -9511,55 +9357,471 @@ async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).bind(
     orderId,
-    previousStatus,
-    status,
+    previousStatus || null,
+    newStatus,
     session.admin?.id || session.id || null,
     session.admin?.username || session.username || null,
-    null,
-    now
+    note || null,
+    new Date().toISOString()
   ).run();
+}
 
-  const order = await env.DB.prepare(`
-    SELECT
-      id,
-      public_order_code,
-      session_token,
-      status,
-      total_amount,
-      currency,
-      customer_name,
-      phone,
-      delivery_address,
-      payment_method_code,
-      notes,
-      created_at,
-      updated_at,
-      (
-        SELECT json_group_array(
-          json_object(
-            'id', h.id,
-            'order_id', h.order_id,
-            'previous_status', h.previous_status,
-            'new_status', h.new_status,
-            'changed_by_admin_username', h.changed_by_admin_username,
-            'note', h.note,
-            'created_at', h.created_at
-          )
-        )
-        FROM (
-          SELECT *
-          FROM customer_order_status_history_v2
-          WHERE order_id = customer_orders_v2.id
-          ORDER BY created_at DESC, id DESC
-          LIMIT 50
-        ) h
-      ) AS status_history_json
-    FROM customer_orders_v2
-    WHERE id = ?
-  `).bind(orderId).first();
+async function getCustomerForV2Order(env, order) {
+  const sessionToken = String(order?.session_token || "");
+  const appCustomerMatch = sessionToken.match(/^app_customer_(\d+)$/);
+
+  if (appCustomerMatch) {
+    return await env.DB.prepare("SELECT * FROM customers WHERE id = ?")
+      .bind(Number(appCustomerMatch[1]))
+      .first();
+  }
+
+  return null;
+}
+
+async function notifyCustomerForV2Order(env, order, text, messageType = "order_status") {
+  const customer = await getCustomerForV2Order(env, order);
+
+  if (!customer) return;
+
+  const language = customer.preferred_language || customer.language || "en";
+  await saveMessage(env, customer.id, "outgoing", text, language, messageType, "telegram");
+
+  if (customer.telegram_user_id) {
+    await sendTelegramMessage(env, customer.telegram_user_id, text);
+  }
+}
+
+function getV2OrderCancelledText(reason = "") {
+  const suffix = reason ? `\nReason: ${reason}` : "";
+  return `Your order was cancelled by admin.${suffix}`;
+}
+
+function getV2DeliveryOnTheWayText() {
+  return "Your order is on the way.";
+}
+
+function getV2PickupReadyText() {
+  return "Your order is ready to pick up.";
+}
+
+function getV2DeliveryAdditionApprovedText() {
+  return "Your additional products were approved and added to your order.";
+}
+
+function getV2DeliveryAdditionRejectedText() {
+  return "Your additional products were rejected. Do you want to create a new order with these items?";
+}
+
+async function handleApiAdminCustomerAppOrderDetail(request, env, orderId) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const order = await getV2AdminOrder(env, orderId);
+  if (!order) {
+    return apiError("not_found", "Customer app order not found.", 404);
+  }
 
   return apiOk({ order });
 }
+
+async function handleApiAdminCustomerAppOrders(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const orders = await getV2AdminOrders(env);
+
+  return apiOk({
+    orders,
+    count: orders.length
+  });
+}
+
+async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
+  if (request.method !== "PATCH" && request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const body = await readJsonBody(request) || {};
+  const status = String(body.status || body.order_status || "").trim();
+  const note = String(body.note || body.admin_status_note || "").trim();
+
+  const allowedStatuses = new Set([
+    "submitted",
+    "preparing",
+    "scheduled_for_next_online_order",
+    "cancelled",
+    "closed"
+  ]);
+
+  if (!allowedStatuses.has(status)) {
+    return apiError("invalid_status", "Invalid order status.", 400, {
+      allowed_statuses: Array.from(allowedStatuses)
+    });
+  }
+
+  const order = await getV2RawOrder(env, orderId);
+
+  if (!order) {
+    return apiError("not_found", "Customer app order not found.", 404);
+  }
+
+  const previousStatus = order.order_status || order.status || null;
+
+  await env.DB.prepare(`
+    UPDATE customer_orders_v2
+    SET status = ?,
+        order_status = ?,
+        admin_status_note = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(status, status, note || null, orderId).run();
+
+  await addV2OrderHistory(env, orderId, previousStatus, status, session, note);
+  await logAdminAction(env, request, session, "api_v2_order_status_updated", `order:${orderId}:${status}`);
+
+  return apiOk({
+    order: await getV2AdminOrder(env, orderId)
+  });
+}
+
+async function handleApiAdminV2DeliveryOnTheWay(request, env, orderId) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const order = await getV2RawOrder(env, orderId);
+
+  if (!order) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  if (order.fulfillment_type !== "delivery") {
+    return apiError("not_delivery_order", "Only delivery orders can be marked on the way.", 400);
+  }
+
+  if (String(order.order_status || order.status || "") === "cancelled") {
+    return apiError("order_cancelled", "Cancelled orders cannot be marked on the way.", 400);
+  }
+
+  await env.DB.prepare(`
+    UPDATE customer_orders_v2
+    SET delivery_status = 'on_the_way',
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(orderId).run();
+
+  await addV2OrderHistory(env, orderId, order.delivery_status || null, "delivery:on_the_way", session, "Delivery marked on the way");
+  await notifyCustomerForV2Order(env, order, getV2DeliveryOnTheWayText(), "order_status");
+  await logAdminAction(env, request, session, "api_v2_order_on_the_way", `order:${orderId}`);
+
+  return apiOk({
+    order: await getV2AdminOrder(env, orderId)
+  });
+}
+
+async function handleApiAdminV2ReadyToPickup(request, env, orderId) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const order = await getV2RawOrder(env, orderId);
+
+  if (!order) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  if (order.fulfillment_type !== "pickup") {
+    return apiError("not_pickup_order", "Only pickup orders can be marked ready to pick up.", 400);
+  }
+
+  if (String(order.order_status || order.status || "") === "cancelled") {
+    return apiError("order_cancelled", "Cancelled orders cannot be marked ready to pick up.", 400);
+  }
+
+  await env.DB.prepare(`
+    UPDATE order_addition_groups_v2
+    SET group_status = 'confirmed',
+        updated_at = CURRENT_TIMESTAMP
+    WHERE customer_order_id = ?
+      AND group_status = 'waiting_ready_to_pickup'
+  `).bind(orderId).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_order_items_v2
+    SET item_status = 'confirmed',
+        decided_at = CURRENT_TIMESTAMP
+    WHERE customer_order_id = ?
+      AND item_status = 'waiting_ready_to_pickup'
+  `).bind(orderId).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_orders_v2
+    SET pickup_status = 'ready_to_pickup',
+        order_status = CASE
+          WHEN order_status = 'draft' THEN 'submitted'
+          ELSE order_status
+        END,
+        status = CASE
+          WHEN status = 'draft' THEN 'submitted'
+          ELSE status
+        END,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(orderId).run();
+
+  await updateV2OrderConfirmedTotal(env, orderId);
+  await addV2OrderHistory(env, orderId, order.pickup_status || null, "pickup:ready_to_pickup", session, "Pickup marked ready");
+  await notifyCustomerForV2Order(env, order, getV2PickupReadyText(), "order_status");
+  await logAdminAction(env, request, session, "api_v2_order_ready_to_pickup", `order:${orderId}`);
+
+  return apiOk({
+    order: await getV2AdminOrder(env, orderId)
+  });
+}
+
+async function handleApiAdminV2ApproveGroup(request, env, orderId, groupId) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const order = await getV2RawOrder(env, orderId);
+  const group = await getV2RawGroup(env, groupId, orderId);
+
+  if (!order || !group) {
+    return apiError("not_found", "Order or group was not found.", 404);
+  }
+
+  if (order.fulfillment_type !== "delivery") {
+    return apiError("not_delivery_order", "Only delivery pending additions use approve/reject.", 400);
+  }
+
+  if (String(order.order_status || order.status || "") === "cancelled") {
+    return apiError("order_cancelled", "Cancelled orders cannot be updated.", 400);
+  }
+
+  if (group.group_status !== "pending_admin_approval") {
+    return apiError("invalid_group_status", "Only pending groups can be approved.", 400);
+  }
+
+  await env.DB.prepare(`
+    UPDATE order_addition_groups_v2
+    SET group_status = 'approved',
+        admin_decision = 'approved',
+        decided_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND customer_order_id = ?
+  `).bind(groupId, orderId).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_order_items_v2
+    SET item_status = 'confirmed',
+        admin_decision = 'approved',
+        decided_at = CURRENT_TIMESTAMP
+    WHERE group_id = ? AND customer_order_id = ?
+  `).bind(groupId, orderId).run();
+
+  await updateV2OrderConfirmedTotal(env, orderId);
+  await addV2OrderHistory(env, orderId, "group:pending_admin_approval", "group:approved", session, `Group ${groupId} approved`);
+  await notifyCustomerForV2Order(env, order, getV2DeliveryAdditionApprovedText(), "order_addition");
+  await logAdminAction(env, request, session, "api_v2_order_group_approved", `order:${orderId}:group:${groupId}`);
+
+  return apiOk({
+    order: await getV2AdminOrder(env, orderId)
+  });
+}
+
+async function handleApiAdminV2RejectGroup(request, env, orderId, groupId) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const body = await readJsonBody(request) || {};
+  const note = String(body.note || body.admin_decision_note || "").trim();
+
+  const order = await getV2RawOrder(env, orderId);
+  const group = await getV2RawGroup(env, groupId, orderId);
+
+  if (!order || !group) {
+    return apiError("not_found", "Order or group was not found.", 404);
+  }
+
+  if (order.fulfillment_type !== "delivery") {
+    return apiError("not_delivery_order", "Only delivery pending additions use approve/reject.", 400);
+  }
+
+  if (String(order.order_status || order.status || "") === "cancelled") {
+    return apiError("order_cancelled", "Cancelled orders cannot be updated.", 400);
+  }
+
+  if (group.group_status !== "pending_admin_approval") {
+    return apiError("invalid_group_status", "Only pending groups can be rejected.", 400);
+  }
+
+  await env.DB.prepare(`
+    UPDATE order_addition_groups_v2
+    SET group_status = 'rejected',
+        admin_decision = 'rejected',
+        admin_decision_note = ?,
+        decided_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND customer_order_id = ?
+  `).bind(note || null, groupId, orderId).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_order_items_v2
+    SET item_status = 'rejected',
+        admin_decision = 'rejected',
+        admin_decision_note = ?,
+        decided_at = CURRENT_TIMESTAMP
+    WHERE group_id = ? AND customer_order_id = ?
+  `).bind(note || null, groupId, orderId).run();
+
+  await updateV2OrderConfirmedTotal(env, orderId);
+  await addV2OrderHistory(env, orderId, "group:pending_admin_approval", "group:rejected", session, `Group ${groupId} rejected${note ? ": " + note : ""}`);
+  await notifyCustomerForV2Order(env, order, getV2DeliveryAdditionRejectedText(), "order_addition");
+  await logAdminAction(env, request, session, "api_v2_order_group_rejected", `order:${orderId}:group:${groupId}`);
+
+  return apiOk({
+    order: await getV2AdminOrder(env, orderId)
+  });
+}
+
+async function handleApiAdminV2CancelOrder(request, env, orderId) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const body = await readJsonBody(request) || {};
+  const reason = String(body.reason || body.cancel_reason || body.note || "").trim();
+
+  const order = await getV2RawOrder(env, orderId);
+
+  if (!order) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  if (String(order.order_status || order.status || "") === "cancelled") {
+    return apiError("order_already_cancelled", "Order is already cancelled.", 400);
+  }
+
+  const previousStatus = order.order_status || order.status || null;
+
+  await env.DB.prepare(`
+    UPDATE customer_orders_v2
+    SET status = 'cancelled',
+        order_status = 'cancelled',
+        delivery_status = CASE
+          WHEN fulfillment_type = 'delivery' THEN 'cancelled'
+          ELSE delivery_status
+        END,
+        pickup_status = CASE
+          WHEN fulfillment_type = 'pickup' THEN 'cancelled'
+          ELSE pickup_status
+        END,
+        total_amount = 0,
+        cancelled_at = CURRENT_TIMESTAMP,
+        cancelled_by_admin_id = ?,
+        cancel_reason = ?,
+        admin_status_note = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(
+    session.admin?.id || session.id || null,
+    reason || null,
+    reason || null,
+    orderId
+  ).run();
+
+  await env.DB.prepare(`
+    UPDATE order_addition_groups_v2
+    SET group_status = 'cancelled',
+        admin_decision = 'cancelled',
+        admin_decision_note = ?,
+        decided_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE customer_order_id = ?
+  `).bind(reason || null, orderId).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_order_items_v2
+    SET item_status = 'cancelled',
+        admin_decision = 'cancelled',
+        admin_decision_note = ?,
+        decided_at = CURRENT_TIMESTAMP
+    WHERE customer_order_id = ?
+  `).bind(reason || null, orderId).run();
+
+  await addV2OrderHistory(env, orderId, previousStatus, "cancelled", session, reason);
+  await notifyCustomerForV2Order(env, order, getV2OrderCancelledText(reason), "order_status");
+  await logAdminAction(env, request, session, "api_v2_order_cancelled", `order:${orderId}`);
+
+  return apiOk({
+    order: await getV2AdminOrder(env, orderId)
+  });
+}
+
+
+
+const API_ALLOWED_ORDER_STATUSES = new Set([
+  "in_progress",
+  "waiting_location",
+  "ready_to_delivery",
+  "on_the_way",
+  "not_delivered",
+  "delivered"
+]);
+
 
 
 async function getOrderApiRowById(env, orderId) {
@@ -10835,45 +11097,581 @@ async function handleApiCustomerMe(request, env) {
 
 
 
-function mapCartItemForApi(item) {
+function getCustomerOrderSessionToken(customerId) {
+  return `app_customer_${customerId}`;
+}
+
+function normalizeFulfillmentType(value) {
+  const clean = String(value || "").trim().toLowerCase();
+  return clean === "pickup" ? "pickup" : "delivery";
+}
+
+function normalizeOrderStatusLabel(status) {
+  const labels = {
+    draft: "Draft",
+    submitted: "Submitted",
+    preparing: "Preparing",
+    scheduled_for_next_online_order: "Scheduled for next online order time",
+    cancelled: "Cancelled",
+    closed: "Closed",
+    delivered: "Delivered"
+  };
+  return labels[status] || status || "Draft";
+}
+
+function normalizeDeliveryStatusLabel(status) {
+  const labels = {
+    not_started: "Not started",
+    on_the_way: "On the way",
+    cancelled: "Cancelled",
+    delivered: "Delivered",
+    not_delivered: "Not delivered"
+  };
+  return labels[String(status || "")] || status || "";
+}
+
+function normalizePickupStatusLabel(status) {
+  const labels = {
+    preparing: "Preparing",
+    ready_to_pickup: "Ready to pick up",
+    cancelled: "Cancelled",
+    picked_up: "Picked up",
+    closed: "Closed"
+  };
+  return labels[String(status || "")] || status || "";
+}
+
+function normalizeGroupStatusLabel(status) {
+  const labels = {
+    draft: "Draft",
+    submitted: "Submitted",
+    pending_admin_approval: "Waiting for admin approval",
+    approved: "Approved",
+    rejected: "Rejected",
+    waiting_ready_to_pickup: "Waiting until ready to pick up",
+    confirmed: "Confirmed",
+    scheduled_for_next_online_order: "Scheduled for next online order time",
+    cancelled: "Cancelled"
+  };
+  return labels[status] || status || "";
+}
+
+function makePublicOrderCode() {
+  return `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
+function isTerminalOrderStatus(status) {
+  return ["cancelled", "closed", "delivered"].includes(String(status || ""));
+}
+
+async function getOnlineOrderingStatus(env) {
+  const isOpen = await isWithinWorkingHours(env);
+  const timezone = await getSetting(env, "working_hours_timezone") || "Europe/Berlin";
+  const startValue = await getSetting(env, "working_hours_start") || "10:00";
+
+  const now = new Date();
+  const yyyyMmDd = now.toISOString().slice(0, 10);
+  let nextOnlineOrderAt = `${yyyyMmDd}T${startValue}:00`;
+
+  if (!isOpen) {
+    nextOnlineOrderAt = `${yyyyMmDd}T${startValue}:00`;
+  }
+
+  return {
+    is_open: isOpen,
+    wording: "online_ordering",
+    timezone,
+    next_online_order_at: nextOnlineOrderAt
+  };
+}
+
+async function ensureV2CartSession(env, sessionToken, customer = null) {
+  await env.DB.prepare(`
+    INSERT OR IGNORE INTO customer_cart_sessions (session_token, customer_name, phone)
+    VALUES (?, ?, ?)
+  `).bind(
+    sessionToken,
+    customer?.full_name || "",
+    ""
+  ).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_cart_sessions
+    SET updated_at = CURRENT_TIMESTAMP,
+        customer_name = COALESCE(NULLIF(?, ''), customer_name)
+    WHERE session_token = ?
+  `).bind(customer?.full_name || "", sessionToken).run();
+}
+
+async function getV2CartItems(env, sessionToken) {
+  const result = await env.DB.prepare(`
+    SELECT
+      ci.id,
+      ci.session_token,
+      ci.product_id,
+      ci.quantity,
+      ci.created_at,
+      ci.updated_at,
+      p.name AS product_name,
+      p.price AS unit_price,
+      COALESCE(p.shop_id, 1) AS shop_id,
+      s.name AS shop_name,
+      (ci.quantity * p.price) AS line_total
+    FROM customer_cart_items_v2 ci
+    JOIN products p ON p.id = ci.product_id
+    LEFT JOIN shops s ON s.id = COALESCE(p.shop_id, 1)
+    WHERE ci.session_token = ?
+    ORDER BY ci.created_at ASC, ci.id ASC
+  `).bind(sessionToken).all();
+
+  return result.results || [];
+}
+
+function mapV2CartItemForApi(item) {
   const quantity = Number(item.quantity || 1);
-  const unitPrice = Number(item.price_snapshot || 0);
+  const unitPrice = Number(item.unit_price || item.price_snapshot || 0);
+
   return {
     id: Number(item.id),
-    product_id: item.product_id !== null && item.product_id !== undefined ? Number(item.product_id) : null,
-    item_type: item.item_type || "product",
-    name: item.name || "",
+    product_id: Number(item.product_id),
+    item_type: "product",
+    name: item.product_name || item.name || "",
     quantity,
+    unit_price: unitPrice,
     price_snapshot: unitPrice,
-    line_total: unitPrice * quantity,
+    line_total: Number(item.line_total || unitPrice * quantity),
+    shop_id: item.shop_id !== null && item.shop_id !== undefined ? Number(item.shop_id) : null,
+    shop_name: item.shop_name || "",
+    created_at: item.created_at || "",
+    updated_at: item.updated_at || ""
+  };
+}
+
+async function getActiveV2Order(env, sessionToken) {
+  return await env.DB.prepare(`
+    SELECT *
+    FROM customer_orders_v2
+    WHERE session_token = ?
+      AND COALESCE(order_status, status, 'draft') NOT IN ('cancelled', 'closed', 'delivered')
+    ORDER BY datetime(updated_at) DESC, id DESC
+    LIMIT 1
+  `).bind(sessionToken).first();
+}
+
+async function getScheduledV2Order(env, sessionToken, fulfillmentType) {
+  return await env.DB.prepare(`
+    SELECT *
+    FROM customer_orders_v2
+    WHERE session_token = ?
+      AND fulfillment_type = ?
+      AND scheduled_for_next_online_order = 1
+      AND COALESCE(order_status, '') != 'cancelled'
+    ORDER BY datetime(updated_at) DESC, id DESC
+    LIMIT 1
+  `).bind(sessionToken, fulfillmentType).first();
+}
+
+async function getV2OrderGroups(env, orderId) {
+  const result = await env.DB.prepare(`
+    SELECT *
+    FROM order_addition_groups_v2
+    WHERE customer_order_id = ?
+    ORDER BY id ASC
+  `).bind(orderId).all();
+
+  return result.results || [];
+}
+
+async function getV2OrderItems(env, orderId) {
+  const result = await env.DB.prepare(`
+    SELECT *
+    FROM customer_order_items_v2
+    WHERE customer_order_id = ?
+    ORDER BY id ASC
+  `).bind(orderId).all();
+
+  return result.results || [];
+}
+
+function mapV2OrderItemForApi(item) {
+  const quantity = Number(item.quantity || 1);
+  const unitPrice = Number(item.unit_price || 0);
+  const lineTotal = Number(item.line_total || unitPrice * quantity);
+
+  return {
+    id: Number(item.id),
+    customer_order_id: Number(item.customer_order_id),
+    group_id: item.group_id !== null && item.group_id !== undefined ? Number(item.group_id) : null,
+    product_id: Number(item.product_id),
+    name: item.product_name || "",
+    product_name: item.product_name || "",
+    quantity,
+    unit_price: unitPrice,
+    line_total: lineTotal,
+    item_status: item.item_status || "confirmed",
+    added_phase: item.added_phase || "initial_checkout",
+    requires_admin_approval: Number(item.requires_admin_approval || 0) === 1,
+    admin_decision: item.admin_decision || "",
+    admin_decision_note: item.admin_decision_note || "",
+    decided_at: item.decided_at || "",
     created_at: item.created_at || ""
   };
 }
 
-function mapCustomerCartForApi(cart, items) {
-  const mappedItems = (items || []).map(mapCartItemForApi);
-  const total = mappedItems.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
+function calculateOrderSectionTotals(items) {
+  const sections = {
+    confirmed: { item_count: 0, total_amount: 0 },
+    pending_admin_approval: { item_count: 0, total_amount: 0 },
+    waiting_ready_to_pickup: { item_count: 0, total_amount: 0 },
+    rejected: { item_count: 0, total_amount: 0 },
+    scheduled_for_next_online_order: { item_count: 0, total_amount: 0 },
+    cancelled: { item_count: 0, total_amount: 0 }
+  };
+
+  for (const item of items) {
+    const status = item.item_status || "confirmed";
+    const bucket = sections[status] ? status : "confirmed";
+    sections[bucket].item_count += Number(item.quantity || 0);
+    sections[bucket].total_amount += Number(item.line_total || 0);
+  }
+
+  return sections;
+}
+
+function mapV2OrderGroupForApi(group, items) {
+  const groupItems = items.filter((item) => Number(item.group_id || 0) === Number(group.id));
+  const total = groupItems.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
 
   return {
-    id: cart ? Number(cart.id) : null,
-    status: cart?.status || "active",
-    order_status: cart?.order_status || "in_progress",
-    delivery_location_label: cart?.delivery_location_label || "",
-    delivery_google_maps_link: cart?.delivery_google_maps_link || "",
-    delivery_note: cart?.delivery_note || "",
-    admin_status_note: cart?.admin_status_note || "",
-    item_count: mappedItems.length,
+    id: Number(group.id),
+    customer_order_id: Number(group.customer_order_id),
+    group_type: group.group_type || "initial_checkout",
+    group_status: group.group_status || "draft",
+    group_status_label: normalizeGroupStatusLabel(group.group_status || "draft"),
+    fulfillment_type: group.fulfillment_type || "",
+    requires_admin_approval: Number(group.requires_admin_approval || 0) === 1,
+    scheduled_for_next_online_order: Number(group.scheduled_for_next_online_order || 0) === 1,
+    next_online_order_at: group.next_online_order_at || "",
+    admin_decision: group.admin_decision || "",
+    admin_decision_note: group.admin_decision_note || "",
+    decided_at: group.decided_at || "",
     total_amount: total,
     total_formatted: formatPrice(total),
-    items: mappedItems,
-    created_at: cart?.created_at || "",
-    updated_at: cart?.updated_at || ""
+    item_count: groupItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    items: groupItems,
+    created_at: group.created_at || "",
+    updated_at: group.updated_at || ""
   };
 }
 
-async function getCustomerCartApiPayload(env, customerId) {
-  const { cart, items } = await getCartItems(env, customerId);
-  return mapCustomerCartForApi(cart, items);
+async function mapV2OrderForApi(env, order) {
+  if (!order) return null;
+
+  const rawItems = await getV2OrderItems(env, order.id);
+  const items = rawItems.map(mapV2OrderItemForApi);
+  const groups = (await getV2OrderGroups(env, order.id)).map((group) => mapV2OrderGroupForApi(group, items));
+  const sectionTotals = calculateOrderSectionTotals(items);
+  const confirmedTotal = sectionTotals.confirmed.total_amount;
+
+  return {
+    id: Number(order.id),
+    public_order_code: order.public_order_code || "",
+    session_token: order.session_token || "",
+    status: order.status || order.order_status || "draft",
+    order_status: order.order_status || order.status || "draft",
+    order_status_label: normalizeOrderStatusLabel(order.order_status || order.status || "draft"),
+    fulfillment_type: order.fulfillment_type || "",
+    delivery_status: order.delivery_status || "",
+    delivery_status_label: normalizeDeliveryStatusLabel(order.delivery_status || ""),
+    pickup_status: order.pickup_status || "",
+    pickup_status_label: normalizePickupStatusLabel(order.pickup_status || ""),
+    delivery_location_id: order.delivery_location_id || null,
+    delivery_location_label: order.delivery_location_label || order.delivery_address || "",
+    delivery_google_maps_link: order.delivery_google_maps_link || "",
+    delivery_address: order.delivery_address || "",
+    scheduled_for_next_online_order: Number(order.scheduled_for_next_online_order || 0) === 1,
+    next_online_order_at: order.next_online_order_at || "",
+    active_shop_id: order.active_shop_id || null,
+    admin_status_note: order.admin_status_note || "",
+    cancelled_at: order.cancelled_at || "",
+    cancel_reason: order.cancel_reason || "",
+    currency: order.currency || "EUR",
+    total_amount: confirmedTotal,
+    total_formatted: formatPrice(confirmedTotal),
+    section_totals: {
+      confirmed: { ...sectionTotals.confirmed, total_formatted: formatPrice(sectionTotals.confirmed.total_amount) },
+      pending_admin_approval: { ...sectionTotals.pending_admin_approval, total_formatted: formatPrice(sectionTotals.pending_admin_approval.total_amount) },
+      waiting_ready_to_pickup: { ...sectionTotals.waiting_ready_to_pickup, total_formatted: formatPrice(sectionTotals.waiting_ready_to_pickup.total_amount) },
+      rejected: { ...sectionTotals.rejected, total_formatted: formatPrice(sectionTotals.rejected.total_amount) },
+      scheduled_for_next_online_order: { ...sectionTotals.scheduled_for_next_online_order, total_formatted: formatPrice(sectionTotals.scheduled_for_next_online_order.total_amount) },
+      cancelled: { ...sectionTotals.cancelled, total_formatted: formatPrice(sectionTotals.cancelled.total_amount) }
+    },
+    groups,
+    items,
+    created_at: order.created_at || "",
+    updated_at: order.updated_at || ""
+  };
+}
+
+async function getV2CartPayload(env, customer) {
+  const sessionToken = getCustomerOrderSessionToken(customer.id);
+  await ensureV2CartSession(env, sessionToken, customer);
+
+  const items = (await getV2CartItems(env, sessionToken)).map(mapV2CartItemForApi);
+  const total = items.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
+  const activeOrder = await getActiveV2Order(env, sessionToken);
+
+  return {
+    id: null,
+    session_token: sessionToken,
+    status: "active",
+    order_status: activeOrder?.order_status || "draft",
+    active_order_id: activeOrder ? Number(activeOrder.id) : null,
+    active_order: activeOrder ? await mapV2OrderForApi(env, activeOrder) : null,
+    item_count: items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    total_amount: total,
+    total_formatted: formatPrice(total),
+    currency: "EUR",
+    items
+  };
+}
+
+async function createCustomerLocationV2(env, customerId, sessionToken, data) {
+  const label = String(data.label || data.location_label || data.address || "").trim();
+  const address = String(data.address || data.location_label || "").trim();
+  const googleMapsLink = String(data.google_maps_link || "").trim();
+  const latitude = data.latitude !== undefined && data.latitude !== null ? String(data.latitude).trim() : "";
+  const longitude = data.longitude !== undefined && data.longitude !== null ? String(data.longitude).trim() : "";
+  const finalMapLink = googleMapsLink || (latitude && longitude ? makeGoogleMapsLink(latitude, longitude) : "");
+
+  const insert = await env.DB.prepare(`
+    INSERT INTO customer_locations_v2 (
+      customer_id,
+      session_token,
+      label,
+      address,
+      google_maps_link,
+      latitude,
+      longitude,
+      is_preferred,
+      source
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    customerId,
+    sessionToken,
+    label || address,
+    address || label,
+    finalMapLink,
+    latitude || null,
+    longitude || null,
+    data.is_preferred ? 1 : 0,
+    String(data.source || "customer_app_saved")
+  ).run();
+
+  return await env.DB.prepare("SELECT * FROM customer_locations_v2 WHERE id = ?")
+    .bind(insert.meta.last_row_id)
+    .first();
+}
+
+async function getCustomerLocationForCheckout(env, customerId, sessionToken, body) {
+  const savedLocationId = Number(body.saved_location_id || body.location_id || body.delivery_location_id || 0);
+
+  if (savedLocationId) {
+    const saved = await env.DB.prepare(`
+      SELECT *
+      FROM customer_locations_v2
+      WHERE id = ?
+        AND (customer_id = ? OR session_token = ?)
+      LIMIT 1
+    `).bind(savedLocationId, customerId, sessionToken).first();
+
+    if (saved) return saved;
+  }
+
+  if (body.use_preferred_location || body.preferred_location) {
+    const preferred = await env.DB.prepare(`
+      SELECT *
+      FROM customer_locations_v2
+      WHERE (customer_id = ? OR session_token = ?)
+        AND is_preferred = 1
+      ORDER BY updated_at DESC, id DESC
+      LIMIT 1
+    `).bind(customerId, sessionToken).first();
+
+    if (preferred) return preferred;
+  }
+
+  const latitude = body.latitude !== undefined && body.latitude !== null ? String(body.latitude).trim() : "";
+  const longitude = body.longitude !== undefined && body.longitude !== null ? String(body.longitude).trim() : "";
+  const googleMapsLink = String(body.google_maps_link || "").trim() || (latitude && longitude ? makeGoogleMapsLink(latitude, longitude) : "");
+  const address = String(body.address || body.location_label || body.description || "").trim();
+
+  if (!address && !googleMapsLink) return null;
+
+  if (!googleMapsLink) {
+    return {
+      weak_location: true,
+      label: address,
+      address,
+      google_maps_link: "",
+      latitude: "",
+      longitude: ""
+    };
+  }
+
+  return await createCustomerLocationV2(env, customerId, sessionToken, {
+    label: String(body.location_label || address).trim(),
+    address,
+    google_maps_link: googleMapsLink,
+    latitude,
+    longitude,
+    is_preferred: body.save_as_preferred || false,
+    source: "customer_app_checkout"
+  });
+}
+
+async function createV2Order(env, sessionToken, customer, fulfillmentType, fields = {}) {
+  const code = makePublicOrderCode();
+  const now = new Date().toISOString();
+
+  const insert = await env.DB.prepare(`
+    INSERT INTO customer_orders_v2 (
+      public_order_code,
+      session_token,
+      status,
+      order_status,
+      fulfillment_type,
+      delivery_status,
+      pickup_status,
+      delivery_location_id,
+      delivery_location_label,
+      delivery_google_maps_link,
+      delivery_address,
+      scheduled_for_next_online_order,
+      next_online_order_at,
+      active_shop_id,
+      total_amount,
+      currency,
+      customer_name,
+      phone,
+      payment_method_code,
+      notes,
+      created_at,
+      updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'EUR', ?, '', ?, ?, ?, ?)
+  `).bind(
+    code,
+    sessionToken,
+    fields.status || fields.order_status || "submitted",
+    fields.order_status || fields.status || "submitted",
+    fulfillmentType,
+    fields.delivery_status || (fulfillmentType === "delivery" ? "not_started" : null),
+    fields.pickup_status || (fulfillmentType === "pickup" ? "preparing" : null),
+    fields.delivery_location_id || null,
+    fields.delivery_location_label || "",
+    fields.delivery_google_maps_link || "",
+    fields.delivery_address || "",
+    fields.scheduled_for_next_online_order ? 1 : 0,
+    fields.next_online_order_at || null,
+    fields.active_shop_id || null,
+    customer?.full_name || "",
+    fields.payment_method_code || "",
+    fields.notes || "",
+    now,
+    now
+  ).run();
+
+  return await env.DB.prepare("SELECT * FROM customer_orders_v2 WHERE id = ?")
+    .bind(insert.meta.last_row_id)
+    .first();
+}
+
+async function createV2OrderGroup(env, orderId, fields) {
+  const insert = await env.DB.prepare(`
+    INSERT INTO order_addition_groups_v2 (
+      customer_order_id,
+      group_type,
+      group_status,
+      fulfillment_type,
+      requires_admin_approval,
+      scheduled_for_next_online_order,
+      next_online_order_at,
+      admin_decision_note
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    orderId,
+    fields.group_type || "initial_checkout",
+    fields.group_status || "submitted",
+    fields.fulfillment_type || "",
+    fields.requires_admin_approval ? 1 : 0,
+    fields.scheduled_for_next_online_order ? 1 : 0,
+    fields.next_online_order_at || null,
+    fields.admin_decision_note || null
+  ).run();
+
+  return await env.DB.prepare("SELECT * FROM order_addition_groups_v2 WHERE id = ?")
+    .bind(insert.meta.last_row_id)
+    .first();
+}
+
+async function moveV2CartItemsToOrderGroup(env, sessionToken, orderId, group, itemStatus, addedPhase, requiresApproval) {
+  const cartItems = await getV2CartItems(env, sessionToken);
+
+  for (const item of cartItems) {
+    await env.DB.prepare(`
+      INSERT INTO customer_order_items_v2 (
+        customer_order_id,
+        group_id,
+        product_id,
+        product_name,
+        shop_id,
+        quantity,
+        unit_price,
+        line_total,
+        item_status,
+        added_phase,
+        requires_admin_approval
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      orderId,
+      group.id,
+      item.product_id,
+      item.product_name,
+      item.shop_id,
+      item.quantity,
+      item.unit_price,
+      item.line_total,
+      itemStatus,
+      addedPhase,
+      requiresApproval ? 1 : 0
+    ).run();
+  }
+
+  await env.DB.prepare("DELETE FROM customer_cart_items_v2 WHERE session_token = ?")
+    .bind(sessionToken)
+    .run();
+
+  return cartItems;
+}
+
+async function updateV2OrderConfirmedTotal(env, orderId) {
+  const totalRow = await env.DB.prepare(`
+    SELECT COALESCE(SUM(line_total), 0) AS total
+    FROM customer_order_items_v2
+    WHERE customer_order_id = ?
+      AND item_status IN ('confirmed', 'approved')
+  `).bind(orderId).first();
+
+  await env.DB.prepare(`
+    UPDATE customer_orders_v2
+    SET total_amount = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(Number(totalRow?.total || 0), orderId).run();
 }
 
 async function handleApiCustomerCart(request, env) {
@@ -10883,30 +11681,20 @@ async function handleApiCustomerCart(request, env) {
     return apiError("unauthorized", "Valid customer bearer token is required.", 401);
   }
 
-  const customerId = session.customer.id;
-
   if (request.method === "GET") {
     return apiOk({
-      cart: await getCustomerCartApiPayload(env, customerId)
+      cart: await getV2CartPayload(env, session.customer)
     });
   }
 
   if (request.method === "DELETE") {
-    const cart = await getActiveCart(env, customerId);
-
-    if (cart) {
-      await env.DB.prepare("DELETE FROM shopping_cart_items WHERE cart_id = ?").bind(cart.id).run();
-      await setActiveCartOrderStatus(env, customerId, "in_progress", {
-        delivery_location_label: null,
-        delivery_google_maps_link: null,
-        delivery_note: null,
-        delivered_at: null,
-        closed_at: null
-      });
-    }
+    const sessionToken = getCustomerOrderSessionToken(session.customer.id);
+    await env.DB.prepare("DELETE FROM customer_cart_items_v2 WHERE session_token = ?")
+      .bind(sessionToken)
+      .run();
 
     return apiOk({
-      cart: await getCustomerCartApiPayload(env, customerId)
+      cart: await getV2CartPayload(env, session.customer)
     });
   }
 
@@ -10937,19 +11725,30 @@ async function handleApiCustomerCartItems(request, env) {
     return apiError("invalid_product", "product_id is required.", 400);
   }
 
-  const product = await env.DB.prepare(
-    "SELECT id, name, price, is_active FROM products WHERE id = ? AND is_active = 1"
-  ).bind(productId).first();
+  const product = await env.DB.prepare(`
+    SELECT id, name, price, is_active, COALESCE(shop_id, 1) AS shop_id
+    FROM products
+    WHERE id = ? AND is_active = 1
+  `).bind(productId).first();
 
   if (!product) {
     return apiError("product_not_found", "Product is not available.", 404);
   }
 
-  await addProductToBasket(env, session.customer.id, product, quantity);
-  await refreshCartStatusAfterItemChange(env, session.customer.id);
+  const sessionToken = getCustomerOrderSessionToken(session.customer.id);
+  await ensureV2CartSession(env, sessionToken, session.customer);
+
+  await env.DB.prepare(`
+    INSERT INTO customer_cart_items_v2 (session_token, product_id, quantity)
+    VALUES (?, ?, ?)
+    ON CONFLICT(session_token, product_id)
+    DO UPDATE SET
+      quantity = quantity + excluded.quantity,
+      updated_at = CURRENT_TIMESTAMP
+  `).bind(sessionToken, productId, quantity).run();
 
   return apiOk({
-    cart: await getCustomerCartApiPayload(env, session.customer.id)
+    cart: await getV2CartPayload(env, session.customer)
   }, 201);
 }
 
@@ -10960,16 +11759,13 @@ async function handleApiCustomerCartItemDetail(request, env, itemId) {
     return apiError("unauthorized", "Valid customer bearer token is required.", 401);
   }
 
-  const customerId = session.customer.id;
-  const cart = await getActiveCart(env, customerId);
+  const sessionToken = getCustomerOrderSessionToken(session.customer.id);
 
-  if (!cart) {
-    return apiError("cart_not_found", "Cart is empty.", 404);
-  }
-
-  const item = await env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
-  ).bind(itemId, cart.id).first();
+  const item = await env.DB.prepare(`
+    SELECT *
+    FROM customer_cart_items_v2
+    WHERE id = ? AND session_token = ?
+  `).bind(itemId, sessionToken).first();
 
   if (!item) {
     return apiError("item_not_found", "Cart item was not found.", 404);
@@ -10984,121 +11780,229 @@ async function handleApiCustomerCartItemDetail(request, env, itemId) {
 
     const quantity = Math.max(1, Math.floor(Number(body.quantity || item.quantity || 1)));
 
-    await env.DB.prepare(
-      "UPDATE shopping_cart_items SET quantity = ? WHERE id = ? AND cart_id = ?"
-    ).bind(quantity, itemId, cart.id).run();
-
-    await refreshCartStatusAfterItemChange(env, customerId);
+    await env.DB.prepare(`
+      UPDATE customer_cart_items_v2
+      SET quantity = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND session_token = ?
+    `).bind(quantity, itemId, sessionToken).run();
 
     return apiOk({
-      cart: await getCustomerCartApiPayload(env, customerId)
+      cart: await getV2CartPayload(env, session.customer)
     });
   }
 
   if (request.method === "DELETE") {
-    await env.DB.prepare(
-      "DELETE FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
-    ).bind(itemId, cart.id).run();
-
-    await refreshCartStatusAfterItemChange(env, customerId);
+    await env.DB.prepare("DELETE FROM customer_cart_items_v2 WHERE id = ? AND session_token = ?")
+      .bind(itemId, sessionToken)
+      .run();
 
     return apiOk({
-      cart: await getCustomerCartApiPayload(env, customerId)
+      cart: await getV2CartPayload(env, session.customer)
     });
   }
 
   return apiError("method_not_allowed", "Method not allowed.", 405);
 }
 
+async function ensureV2CartHasItems(env, sessionToken) {
+  const items = await getV2CartItems(env, sessionToken);
 
-
-function parseApiItemsJson(itemsJson) {
-  if (!itemsJson) return [];
-  try {
-    return JSON.parse(itemsJson).filter((item) => item && item.id !== null);
-  } catch (_) {
-    return [];
+  if (!items.length) {
+    return { error: apiError("cart_empty", "Cart is empty.", 400), items: [] };
   }
+
+  return { items };
 }
 
-function mapCustomerOrderForApi(order) {
-  const items = parseApiItemsJson(order.items_json).map(mapCartItemForApi);
-  const total = Number(order.total_amount || 0);
+async function submitV2Checkout(env, session, body, fulfillmentType) {
+  const customer = session.customer;
+  const sessionToken = getCustomerOrderSessionToken(customer.id);
+  await ensureV2CartSession(env, sessionToken, customer);
+
+  const cartCheck = await ensureV2CartHasItems(env, sessionToken);
+  if (cartCheck.error) return { error: cartCheck.error };
+
+  const onlineOrdering = await getOnlineOrderingStatus(env);
+  const activeOrder = await getActiveV2Order(env, sessionToken);
+
+  let location = null;
+
+  if (fulfillmentType === "delivery") {
+    location = await getCustomerLocationForCheckout(env, customer.id, sessionToken, body);
+
+    if (!location) {
+      return {
+        error: apiError(
+          "delivery_location_required",
+          "Please choose your preferred location, choose one of your saved locations, share a location, or enter a confirmed address before delivery checkout.",
+          400,
+          {
+            checkout_choices: [
+              "delivery_to_preferred_location",
+              "choose_saved_location",
+              "delivery_to_new_address",
+              "pickup_from_shop"
+            ]
+          }
+        )
+      };
+    }
+
+    if (location.weak_location) {
+      return {
+        error: apiError(
+          "delivery_location_needs_confirmation",
+          "This delivery address is not confirmed. Please choose a saved location, share a map location, or select a geocoded address.",
+          400,
+          { address: location.address || location.label || "" }
+        )
+      };
+    }
+  }
+
+  let order = null;
+  let groupFields = null;
+  let itemStatus = "confirmed";
+  let addedPhase = "initial_checkout";
+  let requiresApproval = false;
+
+  if (!onlineOrdering.is_open) {
+    order = await getScheduledV2Order(env, sessionToken, fulfillmentType);
+
+    if (!order) {
+      order = await createV2Order(env, sessionToken, customer, fulfillmentType, {
+        status: "scheduled_for_next_online_order",
+        order_status: "scheduled_for_next_online_order",
+        delivery_status: fulfillmentType === "delivery" ? "not_started" : null,
+        pickup_status: fulfillmentType === "pickup" ? "preparing" : null,
+        delivery_location_id: location?.id || null,
+        delivery_location_label: location?.label || location?.address || "",
+        delivery_google_maps_link: location?.google_maps_link || "",
+        delivery_address: location?.address || "",
+        scheduled_for_next_online_order: true,
+        next_online_order_at: onlineOrdering.next_online_order_at,
+        notes: body.delivery_note || body.notes || ""
+      });
+    }
+
+    groupFields = {
+      group_type: fulfillmentType === "delivery" ? "scheduled_next_online_order_delivery" : "scheduled_next_online_order_pickup",
+      group_status: "scheduled_for_next_online_order",
+      fulfillment_type: fulfillmentType,
+      requires_admin_approval: false,
+      scheduled_for_next_online_order: true,
+      next_online_order_at: onlineOrdering.next_online_order_at
+    };
+    itemStatus = "scheduled_for_next_online_order";
+    addedPhase = "scheduled_next_online_order";
+  } else if (!activeOrder) {
+    order = await createV2Order(env, sessionToken, customer, fulfillmentType, {
+      status: "submitted",
+      order_status: "submitted",
+      delivery_status: fulfillmentType === "delivery" ? "not_started" : null,
+      pickup_status: fulfillmentType === "pickup" ? "preparing" : null,
+      delivery_location_id: location?.id || null,
+      delivery_location_label: location?.label || location?.address || "",
+      delivery_google_maps_link: location?.google_maps_link || "",
+      delivery_address: location?.address || "",
+      notes: body.delivery_note || body.notes || ""
+    });
+
+    if (fulfillmentType === "pickup") {
+      groupFields = {
+        group_type: "initial_checkout",
+        group_status: "waiting_ready_to_pickup",
+        fulfillment_type: "pickup",
+        requires_admin_approval: false
+      };
+      itemStatus = "waiting_ready_to_pickup";
+      addedPhase = "initial_checkout";
+    } else {
+      groupFields = {
+        group_type: "initial_checkout",
+        group_status: "confirmed",
+        fulfillment_type: "delivery",
+        requires_admin_approval: false
+      };
+      itemStatus = "confirmed";
+      addedPhase = "initial_checkout";
+    }
+  } else if (fulfillmentType === "delivery") {
+    order = activeOrder;
+
+    if (order.fulfillment_type && order.fulfillment_type !== "delivery") {
+      order = await createV2Order(env, sessionToken, customer, "delivery", {
+        status: "submitted",
+        order_status: "submitted",
+        delivery_status: "not_started",
+        delivery_location_id: location?.id || null,
+        delivery_location_label: location?.label || location?.address || "",
+        delivery_google_maps_link: location?.google_maps_link || "",
+        delivery_address: location?.address || "",
+        notes: body.delivery_note || body.notes || ""
+      });
+      groupFields = {
+        group_type: "initial_checkout",
+        group_status: "confirmed",
+        fulfillment_type: "delivery",
+        requires_admin_approval: false
+      };
+      itemStatus = "confirmed";
+      addedPhase = "initial_checkout";
+    } else {
+      groupFields = {
+        group_type: "delivery_pending_addition",
+        group_status: "pending_admin_approval",
+        fulfillment_type: "delivery",
+        requires_admin_approval: true
+      };
+      itemStatus = "pending_admin_approval";
+      addedPhase = "after_checkout";
+      requiresApproval = true;
+    }
+  } else {
+    order = activeOrder;
+
+    if (order.fulfillment_type && order.fulfillment_type !== "pickup") {
+      order = await createV2Order(env, sessionToken, customer, "pickup", {
+        status: "submitted",
+        order_status: "submitted",
+        pickup_status: "preparing",
+        notes: body.delivery_note || body.notes || ""
+      });
+    } else {
+      await env.DB.prepare(`
+        UPDATE customer_orders_v2
+        SET pickup_status = 'preparing',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(order.id).run();
+    }
+
+    groupFields = {
+      group_type: "pickup_waiting_ready_confirmation",
+      group_status: "waiting_ready_to_pickup",
+      fulfillment_type: "pickup",
+      requires_admin_approval: false
+    };
+    itemStatus = "waiting_ready_to_pickup";
+    addedPhase = "after_checkout";
+  }
+
+  const group = await createV2OrderGroup(env, order.id, groupFields);
+  await moveV2CartItemsToOrderGroup(env, sessionToken, order.id, group, itemStatus, addedPhase, requiresApproval);
+  await updateV2OrderConfirmedTotal(env, order.id);
+
+  const updatedOrder = await env.DB.prepare("SELECT * FROM customer_orders_v2 WHERE id = ?")
+    .bind(order.id)
+    .first();
 
   return {
-    id: Number(order.id),
-    status: order.status || "active",
-    order_status: order.order_status || "in_progress",
-    order_status_label: getOrderStatusLabel(order.order_status || "in_progress"),
-    delivery_location_label: order.delivery_location_label || "",
-    delivery_google_maps_link: order.delivery_google_maps_link || "",
-    delivery_note: order.delivery_note || "",
-    admin_status_note: order.admin_status_note || "",
-    delivered_at: order.delivered_at || "",
-    closed_at: order.closed_at || "",
-    item_count: Number(order.item_count || items.length || 0),
-    total_amount: total,
-    total_formatted: formatPrice(total),
-    items,
-    created_at: order.created_at || "",
-    updated_at: order.updated_at || ""
+    order: await mapV2OrderForApi(env, updatedOrder),
+    cart: await getV2CartPayload(env, customer),
+    online_ordering: onlineOrdering
   };
-}
-
-async function getCustomerOrderRows(env, customerId, orderId = null) {
-  const whereOrder = orderId ? "AND c.id = ?" : "";
-  const query = `
-    SELECT
-      c.id,
-      c.customer_id,
-      c.status,
-      c.order_status,
-      c.delivery_location_label,
-      c.delivery_google_maps_link,
-      c.delivery_note,
-      c.delivered_at,
-      c.closed_at,
-      c.admin_status_note,
-      c.created_at,
-      c.updated_at,
-      COUNT(i.id) AS item_count,
-      COALESCE(SUM(COALESCE(i.price_snapshot, 0) * COALESCE(i.quantity, 1)), 0) AS total_amount,
-      json_group_array(
-        json_object(
-          'id', i.id,
-          'product_id', i.product_id,
-          'item_type', i.item_type,
-          'name', i.name,
-          'quantity', i.quantity,
-          'price_snapshot', i.price_snapshot,
-          'created_at', i.created_at
-        )
-      ) AS items_json
-    FROM shopping_carts c
-    LEFT JOIN shopping_cart_items i ON i.cart_id = c.id
-    WHERE c.customer_id = ?
-      ${whereOrder}
-    GROUP BY c.id
-    HAVING item_count > 0
-    ORDER BY c.updated_at DESC
-  `;
-
-  const stmt = env.DB.prepare(query);
-  const result = orderId
-    ? await stmt.bind(customerId, orderId).all()
-    : await stmt.bind(customerId).all();
-
-  return result.results || [];
-}
-
-async function ensureCustomerCartHasItems(env, customerId) {
-  const { cart, items } = await getCartItems(env, customerId);
-
-  if (!cart || !items.length) {
-    return { error: apiError("cart_empty", "Cart is empty.", 400) };
-  }
-
-  return { cart, items };
 }
 
 async function handleApiCustomerCheckoutAddress(request, env) {
@@ -11118,55 +12022,10 @@ async function handleApiCustomerCheckoutAddress(request, env) {
     return apiError("invalid_json", "Request body must be valid JSON.", 400);
   }
 
-  const customerId = session.customer.id;
-  const cartCheck = await ensureCustomerCartHasItems(env, customerId);
-  if (cartCheck.error) return cartCheck.error;
+  const result = await submitV2Checkout(env, session, body, "delivery");
+  if (result.error) return result.error;
 
-  const latitude = body.latitude !== undefined && body.latitude !== null ? String(body.latitude).trim() : null;
-  const longitude = body.longitude !== undefined && body.longitude !== null ? String(body.longitude).trim() : null;
-  const googleMapsLink = String(body.google_maps_link || "").trim() || (latitude && longitude ? makeGoogleMapsLink(latitude, longitude) : null);
-  const locationLabel = String(body.location_label || body.address || body.description || "").trim();
-
-  if (!locationLabel && !googleMapsLink) {
-    return apiError("location_required", "location_label, address, description, or coordinates are required.", 400);
-  }
-
-  const finalLocationLabel = locationLabel || `Customer location: ${latitude}, ${longitude}`;
-  const deliveryNote = String(body.delivery_note || "customer_app_checkout_address").trim();
-
-  await setActiveCartOrderStatus(env, customerId, "ready_to_delivery", {
-    delivery_location_label: finalLocationLabel,
-    delivery_google_maps_link: googleMapsLink,
-    delivery_note: deliveryNote
-  });
-
-  const requestId = await logCustomerRequest(
-    env,
-    customerId,
-    "delivery_location",
-    finalLocationLabel,
-    null,
-    "customer_app_checkout",
-    finalLocationLabel,
-    latitude,
-    longitude,
-    googleMapsLink
-  );
-
-  await saveMessage(env, customerId, "incoming", finalLocationLabel, session.customer.preferred_language || "en", "customer_app_checkout_address", "android");
-
-  if (googleMapsLink) {
-    await forwardCustomerLocationToAdmin(env, session.customer, requestId, finalLocationLabel, googleMapsLink);
-  } else {
-    await forwardUnresolvedMessage(env, session.customer, `Customer app checkout location: ${finalLocationLabel}`);
-  }
-
-  const orders = await getCustomerOrderRows(env, customerId, cartCheck.cart.id);
-
-  return apiOk({
-    order: orders[0] ? mapCustomerOrderForApi(orders[0]) : null,
-    cart: await getCustomerCartApiPayload(env, customerId)
-  });
+  return apiOk(result, 201);
 }
 
 async function handleApiCustomerCheckoutPickup(request, env) {
@@ -11186,51 +12045,33 @@ async function handleApiCustomerCheckoutPickup(request, env) {
     return apiError("invalid_json", "Request body must be valid JSON.", 400);
   }
 
-  const customerId = session.customer.id;
-  const cartCheck = await ensureCustomerCartHasItems(env, customerId);
-  if (cartCheck.error) return cartCheck.error;
+  const result = await submitV2Checkout(env, session, body, "pickup");
+  if (result.error) return result.error;
 
-  const meetingPointId = Number(body.meeting_point_id || 0);
+  return apiOk(result, 201);
+}
 
-  if (!meetingPointId) {
-    return apiError("meeting_point_required", "meeting_point_id is required.", 400);
+async function getV2CustomerOrders(env, sessionToken, orderId = null) {
+  const whereOrder = orderId ? "AND id = ?" : "";
+  const stmt = env.DB.prepare(`
+    SELECT *
+    FROM customer_orders_v2
+    WHERE session_token = ?
+      ${whereOrder}
+    ORDER BY datetime(updated_at) DESC, id DESC
+  `);
+
+  const result = orderId
+    ? await stmt.bind(sessionToken, orderId).all()
+    : await stmt.bind(sessionToken).all();
+
+  const orders = [];
+
+  for (const order of result.results || []) {
+    orders.push(await mapV2OrderForApi(env, order));
   }
 
-  const point = await env.DB.prepare(
-    "SELECT * FROM meeting_points WHERE id = ? AND is_active = 1"
-  ).bind(meetingPointId).first();
-
-  if (!point) {
-    return apiError("meeting_point_not_found", "Meeting point is not available.", 404);
-  }
-
-  await setActiveCartOrderStatus(env, customerId, "ready_to_delivery", {
-    delivery_location_label: point.name || point.address,
-    delivery_google_maps_link: point.google_maps_link,
-    delivery_note: "customer_app_pickup"
-  });
-
-  await logCustomerRequest(
-    env,
-    customerId,
-    "location",
-    "Customer app selected pickup at business location",
-    null,
-    point.name,
-    point.address,
-    null,
-    null,
-    point.google_maps_link
-  );
-
-  await saveMessage(env, customerId, "incoming", `Pickup selected: ${point.name || point.address}`, session.customer.preferred_language || "en", "customer_app_checkout_pickup", "android");
-
-  const orders = await getCustomerOrderRows(env, customerId, cartCheck.cart.id);
-
-  return apiOk({
-    order: orders[0] ? mapCustomerOrderForApi(orders[0]) : null,
-    cart: await getCustomerCartApiPayload(env, customerId)
-  });
+  return orders;
 }
 
 async function handleApiCustomerOrders(request, env) {
@@ -11244,10 +12085,11 @@ async function handleApiCustomerOrders(request, env) {
     return apiError("method_not_allowed", "Method not allowed.", 405);
   }
 
-  const orders = await getCustomerOrderRows(env, session.customer.id);
+  const sessionToken = getCustomerOrderSessionToken(session.customer.id);
+  const orders = await getV2CustomerOrders(env, sessionToken);
 
   return apiOk({
-    orders: orders.map(mapCustomerOrderForApi),
+    orders,
     count: orders.length
   });
 }
@@ -11263,14 +12105,15 @@ async function handleApiCustomerOrderDetail(request, env, orderId) {
     return apiError("method_not_allowed", "Method not allowed.", 405);
   }
 
-  const orders = await getCustomerOrderRows(env, session.customer.id, orderId);
+  const sessionToken = getCustomerOrderSessionToken(session.customer.id);
+  const orders = await getV2CustomerOrders(env, sessionToken, orderId);
 
   if (!orders.length) {
     return apiError("order_not_found", "Order was not found.", 404);
   }
 
   return apiOk({
-    order: mapCustomerOrderForApi(orders[0])
+    order: orders[0]
   });
 }
 
@@ -11320,13 +12163,43 @@ async function handleApiV1(request, env) {
     return handleApiAdminOrders(request, env, true);
   }
 
-  const customerAppOrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/status$/);
-  if (customerAppOrderStatusMatch) {
-    return handleApiAdminCustomerAppOrderStatus(request, env, Number(customerAppOrderStatusMatch[1]));
-  }
-
   if (url.pathname === "/api/v1/admin/customer-app-orders") {
     return handleApiAdminCustomerAppOrders(request, env);
+  }
+
+  const adminV2OrderDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)$/);
+  if (adminV2OrderDetailMatch) {
+    return handleApiAdminCustomerAppOrderDetail(request, env, Number(adminV2OrderDetailMatch[1]));
+  }
+
+  const adminV2OrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/status$/);
+  if (adminV2OrderStatusMatch) {
+    return handleApiAdminCustomerAppOrderStatus(request, env, Number(adminV2OrderStatusMatch[1]));
+  }
+
+  const adminV2OrderOnTheWayMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/on-the-way$/);
+  if (adminV2OrderOnTheWayMatch) {
+    return handleApiAdminV2DeliveryOnTheWay(request, env, Number(adminV2OrderOnTheWayMatch[1]));
+  }
+
+  const adminV2OrderReadyPickupMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/ready-to-pickup$/);
+  if (adminV2OrderReadyPickupMatch) {
+    return handleApiAdminV2ReadyToPickup(request, env, Number(adminV2OrderReadyPickupMatch[1]));
+  }
+
+  const adminV2OrderCancelMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/cancel$/);
+  if (adminV2OrderCancelMatch) {
+    return handleApiAdminV2CancelOrder(request, env, Number(adminV2OrderCancelMatch[1]));
+  }
+
+  const adminV2OrderGroupApproveMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/approve$/);
+  if (adminV2OrderGroupApproveMatch) {
+    return handleApiAdminV2ApproveGroup(request, env, Number(adminV2OrderGroupApproveMatch[1]), Number(adminV2OrderGroupApproveMatch[2]));
+  }
+
+  const adminV2OrderGroupRejectMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/reject$/);
+  if (adminV2OrderGroupRejectMatch) {
+    return handleApiAdminV2RejectGroup(request, env, Number(adminV2OrderGroupRejectMatch[1]), Number(adminV2OrderGroupRejectMatch[2]));
   }
 
   const adminOrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/status$/);
@@ -11738,6 +12611,46 @@ function renderCustomerAppOrderItems(items) {
   ]);
 }
 
+function renderCustomerAppOrderGroups(order) {
+  const groups = Array.isArray(order?.groups) ? order.groups : [];
+
+  if (!groups.length) {
+    return "<section class='panel'><h3>Checkout Groups</h3><div class='admin-v2-empty'>No checkout groups yet.</div></section>";
+  }
+
+  const html = groups.map((group) => {
+    const items = Array.isArray(group.items) ? group.items : [];
+    const itemRows = items.length
+      ? renderTable(items, [
+          { label: "Item", value: (r) => r.product_name || r.name || "" },
+          { label: "Qty", value: (r) => r.quantity || "" },
+          { label: "Status", value: (r) => badge(r.item_status || ""), html: true },
+          { label: "Line", value: (r) => String(r.line_total ?? "") }
+        ])
+      : "<div class='admin-v2-empty'>No items.</div>";
+
+    let actions = "";
+
+    if (group.group_status === "pending_admin_approval") {
+      actions += "<button type='button' data-customer-app-group-approve='" + escapeHtml(group.id) + "' data-customer-app-order-id='" + escapeHtml(order.id) + "'>Approve group</button>";
+      actions += "<button type='button' data-customer-app-group-reject='" + escapeHtml(group.id) + "' data-customer-app-order-id='" + escapeHtml(order.id) + "'>Reject group</button>";
+    }
+
+    return [
+      "<section class='panel'>",
+      "<h4>Group #" + escapeHtml(group.id) + " — " + escapeHtml(group.group_type || "") + "</h4>",
+      "<p>Status: " + badge(group.group_status || "") + "</p>",
+      "<p>Fulfillment: " + escapeHtml(group.fulfillment_type || "") + "</p>",
+      "<p>Total: " + escapeHtml(group.total_formatted || String(group.total_amount || 0)) + "</p>",
+      actions ? "<div class='toolbar'>" + actions + "</div>" : "",
+      itemRows,
+      "</section>"
+    ].join("");
+  }).join("");
+
+  return "<section><h3>Checkout Groups</h3>" + html + "</section>";
+}
+
 function renderCustomerAppOrderDetail(order) {
   if (!order) {
     return "<div class='admin-v2-empty'>Order not found.</div>";
@@ -11746,21 +12659,28 @@ function renderCustomerAppOrderDetail(order) {
   return [
     "<section class='card' style='margin-top:16px;'>",
     "<h2>Customer App Order " + escapeHtml(order.public_order_code || order.id) + "</h2>",
-    "<p class='small'>Status: " + badge(order.status) + "</p>",
+    "<p class='small'>Status: " + badge(order.order_status || order.status) + "</p>",
+    "<p><strong>Fulfillment:</strong> " + escapeHtml(order.fulfillment_type || "") + "</p>",
+    "<p><strong>Delivery status:</strong> " + escapeHtml(order.delivery_status_label || order.delivery_status || "") + "</p>",
+    "<p><strong>Pickup status:</strong> " + escapeHtml(order.pickup_status_label || order.pickup_status || "") + "</p>",
     "<p><strong>Customer:</strong> " + escapeHtml(order.customer_name || "") + "</p>",
     "<p><strong>Phone:</strong> " + escapeHtml(order.phone || "") + "</p>",
-    "<p><strong>Delivery:</strong> " + escapeHtml(order.delivery_address || "") + "</p>",
+    "<p><strong>Delivery:</strong> " + escapeHtml(order.delivery_location_label || order.delivery_address || "") + "</p>",
+    order.delivery_google_maps_link ? "<p><a href='" + escapeHtml(order.delivery_google_maps_link) + "' target='_blank'>Open delivery map</a></p>" : "",
     "<p><strong>Payment:</strong> " + escapeHtml(order.payment_method_code || "") + "</p>",
-    "<p><strong>Total:</strong> " + escapeHtml(String(order.total_amount ?? "")) + " " + escapeHtml(order.currency || "") + "</p>",
+    "<p><strong>Confirmed total:</strong> " + escapeHtml(order.total_formatted || String(order.total_amount ?? "")) + "</p>",
+    order.section_totals ? "<p><strong>Pending approval:</strong> " + escapeHtml(order.section_totals.pending_admin_approval?.total_formatted || "0") + "</p>" : "",
+    order.section_totals ? "<p><strong>Waiting ready pickup:</strong> " + escapeHtml(order.section_totals.waiting_ready_to_pickup?.total_formatted || "0") + "</p>" : "",
+    order.section_totals ? "<p><strong>Scheduled next online order:</strong> " + escapeHtml(order.section_totals.scheduled_for_next_online_order?.total_formatted || "0") + "</p>" : "",
     "<p><strong>Created:</strong> " + escapeHtml(formatDate(order.created_at)) + "</p>",
-    "<h3>Items</h3>",
-    renderCustomerAppOrderItems(order.items || []),
+    renderCustomerAppOrderAdminActions(order),
+    renderCustomerAppOrderGroups(order),
     rawPanel(order),
     "</section>"
   ].join("");
 }
 
-function renderCustomerAppOrderFilters() {
+function renderCustomerAppOrderFilters() {function renderCustomerAppOrderFilters() {
   const status = customerAppOrderFilters.status || "";
   const search = customerAppOrderFilters.search || "";
 
@@ -11770,13 +12690,10 @@ function renderCustomerAppOrderFilters() {
     "<div class='toolbar'>",
     "<label>Status <select id='customer-app-order-status-filter'>",
     "<option value=''>All</option>",
-    "<option value='new'" + (status === "new" ? " selected" : "") + ">New</option>",
-    "<option value='pending'" + (status === "pending" ? " selected" : "") + ">Pending</option>",
-    "<option value='accepted'" + (status === "accepted" ? " selected" : "") + ">Accepted</option>",
+    "<option value='draft'" + (status === "draft" ? " selected" : "") + ">Draft</option>",
+    "<option value='submitted'" + (status === "submitted" ? " selected" : "") + ">Submitted</option>",
     "<option value='preparing'" + (status === "preparing" ? " selected" : "") + ">Preparing</option>",
-    "<option value='ready'" + (status === "ready" ? " selected" : "") + ">Ready</option>",
-    "<option value='out_for_delivery'" + (status === "out_for_delivery" ? " selected" : "") + ">Out for delivery</option>",
-    "<option value='delivered'" + (status === "delivered" ? " selected" : "") + ">Delivered</option>",
+    "<option value='scheduled_for_next_online_order'" + (status === "scheduled_for_next_online_order" ? " selected" : "") + ">Scheduled next online order</option>",
     "<option value='cancelled'" + (status === "cancelled" ? " selected" : "") + ">Cancelled</option>",
     "<option value='closed'" + (status === "closed" ? " selected" : "") + ">Closed</option>",
     "</select></label>",
@@ -11792,7 +12709,7 @@ function getFilteredCustomerAppOrders() {
   const search = String(customerAppOrderFilters.search || "").trim().toLowerCase();
 
   return customerAppOrderCache.filter((order) => {
-    if (status && String(order.status || "").toLowerCase() !== status) {
+    if (status && String(order.order_status || order.status || "").toLowerCase() !== status) {
       return false;
     }
 
@@ -11807,7 +12724,11 @@ function getFilteredCustomerAppOrders() {
       order.phone,
       order.delivery_address,
       order.payment_method_code,
+      order.order_status,
       order.status,
+      order.fulfillment_type,
+      order.delivery_status,
+      order.pickup_status,
       order.total_amount,
       order.currency
     ].map((value) => String(value ?? "").toLowerCase()).join(" ");
@@ -11856,31 +12777,98 @@ function renderCustomerAppOrderStatusHistory(order) {
   ].join("");
 }
 
-function renderCustomerAppOrderStatusActions(order) {
+function renderCustomerAppOrderAdminActions(order) {
   if (!order) return "";
 
-  const statuses = [
-    ["new", "New"],
-    ["accepted", "Accepted"],
-    ["preparing", "Preparing"],
-    ["ready", "Ready"],
-    ["out_for_delivery", "Out for delivery"],
-    ["delivered", "Delivered"],
-    ["cancelled", "Cancelled"],
-    ["closed", "Closed"]
-  ];
+  const status = String(order.order_status || order.status || "");
+  const fulfillment = String(order.fulfillment_type || "");
+  const disabled = status === "cancelled" || status === "closed" || status === "delivered";
 
-  let html = '<section class="panel"><h3>Update Status</h3><label>Note <input id="customer-app-order-status-note" type="text" placeholder="Optional note for status history"></label><div class="toolbar">';
+  let html = '<section class="panel"><h3>Admin Actions</h3><label>Note <input id="customer-app-order-status-note" type="text" placeholder="Optional note / cancellation reason"></label><div class="toolbar">';
 
-  for (const item of statuses) {
-    const value = item[0];
-    const label = item[1];
-    const active = String(order.status || "") === value ? " active" : "";
-    html += '<button type="button" class="' + active + '" data-customer-app-order-status="' + value + '" data-customer-app-order-id="' + order.id + '">' + label + '</button>';
+  if (!disabled && fulfillment === "delivery") {
+    html += '<button type="button" data-customer-app-order-action="on-the-way" data-customer-app-order-id="' + order.id + '">Mark on the way</button>';
+  }
+
+  if (!disabled && fulfillment === "pickup") {
+    html += '<button type="button" data-customer-app-order-action="ready-to-pickup" data-customer-app-order-id="' + order.id + '">Mark ready to pick up</button>';
+  }
+
+  if (!disabled) {
+    html += '<button type="button" data-customer-app-order-action="cancel" data-customer-app-order-id="' + order.id + '">Cancel order</button>';
   }
 
   html += '</div></section>';
   return html;
+}
+
+async function replaceCustomerAppOrderInCache(updated) {
+  if (!updated || !updated.id) return null;
+
+  customerAppOrderCache = customerAppOrderCache.map((order) => {
+    if (Number(order.id) !== Number(updated.id)) return order;
+    return { ...order, ...updated };
+  });
+
+  let order = customerAppOrderCache.find((item) => Number(item.id) === Number(updated.id));
+
+  if (!order) {
+    customerAppOrderCache.unshift(updated);
+    order = updated;
+  }
+
+  refreshCustomerAppOrdersTable();
+
+  const detail = document.getElementById("customer-app-order-detail");
+  if (detail) {
+    detail.innerHTML = renderCustomerAppOrderDetail(order);
+  }
+
+  return order;
+}
+
+async function runCustomerAppOrderAction(orderId, action) {
+  const noteInput = document.getElementById("customer-app-order-status-note");
+  const note = noteInput?.value || "";
+
+  const pathMap = {
+    "on-the-way": "on-the-way",
+    "ready-to-pickup": "ready-to-pickup",
+    "cancel": "cancel"
+  };
+
+  const route = pathMap[action];
+  if (!route) return;
+
+  const body = action === "cancel" ? { reason: note } : { note };
+
+  const data = await api("/api/v1/admin/customer-app-orders/" + orderId + "/" + route, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const p = payload(data);
+  await replaceCustomerAppOrderInCache(p.order || {});
+
+  if (noteInput) noteInput.value = "";
+}
+
+async function runCustomerAppGroupAction(orderId, groupId, action) {
+  const noteInput = document.getElementById("customer-app-order-status-note");
+  const note = noteInput?.value || "";
+  const route = action === "approve" ? "approve" : "reject";
+
+  const data = await api("/api/v1/admin/customer-app-orders/" + orderId + "/groups/" + groupId + "/" + route, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note })
+  });
+
+  const p = payload(data);
+  await replaceCustomerAppOrderInCache(p.order || {});
+
+  if (noteInput) noteInput.value = "";
 }
 
 async function updateCustomerAppOrderStatus(orderId, status) {
@@ -11894,35 +12882,7 @@ async function updateCustomerAppOrderStatus(orderId, status) {
   });
 
   const p = payload(data);
-  const updated = p.order || {};
-
-  customerAppOrderCache = customerAppOrderCache.map((order) => {
-    if (Number(order.id) !== Number(orderId)) return order;
-
-    const historyEntry = {
-      id: Date.now(),
-      previous_status: order.status || "",
-      new_status: updated.status || status,
-      changed_by_admin_id: "",
-      changed_by_admin_username: "current admin",
-      note: note,
-      created_at: new Date().toISOString()
-    };
-
-    return {
-      ...order,
-      ...updated,
-      status_history: [historyEntry, ...(order.status_history || [])]
-    };
-  });
-
-  const order = customerAppOrderCache.find((item) => Number(item.id) === Number(orderId));
-  refreshCustomerAppOrdersTable();
-  const detail = document.getElementById("customer-app-order-detail");
-
-  if (detail) {
-    detail.innerHTML = renderCustomerAppOrderDetail(order) + renderCustomerAppOrderStatusActions(order);
-  }
+  await replaceCustomerAppOrderInCache(p.order || {});
 
   if (noteInput) noteInput.value = "";
 }
@@ -11933,9 +12893,10 @@ function customerAppOrderColumns() {
     { label: "Code", value: (r) => r.public_order_code },
     { label: "Customer", value: (r) => r.customer_name || "" },
     { label: "Phone", value: (r) => r.phone || "" },
-    { label: "Status", value: (r) => badge(r.status), html: true },
+    { label: "Status", value: (r) => badge(r.order_status || r.status), html: true },
+    { label: "Fulfillment", value: (r) => r.fulfillment_type || "" },
     { label: "Items", value: (r) => r.item_count ?? "" },
-    { label: "Total", value: (r) => String(r.total_amount ?? "") + " " + String(r.currency ?? "") },
+    { label: "Confirmed Total", value: (r) => r.total_formatted || (String(r.total_amount ?? "") + " " + String(r.currency ?? "")) },
     { label: "Payment", value: (r) => r.payment_method_code || "" },
     { label: "Delivery", value: (r) => r.delivery_address || "" },
     { label: "Created", value: (r) => formatDate(r.created_at) },
@@ -12143,26 +13104,50 @@ result.addEventListener("click", (event) => {
   const detail = document.getElementById("customer-app-order-detail");
 
   if (detail) {
-    detail.innerHTML = renderCustomerAppOrderDetail(order) + renderCustomerAppOrderStatusActions(order);
+    detail.innerHTML = renderCustomerAppOrderDetail(order);
     detail.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 });
 
 result.addEventListener("click", async (event) => {
-  const button = event.target?.closest?.("[data-customer-app-order-status]");
+  const button = event.target?.closest?.("[data-customer-app-order-action]");
   if (!button) return;
 
   const orderId = Number(button.getAttribute("data-customer-app-order-id"));
-  const status = button.getAttribute("data-customer-app-order-status");
+  const action = button.getAttribute("data-customer-app-order-action");
 
-  if (!orderId || !status) return;
+  if (!orderId || !action) return;
 
   button.disabled = true;
 
   try {
-    await updateCustomerAppOrderStatus(orderId, status);
+    await runCustomerAppOrderAction(orderId, action);
   } catch (error) {
-    alert(error?.message || "Could not update order status.");
+    alert(error?.message || "Could not update order.");
+  } finally {
+    button.disabled = false;
+  }
+});
+
+result.addEventListener("click", async (event) => {
+  const approveButton = event.target?.closest?.("[data-customer-app-group-approve]");
+  const rejectButton = event.target?.closest?.("[data-customer-app-group-reject]");
+  const button = approveButton || rejectButton;
+
+  if (!button) return;
+
+  const orderId = Number(button.getAttribute("data-customer-app-order-id"));
+  const groupId = Number(approveButton ? button.getAttribute("data-customer-app-group-approve") : button.getAttribute("data-customer-app-group-reject"));
+  const action = approveButton ? "approve" : "reject";
+
+  if (!orderId || !groupId) return;
+
+  button.disabled = true;
+
+  try {
+    await runCustomerAppGroupAction(orderId, groupId, action);
+  } catch (error) {
+    alert(error?.message || "Could not update group.");
   } finally {
     button.disabled = false;
   }
@@ -12360,6 +13345,10 @@ async function handleHealth() {
 
 async function routeRequest(request, env) {
   const url = new URL(request.url);
+
+  if (request.method === "OPTIONS" && url.pathname.startsWith("/api/v1/")) {
+    return apiCorsPreflight();
+  }
 
   if (url.pathname === "/health") return handleHealth();
 
