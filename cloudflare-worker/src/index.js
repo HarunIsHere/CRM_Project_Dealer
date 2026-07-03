@@ -3132,74 +3132,77 @@ function getCartUiText(language = "en") {
   return texts[safeLang(language)] || texts.en;
 }
 
-async function getOrCreateActiveCart(env, customerId) {
-  let cart = await env.DB.prepare(`
-    SELECT * FROM shopping_carts
-    WHERE customer_id = ?
-      AND status = 'active'
-      AND COALESCE(order_status, 'in_progress') != 'delivered'
-    ORDER BY id DESC
-    LIMIT 1
-  `).bind(customerId).first();
-
-  if (cart) return cart;
-
-  const inserted = await env.DB.prepare(
-    "INSERT INTO shopping_carts (customer_id, status, order_status) VALUES (?, 'active', 'in_progress') RETURNING *"
-  ).bind(customerId).first();
-
-  return inserted;
+async function getOrCreateActiveCart(env, customerId, customer = null) {
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+  await ensureV2CartSession(env, sessionToken, customer);
+  return {
+    id: sessionToken,
+    session_token: sessionToken,
+    customer_id: customerId,
+    status: "active",
+    order_status: "in_progress"
+  };
 }
 
 async function getActiveCart(env, customerId) {
-  return env.DB.prepare(`
-    SELECT * FROM shopping_carts
-    WHERE customer_id = ?
-      AND status = 'active'
-      AND COALESCE(order_status, 'in_progress') != 'delivered'
-    ORDER BY id DESC
-    LIMIT 1
-  `).bind(customerId).first();
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+  const items = await getV2CartItems(env, sessionToken);
+
+  if (!items.length) return null;
+
+  return {
+    id: sessionToken,
+    session_token: sessionToken,
+    customer_id: customerId,
+    status: "active",
+    order_status: "in_progress"
+  };
 }
 
-async function addProductToBasket(env, customerId, product, quantity = 1) {
+async function addProductToBasket(env, customerId, product, quantity = 1, customer = null) {
   quantity = Number(quantity);
   if (!Number.isFinite(quantity) || quantity < 1) quantity = 1;
   quantity = Math.floor(quantity);
 
-  const cart = await getOrCreateActiveCart(env, customerId);
-  const existing = await env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE cart_id = ? AND product_id = ? AND item_type = 'product'"
-  ).bind(cart.id, product.id).first();
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+  await ensureV2CartSession(env, sessionToken, customer);
 
+  const productId = Number(product.id || 0);
   const qty = Math.max(1, Number(quantity || 1));
 
-  if (existing) {
-    await env.DB.prepare(
-      "UPDATE shopping_cart_items SET quantity = quantity + ? WHERE id = ?"
-    ).bind(qty, existing.id).run();
-  } else {
-    await env.DB.prepare(
-      "INSERT INTO shopping_cart_items (cart_id, product_id, item_type, name, quantity, price_snapshot) VALUES (?, ?, 'product', ?, ?, ?)"
-    ).bind(cart.id, product.id, product.name, qty, product.price).run();
-  }
+  await env.DB.prepare(`
+    INSERT INTO customer_cart_items_v2 (session_token, product_id, quantity)
+    VALUES (?, ?, ?)
+    ON CONFLICT(session_token, product_id)
+    DO UPDATE SET
+      quantity = quantity + excluded.quantity,
+      updated_at = CURRENT_TIMESTAMP
+  `).bind(sessionToken, productId, qty).run();
 
-  await env.DB.prepare(
-    "UPDATE shopping_carts SET updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-  ).bind(cart.id).run();
-
-  return cart;
+  return {
+    id: sessionToken,
+    session_token: sessionToken,
+    customer_id: customerId,
+    status: "active",
+    order_status: "in_progress"
+  };
 }
 
 async function getCartItems(env, customerId) {
-  const cart = await getActiveCart(env, customerId);
-  if (!cart) return { cart: null, items: [] };
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+  const rawItems = await getV2CartItems(env, sessionToken);
+  const items = rawItems.map(mapV2CartItemForApi);
+  const cart = items.length
+    ? {
+        id: sessionToken,
+        session_token: sessionToken,
+        customer_id: customerId,
+        status: "active",
+        order_status: "in_progress"
+      }
+    : null;
 
-  const result = await env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE cart_id = ? ORDER BY id ASC"
-  ).bind(cart.id).all();
-
-  return { cart, items: result.results };
+  return { cart, items };
 }
 
 function formatBasketText(items, language = "en") {
@@ -3381,7 +3384,7 @@ async function handleProductRequestFromText(env, customer, chatId, incomingText,
     return true;
   }
 
-  await addProductToBasket(env, customer.id, matchedProduct, quantity);
+  await addProductToBasket(env, customer.id, matchedProduct, quantity, customer);
   await refreshCartStatusAfterItemChange(env, customer.id);
   await sendAddedToBasket(env, customer, chatId, matchedProduct, quantity);
   return true;
@@ -3401,66 +3404,19 @@ async function clearPendingBasketQuantityChange(env, customerId) {
 }
 
 async function setActiveCartOrderStatus(env, customerId, orderStatus, fields = {}) {
-  const cart = await getOrCreateActiveCart(env, customerId);
-
-  const deliveryLocationLabel = Object.prototype.hasOwnProperty.call(fields, "delivery_location_label")
-    ? fields.delivery_location_label
-    : cart.delivery_location_label;
-  const deliveryGoogleMapsLink = Object.prototype.hasOwnProperty.call(fields, "delivery_google_maps_link")
-    ? fields.delivery_google_maps_link
-    : cart.delivery_google_maps_link;
-  const deliveryNote = Object.prototype.hasOwnProperty.call(fields, "delivery_note")
-    ? fields.delivery_note
-    : cart.delivery_note;
-  const deliveredAt = Object.prototype.hasOwnProperty.call(fields, "delivered_at")
-    ? fields.delivered_at
-    : cart.delivered_at;
-  const closedAt = Object.prototype.hasOwnProperty.call(fields, "closed_at")
-    ? fields.closed_at
-    : cart.closed_at;
-  const adminStatusNote = Object.prototype.hasOwnProperty.call(fields, "admin_status_note")
-    ? fields.admin_status_note
-    : cart.admin_status_note;
-
-  await env.DB.prepare(`
-    UPDATE shopping_carts
-    SET order_status = ?,
-        delivery_location_label = ?,
-        delivery_google_maps_link = ?,
-        delivery_note = ?,
-        delivered_at = ?,
-        closed_at = ?,
-        admin_status_note = ?,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(
-    orderStatus,
-    deliveryLocationLabel || null,
-    deliveryGoogleMapsLink || null,
-    deliveryNote || null,
-    deliveredAt || null,
-    closedAt || null,
-    adminStatusNote || null,
-    cart.id
-  ).run();
-
-  return cart.id;
+  // Telegram bot is migrating to V2. Legacy shopping_carts status writes are intentionally disabled.
+  // Checkout/location/order state will be represented in customer_orders_v2 in the next migration slice.
+  await setSetting(env, `telegram_v2_pending_order_status_${customerId}`, orderStatus || "");
+  if (fields && Object.keys(fields).length) {
+    await setSetting(env, `telegram_v2_pending_order_fields_${customerId}`, JSON.stringify(fields));
+  }
+  return getCustomerOrderSessionToken(customerId);
 }
 
 async function refreshCartStatusAfterItemChange(env, customerId) {
-  const cart = await getOrCreateActiveCart(env, customerId);
-  const itemCount = await env.DB.prepare(
-    "SELECT COUNT(*) AS count FROM shopping_cart_items WHERE cart_id = ?"
-  ).bind(cart.id).first();
-
-  if (Number(itemCount?.count || 0) > 0 && (!cart.order_status || cart.order_status === "delivered" || cart.order_status === "not_delivered")) {
-    await setActiveCartOrderStatus(env, customerId, "in_progress", {
-      delivered_at: null,
-      closed_at: null
-    });
-  }
-
-  return cart.id;
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+  await ensureV2CartSession(env, sessionToken);
+  return sessionToken;
 }
 
 function getCheckoutLocationKeyboard(language = "en") {
@@ -3503,10 +3459,27 @@ function getCheckoutLocationKeyboard(language = "en") {
 }
 
 async function getCartItemForCustomer(env, customerId, itemId) {
-  const cart = await getOrCreateActiveCart(env, customerId);
-  return env.DB.prepare(
-    "SELECT * FROM shopping_cart_items WHERE id = ? AND cart_id = ?"
-  ).bind(itemId, cart.id).first();
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+  const item = await env.DB.prepare(`
+    SELECT
+      ci.id,
+      ci.session_token,
+      ci.product_id,
+      ci.quantity,
+      ci.created_at,
+      ci.updated_at,
+      p.name AS product_name,
+      p.price AS unit_price,
+      COALESCE(p.shop_id, 1) AS shop_id,
+      s.name AS shop_name,
+      (ci.quantity * p.price) AS line_total
+    FROM customer_cart_items_v2 ci
+    JOIN products p ON p.id = ci.product_id
+    LEFT JOIN shops s ON s.id = COALESCE(p.shop_id, 1)
+    WHERE ci.id = ? AND ci.session_token = ?
+  `).bind(itemId, sessionToken).first();
+
+  return item ? mapV2CartItemForApi(item) : null;
 }
 
 async function handleBasketSelection(env, callbackQuery) {
@@ -3540,14 +3513,10 @@ async function handleBasketSelection(env, callbackQuery) {
   }
 
   if (data === "basket_clear") {
-    await env.DB.prepare("DELETE FROM shopping_cart_items WHERE cart_id = ?").bind(cart.id).run();
-    await setActiveCartOrderStatus(env, customer.id, "in_progress", {
-      delivery_location_label: null,
-      delivery_google_maps_link: null,
-      delivery_note: null,
-      delivered_at: null,
-      closed_at: null
-    });
+    const sessionToken = getCustomerOrderSessionToken(customer.id);
+    await env.DB.prepare("DELETE FROM customer_cart_items_v2 WHERE session_token = ?")
+      .bind(sessionToken)
+      .run();
     await clearPendingBasketQuantityChange(env, customer.id);
     await setCustomerState(env, customer.id, null);
     await sendTelegramMessage(env, chatId, ui.basket_empty);
@@ -3600,8 +3569,9 @@ async function handleBasketSelection(env, callbackQuery) {
 
   if (data.startsWith("basket_remove_")) {
     const itemId = Number(data.replace("basket_remove_", ""));
-    await env.DB.prepare("DELETE FROM shopping_cart_items WHERE id = ? AND cart_id = ?")
-      .bind(itemId, cart.id)
+    const sessionToken = getCustomerOrderSessionToken(customer.id);
+    await env.DB.prepare("DELETE FROM customer_cart_items_v2 WHERE id = ? AND session_token = ?")
+      .bind(itemId, sessionToken)
       .run();
 
     await refreshCartStatusAfterItemChange(env, customer.id);
@@ -3696,7 +3666,7 @@ async function handleProductMenuSelection(env, callbackQuery) {
     }
 
     const quantity = 1;
-    await addProductToBasket(env, customer.id, product, quantity);
+    await addProductToBasket(env, customer.id, product, quantity, customer);
     await sendAddedToBasket(env, customer, callbackQuery.message.chat.id, product, quantity);
   }
 }
@@ -7891,7 +7861,7 @@ async function handleTelegramTextMessage(env, message) {
       return;
     }
 
-    await addProductToBasket(env, customer.id, product, quantity);
+    await addProductToBasket(env, customer.id, product, quantity, customer);
     await clearPendingProductQuantity(env, customer.id);
     await setCustomerState(env, customer.id, null);
     await sendAddedToBasket(env, customer, message.chat.id, product, quantity);
@@ -8056,7 +8026,7 @@ async function handleTelegramTextMessage(env, message) {
       const quantity = extractQuantity(incomingText);
 
       if (matchedProduct) {
-        await addProductToBasket(env, customer.id, matchedProduct, quantity);
+        await addProductToBasket(env, customer.id, matchedProduct, quantity, customer);
         await sendAddedToBasket(env, customer, message.chat.id, matchedProduct, quantity);
         return;
       }
