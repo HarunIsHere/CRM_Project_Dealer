@@ -4676,35 +4676,6 @@ async function cleanupOldAdminAuditLogs(env) {
 async function logAdminAction(env, request, session, actionType, actionDetail = "") {
   const url = new URL(request.url);
 
-  if (url.pathname === "/api/v1/customer/cart" && request.method === "GET") {
-    return handleCustomerCartApi(request, env);
-  }
-
-  if (url.pathname === "/api/v1/customer/cart/items" && request.method === "POST") {
-    return handleCustomerCartAddItemApi(request, env);
-  }
-
-  if (url.pathname.startsWith("/api/v1/customer/cart/items/") && (request.method === "PATCH" || request.method === "PUT")) {
-    return handleCustomerCartUpdateItemApi(request, env, url);
-  }
-
-  if (url.pathname.startsWith("/api/v1/customer/cart/items/") && request.method === "DELETE") {
-    return handleCustomerCartDeleteItemApi(request, env, url);
-  }
-
-  if (url.pathname === "/api/v1/customer/checkout" && request.method === "POST") {
-    return handleCustomerCheckoutApi(request, env);
-  }
-
-  if (url.pathname === "/api/v1/customer/orders" && request.method === "GET") {
-    return handleCustomerOrdersApi(request, env);
-  }
-
-  if (url.pathname.startsWith("/api/v1/customer/orders/") && request.method === "GET") {
-    return handleCustomerOrderDetailApi(request, env, url);
-  }
-
-
   const ip = request.headers.get("cf-connecting-ip") || "";
   const userAgent = request.headers.get("user-agent") || "";
 
