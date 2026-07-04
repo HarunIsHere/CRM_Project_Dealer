@@ -3422,37 +3422,49 @@ async function refreshCartStatusAfterItemChange(env, customerId) {
 function getCheckoutLocationKeyboard(language = "en") {
   const texts = {
     en: {
+      pickup: "Pickup",
+      type_address: "Delivery: type/share address",
+      see_locations: "Delivery: see our locations",
       contact_admin: "Contact admin to describe location",
-      see_locations: "See our locations",
-      cancel: "Cancel location entry"
+      cancel: "Cancel checkout"
     },
     de: {
+      pickup: "Abholung",
+      type_address: "Lieferung: Adresse eingeben/teilen",
+      see_locations: "Lieferung: unsere Standorte anzeigen",
       contact_admin: "Admin kontaktieren und Ort beschreiben",
-      see_locations: "Unsere Standorte anzeigen",
-      cancel: "Standorteingabe abbrechen"
+      cancel: "Checkout abbrechen"
     },
     tr: {
+      pickup: "Teslim alma",
+      type_address: "Teslimat: adres yaz/paylaş",
+      see_locations: "Teslimat: konumlarımızı gör",
       contact_admin: "Konumu tarif etmek için adminle iletişime geç",
-      see_locations: "Konumlarımızı gör",
-      cancel: "Konum girişini iptal et"
+      cancel: "Checkout iptal"
     },
     ar: {
+      pickup: "استلام",
+      type_address: "توصيل: اكتب/شارك العنوان",
+      see_locations: "توصيل: عرض مواقعنا",
       contact_admin: "تواصل مع المسؤول لوصف الموقع",
-      see_locations: "عرض مواقعنا",
-      cancel: "إلغاء إدخال الموقع"
+      cancel: "إلغاء الدفع"
     },
     ru: {
+      pickup: "Самовывоз",
+      type_address: "Доставка: ввести/отправить адрес",
+      see_locations: "Доставка: показать наши локации",
       contact_admin: "Связаться с админом и описать локацию",
-      see_locations: "Показать наши локации",
-      cancel: "Отменить ввод локации"
+      cancel: "Отменить оформление"
     }
   };
   const ui = texts[safeLang(language)] || texts.en;
 
   return {
     inline_keyboard: [
-      [{ text: ui.contact_admin, callback_data: "location_contact_admin" }],
+      [{ text: ui.pickup, callback_data: "checkout_pickup" }],
+      [{ text: ui.type_address, callback_data: "checkout_type_address" }],
       [{ text: ui.see_locations, callback_data: "location_show_meeting_points" }],
+      [{ text: ui.contact_admin, callback_data: "location_contact_admin" }],
       [{ text: ui.cancel, callback_data: "location_cancel" }]
     ]
   };
@@ -3952,18 +3964,89 @@ function getBackToCheckoutKeyboard(language = "en") {
 async function sendCheckoutPrompt(env, customer, chatId) {
   const language = customer.preferred_language || customer.language || "en";
   const checkoutTexts = {
-    en: "Checkout started. Please type your delivery address or describe where we should deliver.",
-    de: "Checkout gestartet. Bitte geben Sie Ihre Lieferadresse ein oder beschreiben Sie den Lieferort.",
-    tr: "Checkout başladı. Lütfen teslimat adresinizi yazın veya teslimatı nereye yapmamız gerektiğini tarif edin.",
-    ar: "بدأ الدفع. يرجى كتابة عنوان التوصيل أو وصف مكان التوصيل.",
-    ru: "Оформление начато. Напишите адрес доставки или опишите، куда доставить."
+    en: "Checkout started. Choose pickup or delivery.",
+    de: "Checkout gestartet. Wählen Sie Abholung oder Lieferung.",
+    tr: "Checkout başladı. Teslim alma veya teslimat seçin.",
+    ar: "بدأ الدفع. اختر الاستلام أو التوصيل.",
+    ru: "Оформление начато. Выберите самовывоз или доставку."
   };
   const replyText = checkoutTexts[safeLang(language)] || checkoutTexts.en;
 
-  await setCustomerState(env, customer.id, "awaiting_typed_address");
-  await setActiveCartOrderStatus(env, customer.id, "waiting_location");
+  await setCustomerState(env, customer.id, null);
   await saveMessage(env, customer.id, "outgoing", replyText, language);
   await sendTelegramMessage(env, chatId, replyText, getCheckoutLocationKeyboard(language));
+}
+
+function getTelegramCheckoutSuccessText(order, fulfillmentType, language = "en") {
+  const code = order?.public_order_code || order?.id || "";
+  const suffix = code ? ` #${code}` : "";
+  const replies = {
+    en: fulfillmentType === "pickup" ? `Pickup order created${suffix}.` : `Delivery order created${suffix}.`,
+    de: fulfillmentType === "pickup" ? `Abholbestellung erstellt${suffix}.` : `Lieferbestellung erstellt${suffix}.`,
+    tr: fulfillmentType === "pickup" ? `Teslim alma siparişi oluşturuldu${suffix}.` : `Teslimat siparişi oluşturuldu${suffix}.`,
+    ar: fulfillmentType === "pickup" ? `تم إنشاء طلب الاستلام${suffix}.` : `تم إنشاء طلب التوصيل${suffix}.`,
+    ru: fulfillmentType === "pickup" ? `Заказ на самовывоз создан${suffix}.` : `Заказ на доставку создан${suffix}.`
+  };
+
+  return replies[safeLang(language)] || replies.en;
+}
+
+async function submitTelegramV2Checkout(env, customer, fulfillmentType, body = {}) {
+  const result = await submitV2Checkout(env, { customer }, body, fulfillmentType);
+
+  if (result.error) {
+    let message = "Checkout could not be completed.";
+    try {
+      const payload = await result.error.clone().json();
+      message = payload.message || payload.error || message;
+    } catch (_) {}
+
+    return { ok: false, message };
+  }
+
+  return {
+    ok: true,
+    order: result.order,
+    cart: result.cart,
+    online_ordering: result.online_ordering
+  };
+}
+
+async function handleTelegramPickupCheckout(env, callbackQuery) {
+  const customer = await upsertCustomer(env, callbackQuery.from);
+  const language = customer.preferred_language || customer.language || "en";
+
+  const checkout = await submitTelegramV2Checkout(env, customer, "pickup", {
+    notes: "telegram_bot_pickup"
+  });
+
+  if (!checkout.ok) {
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, checkout.message);
+    return;
+  }
+
+  await setCustomerState(env, customer.id, null);
+
+  const replyText = getTelegramCheckoutSuccessText(checkout.order, "pickup", language);
+  await saveMessage(env, customer.id, "outgoing", replyText, language);
+  await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText);
+}
+
+async function handleTelegramTypeAddressCheckout(env, callbackQuery) {
+  const customer = await upsertCustomer(env, callbackQuery.from);
+  const language = customer.preferred_language || customer.language || "en";
+  const replies = {
+    en: "Please type your delivery address or share a map location.",
+    de: "Bitte geben Sie Ihre Lieferadresse ein oder teilen Sie einen Kartenstandort.",
+    tr: "Lütfen teslimat adresinizi yazın veya harita konumu paylaşın.",
+    ar: "يرجى كتابة عنوان التوصيل أو مشاركة موقع على الخريطة.",
+    ru: "Введите адрес доставки или отправьте геолокацию на карте."
+  };
+  const replyText = replies[safeLang(language)] || replies.en;
+
+  await setCustomerState(env, customer.id, "awaiting_typed_address");
+  await saveMessage(env, customer.id, "outgoing", replyText, language);
+  await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getBackToCheckoutKeyboard(language));
 }
 
 function getDeliveryAdminKeyboard(requestId, customerId, googleMapsLink, clickedValues = new Set(), lastValue = null) {
@@ -8226,16 +8309,23 @@ async function handleMeetingPointApproval(env, callbackQuery) {
     return;
   }
 
-  await setCustomerState(env, customer.id, null);
-  await setActiveCartOrderStatus(env, customer.id, "ready_to_delivery", {
-    delivery_location_label: point.name || point.address,
-    delivery_google_maps_link: point.google_maps_link,
-    delivery_note: "our_meeting_point_approved"
+  const locationLabel = point.name || point.address || "Meeting point";
+  const checkout = await submitTelegramV2Checkout(env, customer, "delivery", {
+    location_label: locationLabel,
+    address: point.address || locationLabel,
+    google_maps_link: point.google_maps_link || "",
+    delivery_note: "telegram_bot_meeting_point_approved"
   });
 
+  if (!checkout.ok) {
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, checkout.message);
+    return;
+  }
+
+  await setCustomerState(env, customer.id, null);
   await logCustomerRequest(env, customer.id, "location", "Customer approved delivery at our location", null, point.name, point.address, null, null, point.google_maps_link);
 
-  const replyText = getOurLocationApprovedText(language);
+  const replyText = getTelegramCheckoutSuccessText(checkout.order, "delivery", language);
   await saveMessage(env, customer.id, "outgoing", replyText, language);
   await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText);
 }
@@ -8265,6 +8355,7 @@ async function handleCancelLocationEntry(env, callbackQuery) {
 
 async function handleAddressSelection(env, callbackQuery) {
   const customer = await upsertCustomer(env, callbackQuery.from);
+  const language = customer.preferred_language || customer.language || "en";
   const index = Number(callbackQuery.data.replace("address_select_", ""));
   const stored = await getSetting(env, `address_search_results_${customer.id}`);
 
@@ -8280,17 +8371,26 @@ async function handleAddressSelection(env, callbackQuery) {
   }
 
   const selected = results[index];
-  const latitude = String(selected.latitude);
-  const longitude = String(selected.longitude);
-  const googleMapsLink = selected.google_maps_link;
-  const locationLabel = selected.address;
+  const latitude = String(selected.latitude || "");
+  const longitude = String(selected.longitude || "");
+  const googleMapsLink = selected.google_maps_link || (latitude && longitude ? makeGoogleMapsLink(latitude, longitude) : "");
+  const locationLabel = selected.address || selected.label || "";
+
+  const checkout = await submitTelegramV2Checkout(env, customer, "delivery", {
+    location_label: locationLabel,
+    address: locationLabel,
+    google_maps_link: googleMapsLink,
+    latitude,
+    longitude,
+    delivery_note: "telegram_bot_typed_address"
+  });
+
+  if (!checkout.ok) {
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, checkout.message);
+    return;
+  }
 
   await setCustomerState(env, customer.id, null);
-  await setActiveCartOrderStatus(env, customer.id, "ready_to_delivery", {
-    delivery_location_label: locationLabel,
-    delivery_google_maps_link: googleMapsLink,
-    delivery_note: "customer_typed_address"
-  });
 
   const pendingProductRequestId = Number(await getSetting(env, `pending_product_fulfillment_request_${customer.id}`) || 0);
 
@@ -8334,7 +8434,13 @@ async function handleAddressSelection(env, callbackQuery) {
       await sendTelegramMessage(
         env,
         callbackQuery.message.chat.id,
-        getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
+        getTelegramCheckoutSuccessText(checkout.order, "delivery", language)
+      );
+
+      await sendTelegramMessage(
+        env,
+        callbackQuery.message.chat.id,
+        getSetPreferredLocationText(language),
         getSetPreferredLocationKeyboard(customerLocationId)
       );
 
@@ -8372,7 +8478,13 @@ async function handleAddressSelection(env, callbackQuery) {
   await sendTelegramMessage(
     env,
     callbackQuery.message.chat.id,
-    getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
+    getTelegramCheckoutSuccessText(checkout.order, "delivery", language)
+  );
+
+  await sendTelegramMessage(
+    env,
+    callbackQuery.message.chat.id,
+    getSetPreferredLocationText(language),
     getSetPreferredLocationKeyboard(customerLocationId)
   );
 }
@@ -8686,6 +8798,8 @@ async function handleCallbackQuery(env, callbackQuery) {
   await answerCallbackQuery(env, callbackQuery.id);
 
   if (callbackQuery.data.startsWith("basket_")) return handleBasketSelection(env, callbackQuery);
+  if (callbackQuery.data === "checkout_pickup") return handleTelegramPickupCheckout(env, callbackQuery);
+  if (callbackQuery.data === "checkout_type_address") return handleTelegramTypeAddressCheckout(env, callbackQuery);
   if (callbackQuery.data.startsWith("product_fulfillment_")) return handleProductFulfillmentSelection(env, callbackQuery);
   if (callbackQuery.data === "location_contact_admin") return handleLocationContactAdmin(env, callbackQuery);
   if (callbackQuery.data === "location_cancel") return handleCancelLocationEntry(env, callbackQuery);
