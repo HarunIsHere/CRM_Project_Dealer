@@ -7898,9 +7898,13 @@ async function handleTelegramTextMessage(env, message) {
       return;
     }
 
-    await env.DB.prepare(
-      "UPDATE shopping_cart_items SET quantity = ? WHERE id = ?"
-    ).bind(Math.floor(Number(quantity)), itemId).run();
+    const sessionToken = getCustomerOrderSessionToken(customer.id);
+    await env.DB.prepare(`
+      UPDATE customer_cart_items_v2
+      SET quantity = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND session_token = ?
+    `).bind(Math.floor(Number(quantity)), itemId, sessionToken).run();
 
     await clearPendingBasketQuantityChange(env, customer.id);
     await setCustomerState(env, customer.id, null);
@@ -8511,43 +8515,52 @@ async function handleMeetingPointSelection(env, callbackQuery) {
 async function getTelegramActionableOrders(env) {
   const rows = await env.DB.prepare(`
     SELECT
-      c.id,
-      c.customer_id,
-      c.order_status,
-      c.delivery_location_label,
-      c.delivery_google_maps_link,
-      c.delivery_note,
-      c.updated_at,
+      o.id,
+      o.public_order_code,
+      o.session_token,
+      o.status,
+      o.order_status,
+      o.fulfillment_type,
+      o.delivery_status,
+      o.pickup_status,
+      o.delivery_location_label,
+      o.delivery_google_maps_link,
+      o.delivery_address,
+      o.updated_at,
       customers.full_name,
       customers.username,
       customers.telegram_user_id,
       COUNT(i.id) AS item_count,
-      COALESCE(SUM(COALESCE(i.price_snapshot, 0) * COALESCE(i.quantity, 1)), 0) AS total_amount,
+      COALESCE(o.total_amount, SUM(COALESCE(i.line_total, 0)), 0) AS total_amount,
       json_group_array(
         json_object(
-          'name', i.name,
+          'name', i.product_name,
           'quantity', i.quantity,
-          'price_snapshot', i.price_snapshot
+          'price_snapshot', i.unit_price
         )
       ) AS items_json
-    FROM shopping_carts c
-    JOIN customers ON customers.id = c.customer_id
-    LEFT JOIN shopping_cart_items i ON i.cart_id = c.id
-    WHERE
-      c.order_status = 'on_the_way'
-      OR (
-        c.order_status = 'ready_to_delivery'
-        AND c.delivery_note IN ('our_meeting_point', 'our_meeting_point_approved')
+    FROM customer_orders_v2 o
+    LEFT JOIN customers ON o.session_token = ('app_customer_' || customers.id)
+    LEFT JOIN customer_order_items_v2 i ON i.customer_order_id = o.id
+    WHERE COALESCE(o.order_status, o.status, '') NOT IN ('cancelled', 'closed', 'delivered')
+      AND (
+        o.fulfillment_type = 'delivery'
+        OR (
+          o.fulfillment_type = 'pickup'
+          AND o.pickup_status = 'ready_to_pickup'
+        )
       )
-    GROUP BY c.id
+    GROUP BY o.id
     HAVING item_count > 0
     ORDER BY
-      CASE c.order_status
-        WHEN 'on_the_way' THEN 1
-        WHEN 'ready_to_delivery' THEN 2
-        ELSE 3
+      CASE
+        WHEN o.fulfillment_type = 'delivery' AND o.delivery_status = 'on_the_way' THEN 1
+        WHEN o.fulfillment_type = 'delivery' THEN 2
+        WHEN o.fulfillment_type = 'pickup' AND o.pickup_status = 'ready_to_pickup' THEN 3
+        ELSE 4
       END,
-      datetime(c.updated_at) DESC
+      datetime(o.updated_at) DESC,
+      o.id DESC
   `).all();
 
   return rows.results || [];
@@ -8567,17 +8580,21 @@ function formatTelegramOrderItems(itemsJson) {
 
 function formatTelegramAdminOrdersText(orders) {
   if (!orders.length) {
-    return "No on-the-way or pickup-ready orders.";
+    return "No active V2 delivery or pickup-ready orders.";
   }
 
-  const lines = ["Closable orders:", ""];
+  const lines = ["V2 actionable orders:", ""];
 
   for (const order of orders) {
     const customerLabel = order.full_name || order.username || order.telegram_user_id || "Unknown";
     const itemsText = formatTelegramOrderItems(order.items_json);
-    const statusText = getOrderStatusLabel(order.order_status || "in_progress");
+    const fulfillment = order.fulfillment_type || "unknown";
+    const statusText = fulfillment === "delivery"
+      ? `delivery:${order.delivery_status || order.order_status || order.status || ""}`
+      : `pickup:${order.pickup_status || order.order_status || order.status || ""}`;
+    const publicCode = order.public_order_code ? ` (${order.public_order_code})` : "";
 
-    lines.push(`#${order.id} - ${statusText}`);
+    lines.push(`#${order.id}${publicCode} - ${statusText}`);
     lines.push(`Customer: ${customerLabel}`);
     lines.push(`Items: ${itemsText}`);
     lines.push(`Total: ${formatPrice(order.total_amount || 0)}`);
@@ -8609,6 +8626,44 @@ function getTelegramAdminOrdersKeyboard(orders) {
   };
 }
 
+async function markTelegramV2OrderDelivered(env, orderId, note = "") {
+  const order = await getV2RawOrder(env, orderId);
+  if (!order) return null;
+
+  const previousStatus = order.order_status || order.status || null;
+
+  await env.DB.prepare(`
+    UPDATE customer_orders_v2
+    SET status = 'delivered',
+        order_status = 'delivered',
+        delivery_status = CASE
+          WHEN fulfillment_type = 'delivery' THEN 'delivered'
+          ELSE delivery_status
+        END,
+        pickup_status = CASE
+          WHEN fulfillment_type = 'pickup' THEN 'picked_up'
+          ELSE pickup_status
+        END,
+        admin_status_note = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(note || null, orderId).run();
+
+  await addV2OrderHistory(
+    env,
+    orderId,
+    previousStatus,
+    "delivered",
+    { username: "telegram_bot" },
+    note || "Marked delivered from Telegram /o"
+  );
+
+  const updatedOrder = await getV2RawOrder(env, orderId);
+  await notifyCustomerForV2Order(env, updatedOrder, getV2OrderDeliveredText(), "order_status");
+
+  return updatedOrder;
+}
+
 async function sendTelegramAdminOrdersList(env, chatId) {
   const orders = await getTelegramActionableOrders(env);
   await sendTelegramMessage(
@@ -8626,7 +8681,12 @@ async function handleAdminOrderDeliveredSelection(env, callbackQuery) {
   }
 
   const orderId = Number(callbackQuery.data.replace("admin_order_delivered_", ""));
-  await updateOrderStatusByAdmin(env, orderId, "delivered", "Marked delivered from Telegram /o");
+  const updatedOrder = await markTelegramV2OrderDelivered(env, orderId, "Marked delivered from Telegram /o");
+
+  if (!updatedOrder) {
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, "V2 order was not found.");
+    return;
+  }
 
   const orders = await getTelegramActionableOrders(env);
   await editMessageReplyMarkup(
@@ -9447,6 +9507,10 @@ async function notifyCustomerForV2Order(env, order, text, messageType = "order_s
   }
 }
 
+
+function getV2OrderDeliveredText() {
+  return "Your order has been delivered.";
+}
 function getV2OrderCancelledText(reason = "") {
   const suffix = reason ? `\nReason: ${reason}` : "";
   return `Your order was cancelled by admin.${suffix}`;
