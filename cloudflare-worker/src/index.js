@@ -4480,7 +4480,7 @@ async function forwardCustomerLocationToAdmin(env, customer, requestId, location
 
   const language = customer.preferred_language || customer.language || "en";
   const { items } = await getCartItems(env, customer.id);
-  const basketText = items.length ? formatBasketText(items, language) : "Basket: empty";
+  const cartText = items.length ? formatBasketText(items, language) : "Cart: empty";
 
   const text = [
     "Customer delivery location:",
@@ -4488,7 +4488,7 @@ async function forwardCustomerLocationToAdmin(env, customer, requestId, location
     `Customer: ${customer.full_name || ""}`,
     `Telegram ID: ${customer.telegram_user_id}`,
     "",
-    basketText,
+    cartText,
     "",
     `Location: ${locationLabel}`,
     `Map: ${googleMapsLink}`
@@ -7967,10 +7967,7 @@ async function handleTelegramTextMessage(env, message) {
     const description = incomingText.trim();
 
     await setCustomerState(env, customer.id, null);
-    await setActiveCartOrderStatus(env, customer.id, "ready_to_delivery", {
-      delivery_location_label: description,
-      delivery_note: "customer_location_description"
-    });
+    await setSetting(env, `telegram_v2_pending_location_description_${customer.id}`, description);
 
     await logCustomerRequest(env, customer.id, "delivery_location", description, null, "location_description", description, null, null, null);
     await forwardUnresolvedMessage(env, customer, `Customer location description: ${description}`);
@@ -8293,7 +8290,7 @@ async function handleLocationContactAdmin(env, callbackQuery) {
   const language = customer.preferred_language || customer.language || "en";
 
   await setCustomerState(env, customer.id, "awaiting_location_description");
-  await setActiveCartOrderStatus(env, customer.id, "waiting_location");
+  await setSetting(env, `telegram_v2_pending_checkout_${customer.id}`, "location_description");
   await logCustomerRequest(env, customer.id, "location_description_started", "Customer selected contact admin to describe location");
   await forwardUnresolvedMessage(env, customer, "Customer selected: Contact admin to describe location");
 
@@ -8339,7 +8336,8 @@ async function handleCancelLocationEntry(env, callbackQuery) {
   const language = customer.preferred_language || customer.language || "en";
 
   await setCustomerState(env, customer.id, null);
-  await setActiveCartOrderStatus(env, customer.id, "in_progress");
+  await setSetting(env, `telegram_v2_pending_checkout_${customer.id}`, "");
+  await setSetting(env, `telegram_v2_pending_location_description_${customer.id}`, "");
 
   const replies = {
     en: "Location entry cancelled. You can now send a product name or choose an option.",
@@ -8507,7 +8505,7 @@ async function handleMeetingPointSelection(env, callbackQuery) {
   const replyText = getOurLocationApprovalPrompt(point, language);
 
   await setCustomerState(env, customer.id, "awaiting_typed_address");
-  await setActiveCartOrderStatus(env, customer.id, "waiting_location");
+  await setSetting(env, `telegram_v2_pending_checkout_${customer.id}`, "meeting_point_selection");
   await saveMessage(env, customer.id, "outgoing", replyText, language);
   await sendTelegramMessage(env, callbackQuery.message.chat.id, replyText, getMeetingPointApprovalKeyboard(point.id, language));
 }
