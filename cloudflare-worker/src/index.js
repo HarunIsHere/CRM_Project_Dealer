@@ -2870,7 +2870,7 @@ function getCustomerProductUiText(language = "en") {
       available_products: "Available products:",
       show_categories: "Show categories",
       special_request: "Special request",
-      basket: "Basket",
+      basket: "Cart",
       back_to_products: "Back to products",
       uncategorized_products: "Uncategorized products",
       choose_category: "Choose a category:",
@@ -3031,23 +3031,23 @@ async function isProductListRequestText(text) {
 function getCartUiText(language = "en") {
   const texts = {
     en: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} is in basket.`,
+      added_to_basket: (name, quantity) => `${name} x ${quantity} is in cart.`,
       need_anything_else: "Do you need anything else or do you want to check out? You can send a product name to continue shopping or choose an option below.",
       continue_shopping: "See products",
-      modify_basket: "Modify basket",
+      modify_basket: "Edit cart",
       checkout: "Checkout",
-      basket_empty: "Your basket is empty.",
-      your_basket: "Your basket:",
+      basket_empty: "Your cart is empty.",
+      your_basket: "Your cart:",
       remove: "Remove",
       change_amount: "Change amount",
       increase: "+",
       decrease: "-",
-      clear_basket: "Clear basket",
+      clear_basket: "Clear cart",
       change_quantity: "Change amount",
       enter_new_quantity: "Please enter the new amount.",
-      basket_quantity_updated: "Basket amount updated.",
-      item_removed: "Item removed from basket.",
-      item_updated: "Basket updated.",
+      basket_quantity_updated: "Cart amount updated.",
+      item_removed: "Item removed from cart.",
+      item_updated: "Cart updated.",
       checkout_next_stage: "Checkout delivery selection will be added in the next step."
     },
     de: {
@@ -3562,7 +3562,7 @@ async function handleBasketSelection(env, callbackQuery) {
       ru: `Удалить ${item.name}`
     };
     const backTexts = {
-      en: "Back to basket",
+      en: "Back to cart",
       de: "Zurück zum Warenkorb",
       tr: "Sepete dön",
       ar: "العودة إلى السلة",
@@ -7889,7 +7889,7 @@ async function handleTelegramTextMessage(env, message) {
     if (!item) {
       await clearPendingBasketQuantityChange(env, customer.id);
       await setCustomerState(env, customer.id, null);
-      await sendTelegramMessage(env, message.chat.id, ui.empty_basket);
+      await sendTelegramMessage(env, message.chat.id, ui.basket_empty);
       return;
     }
 
