@@ -2870,7 +2870,7 @@ function getCustomerProductUiText(language = "en") {
       available_products: "Available products:",
       show_categories: "Show categories",
       special_request: "Special request",
-      basket: "Cart",
+      cart: "Cart",
       back_to_products: "Back to products",
       uncategorized_products: "Uncategorized products",
       choose_category: "Choose a category:",
@@ -2883,7 +2883,7 @@ function getCustomerProductUiText(language = "en") {
       available_products: "Verfügbare Produkte:",
       show_categories: "Kategorien anzeigen",
       special_request: "Sonderwunsch",
-      basket: "Warenkorb",
+      cart: "Warenkorb",
       back_to_products: "Zurück zu Produkten",
       uncategorized_products: "Nicht kategorisierte Produkte",
       choose_category: "Kategorie auswählen:",
@@ -2896,7 +2896,7 @@ function getCustomerProductUiText(language = "en") {
       available_products: "Mevcut ürünler:",
       show_categories: "Kategorileri göster",
       special_request: "Özel istek",
-      basket: "Sepet",
+      cart: "Sepet",
       back_to_products: "Ürünlere dön",
       uncategorized_products: "Kategorisiz ürünler",
       choose_category: "Bir kategori seçin:",
@@ -2909,7 +2909,7 @@ function getCustomerProductUiText(language = "en") {
       available_products: "المنتجات المتوفرة:",
       show_categories: "عرض الفئات",
       special_request: "طلب خاص",
-      basket: "السلة",
+      cart: "السلة",
       back_to_products: "العودة إلى المنتجات",
       uncategorized_products: "منتجات بدون فئة",
       choose_category: "اختر فئة:",
@@ -2922,7 +2922,7 @@ function getCustomerProductUiText(language = "en") {
       available_products: "Доступные товары:",
       show_categories: "Показать категории",
       special_request: "Особый запрос",
-      basket: "Корзина",
+      cart: "Корзина",
       back_to_products: "Назад к товарам",
       uncategorized_products: "Товары без категории",
       choose_category: "Выберите категорию:",
@@ -2982,7 +2982,7 @@ function getProductMenuKeyboard(products, language = "en") {
     rows.push([{ text: `${product.name}: ${formatPrice(product.price)}`, callback_data: `product_select_${product.id}` }]);
   }
 
-  rows.push([{ text: ui.basket, callback_data: "basket_view" }]);
+  rows.push([{ text: ui.cart, callback_data: "basket_view" }]);
   return { inline_keyboard: rows };
 }
 
@@ -3007,7 +3007,7 @@ function getProductsInCategoryKeyboard(products, language = "en") {
   ]);
 
   rows.push([{ text: ui.back_to_products, callback_data: "product_back_to_products" }]);
-  rows.push([{ text: ui.basket, callback_data: "basket_view" }]);
+  rows.push([{ text: ui.cart, callback_data: "basket_view" }]);
   return { inline_keyboard: rows };
 }
 
@@ -3031,98 +3031,98 @@ async function isProductListRequestText(text) {
 function getCartUiText(language = "en") {
   const texts = {
     en: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} is in cart.`,
+      added_to_cart: (name, quantity) => `${name} x ${quantity} is in cart.`,
       need_anything_else: "Do you need anything else or do you want to check out? You can send a product name to continue shopping or choose an option below.",
       continue_shopping: "See products",
-      modify_basket: "Edit cart",
+      modify_cart: "Edit cart",
       checkout: "Checkout",
-      basket_empty: "Your cart is empty.",
-      your_basket: "Your cart:",
+      cart_empty: "Your cart is empty.",
+      your_cart: "Your cart:",
       remove: "Remove",
       change_amount: "Change amount",
       increase: "+",
       decrease: "-",
-      clear_basket: "Clear cart",
+      clear_cart: "Clear cart",
       change_quantity: "Change amount",
       enter_new_quantity: "Please enter the new amount.",
-      basket_quantity_updated: "Cart amount updated.",
+      cart_quantity_updated: "Cart amount updated.",
       item_removed: "Item removed from cart.",
       item_updated: "Cart updated.",
       checkout_next_stage: "Checkout delivery selection will be added in the next step."
     },
     de: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} ist im Warenkorb.`,
+      added_to_cart: (name, quantity) => `${name} x ${quantity} ist im Warenkorb.`,
       need_anything_else: "Brauchen Sie noch etwas oder möchten Sie zur Kasse gehen?",
       continue_shopping: "Produkte anzeigen",
-      modify_basket: "Warenkorb ändern",
+      modify_cart: "Warenkorb ändern",
       checkout: "Zur Kasse",
-      basket_empty: "Ihr Warenkorb ist leer.",
-      your_basket: "Ihr Warenkorb:",
+      cart_empty: "Ihr Warenkorb ist leer.",
+      your_cart: "Ihr Warenkorb:",
       remove: "Entfernen",
       change_amount: "Menge ändern",
       increase: "+",
       decrease: "-",
-      clear_basket: "Warenkorb leeren",
+      clear_cart: "Warenkorb leeren",
       change_quantity: "Menge ändern",
       enter_new_quantity: "Bitte geben Sie die neue Menge ein.",
-      basket_quantity_updated: "Warenkorbmenge aktualisiert.",
+      cart_quantity_updated: "Warenkorbmenge aktualisiert.",
       item_removed: "Artikel aus dem Warenkorb entfernt.",
       item_updated: "Warenkorb aktualisiert.",
       checkout_next_stage: "Die Lieferauswahl für den Checkout wird im nächsten Schritt hinzugefügt."
     },
     tr: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} sepete eklendi.`,
+      added_to_cart: (name, quantity) => `${name} x ${quantity} sepete eklendi.`,
       need_anything_else: "Başka bir şey ister misiniz yoksa ödeme/teslimat aşamasına geçmek ister misiniz? Alışverişe devam etmek için ürün adı yazabilir veya aşağıdan bir seçenek seçebilirsiniz.",
       continue_shopping: "Ürünleri gör",
-      modify_basket: "Sepeti düzenle",
+      modify_cart: "Sepeti düzenle",
       checkout: "Checkout",
-      basket_empty: "Sepetiniz boş.",
-      your_basket: "Sepetiniz:",
+      cart_empty: "Sepetiniz boş.",
+      your_cart: "Sepetiniz:",
       remove: "Kaldır",
       change_amount: "Miktarı değiştir",
       increase: "+",
       decrease: "-",
-      clear_basket: "Sepeti temizle",
+      clear_cart: "Sepeti temizle",
       change_quantity: "Adedi değiştir",
       enter_new_quantity: "Lütfen yeni adedi yazın.",
-      basket_quantity_updated: "Sepet adedi güncellendi.",
+      cart_quantity_updated: "Sepet adedi güncellendi.",
       item_removed: "Ürün sepetten kaldırıldı.",
       item_updated: "Sepet güncellendi.",
       checkout_next_stage: "Checkout teslimat seçimi bir sonraki adımda eklenecek."
     },
     ar: {
-      added_to_basket: (name, quantity) => `تمت إضافة ${name} x ${quantity} إلى السلة.`,
+      added_to_cart: (name, quantity) => `تمت إضافة ${name} x ${quantity} إلى السلة.`,
       need_anything_else: "هل تحتاج شيئاً آخر أم تريد إتمام الطلب؟",
       continue_shopping: "عرض المنتجات",
-      modify_basket: "تعديل السلة",
+      modify_cart: "تعديل السلة",
       checkout: "إتمام الطلب",
-      basket_empty: "سلتك فارغة.",
-      your_basket: "سلتك:",
+      cart_empty: "سلتك فارغة.",
+      your_cart: "سلتك:",
       remove: "إزالة",
       change_amount: "تغيير الكمية",
       increase: "+",
       decrease: "-",
-      clear_basket: "تفريغ السلة",
+      clear_cart: "تفريغ السلة",
       item_removed: "تمت إزالة المنتج من السلة.",
       item_updated: "تم تحديث السلة.",
       checkout_next_stage: "سيتم إضافة اختيار التوصيل في الخطوة التالية."
     },
     ru: {
-      added_to_basket: (name, quantity) => `${name} x ${quantity} добавлено в корзину.`,
+      added_to_cart: (name, quantity) => `${name} x ${quantity} добавлено в корзину.`,
       need_anything_else: "Нужно что-то ещё или хотите перейти к оформлению?",
       continue_shopping: "Показать товары",
-      modify_basket: "Изменить корзину",
+      modify_cart: "Изменить корзину",
       checkout: "Оформить заказ",
-      basket_empty: "Ваша корзина пуста.",
-      your_basket: "Ваша корзина:",
+      cart_empty: "Ваша корзина пуста.",
+      your_cart: "Ваша корзина:",
       remove: "Удалить",
       change_amount: "Изменить количество",
       increase: "+",
       decrease: "-",
-      clear_basket: "Очистить корзину",
+      clear_cart: "Очистить корзину",
       change_quantity: "Изменить количество",
       enter_new_quantity: "Пожалуйста, введите новое количество.",
-      basket_quantity_updated: "Количество в корзине обновлено.",
+      cart_quantity_updated: "Количество в корзине обновлено.",
       item_removed: "Товар удалён из корзины.",
       item_updated: "Корзина обновлена.",
       checkout_next_stage: "Выбор доставки для оформления будет добавлен на следующем шаге."
@@ -3159,7 +3159,7 @@ async function getActiveCart(env, customerId) {
   };
 }
 
-async function addProductToBasket(env, customerId, product, quantity = 1, customer = null) {
+async function addProductToCart(env, customerId, product, quantity = 1, customer = null) {
   quantity = Number(quantity);
   if (!Number.isFinite(quantity) || quantity < 1) quantity = 1;
   quantity = Math.floor(quantity);
@@ -3205,10 +3205,10 @@ async function getCartItems(env, customerId) {
   return { cart, items };
 }
 
-function formatBasketText(items, language = "en") {
+function formatCartText(items, language = "en") {
   const ui = getCartUiText(language);
 
-  if (!items.length) return ui.basket_empty;
+  if (!items.length) return ui.cart_empty;
 
   let total = 0;
 
@@ -3235,22 +3235,22 @@ function formatBasketText(items, language = "en") {
   };
   const totalLabel = totalTexts[safeLang(language)] || totalTexts.en;
 
-  return `${ui.your_basket}\n${lines.join("\n")}\n\n${totalLabel}: ${formatPrice(total)}`;
+  return `${ui.your_cart}\n${lines.join("\n")}\n\n${totalLabel}: ${formatPrice(total)}`;
 }
 
-function getAfterAddToBasketKeyboard(language = "en") {
+function getAfterAddToCartKeyboard(language = "en") {
   const ui = getCartUiText(language);
   return {
     inline_keyboard: [
       [getTelegramMiniAppButton(language)],
       [{ text: ui.continue_shopping, callback_data: "basket_continue" }],
-      [{ text: ui.modify_basket, callback_data: "basket_view" }],
+      [{ text: ui.edit_cart, callback_data: "basket_view" }],
       [{ text: ui.checkout, callback_data: "basket_checkout" }]
     ]
   };
 }
 
-function getBasketKeyboard(items, language = "en") {
+function getCartKeyboard(items, language = "en") {
   const ui = getCartUiText(language);
   const lang = safeLang(language);
   const actionText = {
@@ -3278,18 +3278,18 @@ function getBasketKeyboard(items, language = "en") {
     { text: ui.continue_shopping, callback_data: "basket_continue" },
     { text: ui.checkout, callback_data: "basket_checkout" }
   ]);
-  rows.push([{ text: ui.clear_basket, callback_data: "basket_clear" }]);
+  rows.push([{ text: ui.clear_cart, callback_data: "basket_clear" }]);
 
   return { inline_keyboard: rows };
 }
 
-async function sendBasketView(env, customer, chatId) {
+async function sendCartView(env, customer, chatId) {
   const language = customer.preferred_language || customer.language || "en";
   const { items } = await getCartItems(env, customer.id);
-  await sendTelegramMessage(env, chatId, formatBasketText(items, language), getBasketKeyboard(items, language));
+  await sendTelegramMessage(env, chatId, formatCartText(items, language), getCartKeyboard(items, language));
 }
 
-async function sendAddedToBasket(env, customer, chatId, product, quantity) {
+async function sendAddedToCart(env, customer, chatId, product, quantity) {
   const language = customer.preferred_language || customer.language || "en";
   const ui = getCartUiText(language);
 
@@ -3299,13 +3299,13 @@ async function sendAddedToBasket(env, customer, chatId, product, quantity) {
   const priceLine = unitPrice ? `${formatPrice(unitPrice)} x ${amount} = ${formatPrice(totalPrice)}` : "";
 
   const replyText = [
-    ui.added_to_basket(product.name, amount),
+    ui.added_to_cart(product.name, amount),
     priceLine,
     "",
     ui.need_anything_else
   ].filter((line) => line !== "").join("\n");
 
-  await sendTelegramMessage(env, chatId, replyText, getAfterAddToBasketKeyboard(language));
+  await sendTelegramMessage(env, chatId, replyText, getAfterAddToCartKeyboard(language));
 }
 
 function getAskProductQuantityText(language = "en", product = "") {
@@ -3384,23 +3384,23 @@ async function handleProductRequestFromText(env, customer, chatId, incomingText,
     return true;
   }
 
-  await addProductToBasket(env, customer.id, matchedProduct, quantity, customer);
+  await addProductToCart(env, customer.id, matchedProduct, quantity, customer);
   await refreshCartStatusAfterItemChange(env, customer.id);
-  await sendAddedToBasket(env, customer, chatId, matchedProduct, quantity);
+  await sendAddedToCart(env, customer, chatId, matchedProduct, quantity);
   return true;
 }
 
-async function setPendingBasketQuantityChange(env, customerId, cartItemId) {
-  await setSetting(env, `pending_basket_quantity_item_${customerId}`, String(cartItemId));
+async function setPendingCartQuantityChange(env, customerId, cartItemId) {
+  await setSetting(env, `pending_cart_quantity_item_${customerId}`, String(cartItemId));
 }
 
-async function getPendingBasketQuantityChange(env, customerId) {
-  const value = await getSetting(env, `pending_basket_quantity_item_${customerId}`);
+async function getPendingCartQuantityChange(env, customerId) {
+  const value = await getSetting(env, `pending_cart_quantity_item_${customerId}`);
   return Number(value || 0);
 }
 
-async function clearPendingBasketQuantityChange(env, customerId) {
-  await setSetting(env, `pending_basket_quantity_item_${customerId}`, "");
+async function clearPendingCartQuantityChange(env, customerId) {
+  await setSetting(env, `pending_cart_quantity_item_${customerId}`, "");
 }
 
 
@@ -3485,7 +3485,7 @@ async function getCartItemForCustomer(env, customerId, itemId) {
   return item ? mapV2CartItemForApi(item) : null;
 }
 
-async function handleBasketSelection(env, callbackQuery) {
+async function handleCartSelection(env, callbackQuery) {
   const customer = await upsertCustomer(env, callbackQuery.from);
   const language = customer.preferred_language || customer.language || "en";
   const ui = getCartUiText(language);
@@ -3498,9 +3498,9 @@ async function handleBasketSelection(env, callbackQuery) {
   }
 
   if (data === "basket_view" || data === "basket_back") {
-    await clearPendingBasketQuantityChange(env, customer.id);
+    await clearPendingCartQuantityChange(env, customer.id);
     await setCustomerState(env, customer.id, null);
-    await sendBasketView(env, customer, chatId);
+    await sendCartView(env, customer, chatId);
     return;
   }
 
@@ -3511,7 +3511,7 @@ async function handleBasketSelection(env, callbackQuery) {
 
   const { cart } = await getCartItems(env, customer.id);
   if (!cart) {
-    await sendTelegramMessage(env, chatId, ui.basket_empty);
+    await sendTelegramMessage(env, chatId, ui.cart_empty);
     return;
   }
 
@@ -3520,9 +3520,9 @@ async function handleBasketSelection(env, callbackQuery) {
     await env.DB.prepare("DELETE FROM customer_cart_items_v2 WHERE session_token = ?")
       .bind(sessionToken)
       .run();
-    await clearPendingBasketQuantityChange(env, customer.id);
+    await clearPendingCartQuantityChange(env, customer.id);
     await setCustomerState(env, customer.id, null);
-    await sendTelegramMessage(env, chatId, ui.basket_empty);
+    await sendTelegramMessage(env, chatId, ui.cart_empty);
     return;
   }
 
@@ -3531,12 +3531,12 @@ async function handleBasketSelection(env, callbackQuery) {
     const item = await getCartItemForCustomer(env, customer.id, itemId);
 
     if (!item) {
-      await sendTelegramMessage(env, chatId, ui.basket_empty);
+      await sendTelegramMessage(env, chatId, ui.cart_empty);
       return;
     }
 
-    await setPendingBasketQuantityChange(env, customer.id, itemId);
-    await setCustomerState(env, customer.id, "awaiting_basket_quantity");
+    await setPendingCartQuantityChange(env, customer.id, itemId);
+    await setCustomerState(env, customer.id, "awaiting_cart_quantity");
 
     const actionTexts = {
       en: `Type the new amount for ${item.name}, or remove it below.`,
@@ -3578,11 +3578,11 @@ async function handleBasketSelection(env, callbackQuery) {
       .run();
 
     await refreshCartStatusAfterItemChange(env, customer.id);
-    await clearPendingBasketQuantityChange(env, customer.id);
+    await clearPendingCartQuantityChange(env, customer.id);
     await setCustomerState(env, customer.id, null);
 
     await sendTelegramMessage(env, chatId, ui.item_removed);
-    await sendBasketView(env, customer, chatId);
+    await sendCartView(env, customer, chatId);
     return;
   }
 }
@@ -3594,7 +3594,7 @@ async function handleProductMenuSelection(env, callbackQuery) {
   const data = callbackQuery.data;
 
   if (data === "basket_view") {
-    await sendBasketView(env, customer, callbackQuery.message.chat.id);
+    await sendCartView(env, customer, callbackQuery.message.chat.id);
     return;
   }
 
@@ -3669,8 +3669,8 @@ async function handleProductMenuSelection(env, callbackQuery) {
     }
 
     const quantity = 1;
-    await addProductToBasket(env, customer.id, product, quantity, customer);
-    await sendAddedToBasket(env, customer, callbackQuery.message.chat.id, product, quantity);
+    await addProductToCart(env, customer.id, product, quantity, customer);
+    await sendAddedToCart(env, customer, callbackQuery.message.chat.id, product, quantity);
   }
 }
 
@@ -4471,7 +4471,7 @@ async function forwardCustomerLocationToAdmin(env, customer, requestId, location
 
   const language = customer.preferred_language || customer.language || "en";
   const { items } = await getCartItems(env, customer.id);
-  const cartText = items.length ? formatBasketText(items, language) : "Cart: empty";
+  const cartText = items.length ? formatCartText(items, language) : "Cart: empty";
 
   const text = [
     "Customer delivery location:",
@@ -6311,7 +6311,7 @@ async function notifyCustomerForOrderStatus(env, order, status) {
   const text = getOrderStatusCustomerMessage(status, language);
 
   let keyboard = null;
-  if (status === "in_progress") keyboard = getBasketKeyboard((await getCartItems(env, order.customer_id)).items || [], language);
+  if (status === "in_progress") keyboard = getCartKeyboard((await getCartItems(env, order.customer_id)).items || [], language);
   if (status === "waiting_location") keyboard = getCheckoutLocationKeyboard(language);
   if (status === "not_delivered") keyboard = getMenuKeyboard(language);
 
@@ -7963,14 +7963,14 @@ async function handleTelegramTextMessage(env, message) {
 
   await saveMessage(env, customer.id, "incoming", incomingText, detectedLanguage);
 
-  if (customer.conversation_state === "awaiting_basket_quantity") {
+  if (customer.conversation_state === "awaiting_cart_quantity") {
     const language = customer.preferred_language || customer.language || "en";
     const ui = getCartUiText(language);
-    const itemId = await getPendingBasketQuantityChange(env, customer.id);
+    const itemId = await getPendingCartQuantityChange(env, customer.id);
     const quantity = extractQuantity(incomingText);
 
     if (!itemId) {
-      await clearPendingBasketQuantityChange(env, customer.id);
+      await clearPendingCartQuantityChange(env, customer.id);
       await setCustomerState(env, customer.id, null);
       await sendTelegramMessage(env, message.chat.id, getInvalidProductQuantityText(language));
       return;
@@ -7979,9 +7979,9 @@ async function handleTelegramTextMessage(env, message) {
     const item = await getCartItemForCustomer(env, customer.id, itemId);
 
     if (!item) {
-      await clearPendingBasketQuantityChange(env, customer.id);
+      await clearPendingCartQuantityChange(env, customer.id);
       await setCustomerState(env, customer.id, null);
-      await sendTelegramMessage(env, message.chat.id, ui.basket_empty);
+      await sendTelegramMessage(env, message.chat.id, ui.cart_empty);
       return;
     }
 
@@ -7998,11 +7998,11 @@ async function handleTelegramTextMessage(env, message) {
       WHERE id = ? AND session_token = ?
     `).bind(Math.floor(Number(quantity)), itemId, sessionToken).run();
 
-    await clearPendingBasketQuantityChange(env, customer.id);
+    await clearPendingCartQuantityChange(env, customer.id);
     await setCustomerState(env, customer.id, null);
 
-    await sendTelegramMessage(env, message.chat.id, ui.basket_quantity_updated);
-    await sendBasketView(env, customer, message.chat.id);
+    await sendTelegramMessage(env, message.chat.id, ui.cart_quantity_updated);
+    await sendCartView(env, customer, message.chat.id);
     return;
   }
 
@@ -8040,15 +8040,15 @@ async function handleTelegramTextMessage(env, message) {
       return;
     }
 
-    await addProductToBasket(env, customer.id, product, quantity, customer);
+    await addProductToCart(env, customer.id, product, quantity, customer);
     await clearPendingProductQuantity(env, customer.id);
     await setCustomerState(env, customer.id, null);
-    await sendAddedToBasket(env, customer, message.chat.id, product, quantity);
+    await sendAddedToCart(env, customer, message.chat.id, product, quantity);
     return;
   }
 
   if (
-    !["awaiting_product_quantity", "awaiting_basket_quantity", "awaiting_special_request"].includes(customer.conversation_state || "")
+    !["awaiting_product_quantity", "awaiting_cart_quantity", "awaiting_special_request"].includes(customer.conversation_state || "")
     && await handleProductRequestFromText(env, customer, message.chat.id, incomingText, customer.preferred_language || customer.language || "en")
   ) {
     return;
@@ -8202,8 +8202,8 @@ async function handleTelegramTextMessage(env, message) {
       const quantity = extractQuantity(incomingText);
 
       if (matchedProduct) {
-        await addProductToBasket(env, customer.id, matchedProduct, quantity, customer);
-        await sendAddedToBasket(env, customer, message.chat.id, matchedProduct, quantity);
+        await addProductToCart(env, customer.id, matchedProduct, quantity, customer);
+        await sendAddedToCart(env, customer, message.chat.id, matchedProduct, quantity);
         return;
       }
     }
@@ -8282,7 +8282,7 @@ async function handleTelegramCommand(env, message, customer, text) {
 
     await setCustomerState(env, customer.id, null);
     await setSetting(env, `pending_product_quantity_${customer.id}`, "");
-    await setSetting(env, `pending_basket_quantity_item_${customer.id}`, "");
+    await setSetting(env, `pending_cart_quantity_item_${customer.id}`, "");
     await setSetting(env, `pending_product_fulfillment_request_${customer.id}`, "");
     await sendTelegramMessage(
       env,
@@ -9016,7 +9016,7 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
 async function handleCallbackQuery(env, callbackQuery) {
   await answerCallbackQuery(env, callbackQuery.id);
 
-  if (callbackQuery.data.startsWith("basket_")) return handleBasketSelection(env, callbackQuery);
+  if (callbackQuery.data.startsWith("basket_")) return handleCartSelection(env, callbackQuery);
   if (callbackQuery.data === "checkout_pickup") return handleTelegramPickupCheckout(env, callbackQuery);
   if (callbackQuery.data === "checkout_type_address") return handleTelegramTypeAddressCheckout(env, callbackQuery);
   if (callbackQuery.data.startsWith("product_fulfillment_")) return handleProductFulfillmentSelection(env, callbackQuery);
