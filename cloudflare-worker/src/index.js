@@ -8664,6 +8664,55 @@ async function markTelegramV2OrderDelivered(env, orderId, note = "") {
   return updatedOrder;
 }
 
+async function getLatestTelegramV2DeliveryOrderForCustomer(env, customerId) {
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+
+  return env.DB.prepare(`
+    SELECT *
+    FROM customer_orders_v2
+    WHERE session_token = ?
+      AND fulfillment_type = 'delivery'
+      AND COALESCE(order_status, status, '') NOT IN ('cancelled', 'closed', 'delivered', 'not_delivered')
+    ORDER BY datetime(updated_at) DESC, id DESC
+    LIMIT 1
+  `).bind(sessionToken).first();
+}
+
+async function updateTelegramV2DeliveryStatusForCustomer(env, customerId, deliveryStatus, orderStatus = null, note = "") {
+  const order = await getLatestTelegramV2DeliveryOrderForCustomer(env, customerId);
+  if (!order) return null;
+
+  const previousStatus = order.delivery_status || order.order_status || order.status || null;
+  const nextOrderStatus = orderStatus || order.order_status || order.status || "submitted";
+
+  await env.DB.prepare(`
+    UPDATE customer_orders_v2
+    SET status = ?,
+        order_status = ?,
+        delivery_status = ?,
+        admin_status_note = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).bind(
+    nextOrderStatus,
+    nextOrderStatus,
+    deliveryStatus,
+    note || null,
+    order.id
+  ).run();
+
+  await addV2OrderHistory(
+    env,
+    order.id,
+    previousStatus,
+    deliveryStatus,
+    { username: "telegram_bot" },
+    note || `Telegram delivery status: ${deliveryStatus}`
+  );
+
+  return await getV2RawOrder(env, order.id);
+}
+
 async function sendTelegramAdminOrdersList(env, chatId) {
   const orders = await getTelegramActionableOrders(env);
   await sendTelegramMessage(
@@ -8817,12 +8866,20 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
 
   let etaValue;
   let replyText;
+  let updatedOrder = null;
 
   if (etaText === null) {
     etaValue = "No delivery";
     replyText = t("no_delivery", customer.preferred_language || "en");
     await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE id = ?").bind(requestId).run();
-    await setActiveCartOrderStatus(env, customer.id, "not_delivered");
+
+    updatedOrder = await updateTelegramV2DeliveryStatusForCustomer(
+      env,
+      customer.id,
+      "not_delivered",
+      "not_delivered",
+      "Telegram admin selected no delivery"
+    );
   } else {
     etaValue = etaText;
     const replies = {
@@ -8834,7 +8891,19 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
     };
     replyText = replies[safeLang(customer.preferred_language)] || replies.en;
     await env.DB.prepare("UPDATE customer_requests SET status = 'in_progress' WHERE id = ?").bind(requestId).run();
-    await setActiveCartOrderStatus(env, customer.id, "on_the_way");
+
+    updatedOrder = await updateTelegramV2DeliveryStatusForCustomer(
+      env,
+      customer.id,
+      "on_the_way",
+      null,
+      `Telegram ETA: ${etaText}`
+    );
+  }
+
+  if (!updatedOrder) {
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, "No active V2 delivery order found for this customer.");
+    return;
   }
 
   clickedValues.add(etaValue);
