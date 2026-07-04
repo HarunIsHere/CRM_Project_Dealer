@@ -3403,15 +3403,6 @@ async function clearPendingBasketQuantityChange(env, customerId) {
   await setSetting(env, `pending_basket_quantity_item_${customerId}`, "");
 }
 
-async function setActiveCartOrderStatus(env, customerId, orderStatus, fields = {}) {
-  // Telegram bot is migrating to V2. Legacy shopping_carts status writes are intentionally disabled.
-  // Checkout/location/order state will be represented in customer_orders_v2 in the next migration slice.
-  await setSetting(env, `telegram_v2_pending_order_status_${customerId}`, orderStatus || "");
-  if (fields && Object.keys(fields).length) {
-    await setSetting(env, `telegram_v2_pending_order_fields_${customerId}`, JSON.stringify(fields));
-  }
-  return getCustomerOrderSessionToken(customerId);
-}
 
 async function refreshCartStatusAfterItemChange(env, customerId) {
   const sessionToken = getCustomerOrderSessionToken(customerId);
@@ -6031,24 +6022,29 @@ async function searchLocation() {
 
 function getOrderStatusLabel(status) {
   return {
+    submitted: "Submitted",
+    scheduled_for_next_online_order: "Scheduled",
     in_progress: "In progress",
     waiting_location: "Waiting location",
-    ready_to_delivery: "Ready to delivery",
+    ready_to_delivery: "Ready for delivery",
     on_the_way: "On the way",
+    ready_to_pickup: "Ready to pick up",
+    picked_up: "Picked up",
     cancelled: "Cancelled",
     not_delivered: "Not delivered",
-    delivered: "Delivered"
+    delivered: "Delivered",
+    closed: "Closed"
   }[status] || status;
 }
 
 function getOrderStatusOptions(selectedStatus) {
   const statuses = [
-    "in_progress",
-    "waiting_location",
-    "ready_to_delivery",
+    "submitted",
+    "scheduled_for_next_online_order",
     "on_the_way",
     "not_delivered",
-    "delivered"
+    "delivered",
+    "cancelled"
   ];
 
   return statuses.map((status) =>
@@ -6072,41 +6068,52 @@ function formatOrderItemsText(itemsText) {
 }
 
 async function getOrdersContext(env, closed = false) {
+  const closedWhere = closed
+    ? "COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled', 'not_delivered')"
+    : "COALESCE(o.order_status, o.status, '') NOT IN ('delivered', 'closed', 'cancelled', 'not_delivered')";
+
   const rows = await env.DB.prepare(`
     SELECT
-      c.id,
-      c.customer_id,
-      c.status,
-      c.order_status,
-      c.delivery_location_label,
-      c.delivery_google_maps_link,
-      c.delivery_note,
-      c.delivered_at,
-      c.closed_at,
-      c.admin_status_note,
-      c.created_at,
-      c.updated_at,
+      o.id,
+      CAST(REPLACE(o.session_token, 'app_customer_', '') AS INTEGER) AS customer_id,
+      o.status,
+      o.order_status,
+      o.fulfillment_type,
+      o.delivery_status,
+      o.pickup_status,
+      o.delivery_location_label,
+      o.delivery_google_maps_link,
+      o.notes AS delivery_note,
+      NULL AS delivered_at,
+      CASE
+        WHEN COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled', 'not_delivered')
+        THEN o.updated_at
+        ELSE NULL
+      END AS closed_at,
+      o.admin_status_note,
+      o.created_at,
+      o.updated_at,
       customers.full_name,
       customers.username,
       customers.telegram_user_id,
       customers.preferred_language,
       COUNT(i.id) AS item_count,
-      COALESCE(SUM(COALESCE(i.price_snapshot, 0) * COALESCE(i.quantity, 1)), 0) AS total_amount,
+      COALESCE(SUM(COALESCE(i.line_total, 0)), 0) AS total_amount,
       json_group_array(
         json_object(
           'id', i.id,
-          'name', i.name,
+          'name', i.product_name,
           'quantity', i.quantity,
-          'price_snapshot', i.price_snapshot
+          'price_snapshot', i.unit_price
         )
       ) AS items_json
-    FROM shopping_carts c
-    JOIN customers ON customers.id = c.customer_id
-    LEFT JOIN shopping_cart_items i ON i.cart_id = c.id
-    WHERE ${closed ? "c.order_status = 'delivered'" : "c.order_status != 'delivered'"}
-    GROUP BY c.id
+    FROM customer_orders_v2 o
+    LEFT JOIN customers ON o.session_token = ('app_customer_' || customers.id)
+    LEFT JOIN customer_order_items_v2 i ON i.customer_order_id = o.id
+    WHERE ${closedWhere}
+    GROUP BY o.id
     HAVING item_count > 0
-    ORDER BY c.updated_at DESC
+    ORDER BY datetime(o.updated_at) DESC, o.id DESC
   `).all();
 
   return rows.results || [];
@@ -6239,10 +6246,14 @@ ${renderOrdersTable(orders, true)}
 
 async function getOrderById(env, orderId) {
   return env.DB.prepare(`
-    SELECT c.*, customers.telegram_user_id, customers.preferred_language, customers.language
-    FROM shopping_carts c
-    JOIN customers ON customers.id = c.customer_id
-    WHERE c.id = ?
+    SELECT
+      o.*,
+      customers.telegram_user_id,
+      customers.preferred_language,
+      customers.language
+    FROM customer_orders_v2 o
+    LEFT JOIN customers ON o.session_token = ('app_customer_' || customers.id)
+    WHERE o.id = ?
   `).bind(orderId).first();
 }
 
@@ -6312,23 +6323,113 @@ async function notifyCustomerForOrderStatus(env, order, status) {
 }
 
 async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
-  const order = await getOrderById(env, orderId);
-  if (!order) return;
+  const order = await getV2RawOrder(env, orderId);
+  if (!order) return null;
 
-  const deliveredAt = status === "delivered" ? new Date().toISOString() : null;
-  const closedAt = status === "delivered" ? new Date().toISOString() : null;
+  const previousStatus = order.order_status || order.status || null;
+
+  if (status === "delivered") {
+    return await markTelegramV2OrderDelivered(env, orderId, note || "Marked delivered from legacy admin route");
+  }
+
+  if (status === "on_the_way") {
+    if (order.fulfillment_type !== "delivery") return order;
+
+    await env.DB.prepare(`
+      UPDATE customer_orders_v2
+      SET delivery_status = 'on_the_way',
+          admin_status_note = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(note || null, orderId).run();
+
+    await addV2OrderHistory(env, orderId, order.delivery_status || previousStatus, "delivery:on_the_way", { username: "legacy_admin_route" }, note || "Marked on the way from legacy admin route");
+
+    const updated = await getV2RawOrder(env, orderId);
+    await notifyCustomerForV2Order(env, updated, getV2DeliveryOnTheWayText(), "order_status");
+    return updated;
+  }
+
+  if (status === "not_delivered") {
+    await env.DB.prepare(`
+      UPDATE customer_orders_v2
+      SET status = 'not_delivered',
+          order_status = 'not_delivered',
+          delivery_status = CASE
+            WHEN fulfillment_type = 'delivery' THEN 'not_delivered'
+            ELSE delivery_status
+          END,
+          admin_status_note = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(note || null, orderId).run();
+
+    await addV2OrderHistory(env, orderId, previousStatus, "not_delivered", { username: "legacy_admin_route" }, note || "Marked not delivered from legacy admin route");
+
+    const updated = await getV2RawOrder(env, orderId);
+    await notifyCustomerForV2Order(env, updated, getV2OrderNotDeliveredText(), "order_status");
+    return updated;
+  }
+
+  if (status === "cancelled") {
+    await env.DB.prepare(`
+      UPDATE customer_orders_v2
+      SET status = 'cancelled',
+          order_status = 'cancelled',
+          delivery_status = CASE
+            WHEN fulfillment_type = 'delivery' THEN 'cancelled'
+            ELSE delivery_status
+          END,
+          pickup_status = CASE
+            WHEN fulfillment_type = 'pickup' THEN 'cancelled'
+            ELSE pickup_status
+          END,
+          total_amount = 0,
+          cancelled_at = CURRENT_TIMESTAMP,
+          cancel_reason = ?,
+          admin_status_note = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(note || null, note || null, orderId).run();
+
+    await env.DB.prepare(`
+      UPDATE order_addition_groups_v2
+      SET group_status = 'cancelled',
+          admin_decision = 'cancelled',
+          admin_decision_note = ?,
+          decided_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE customer_order_id = ?
+    `).bind(note || null, orderId).run();
+
+    await env.DB.prepare(`
+      UPDATE customer_order_items_v2
+      SET item_status = 'cancelled',
+          admin_decision = 'cancelled',
+          admin_decision_note = ?,
+          decided_at = CURRENT_TIMESTAMP
+      WHERE customer_order_id = ?
+    `).bind(note || null, orderId).run();
+
+    await addV2OrderHistory(env, orderId, previousStatus, "cancelled", { username: "legacy_admin_route" }, note || "Cancelled from legacy admin route");
+
+    const updated = await getV2RawOrder(env, orderId);
+    await notifyCustomerForV2Order(env, updated, getV2OrderCancelledText(note), "order_status");
+    return updated;
+  }
 
   await env.DB.prepare(`
-    UPDATE shopping_carts
-    SET order_status = ?,
+    UPDATE customer_orders_v2
+    SET status = ?,
+        order_status = ?,
         admin_status_note = ?,
-        delivered_at = CASE WHEN ? = 'delivered' THEN ? ELSE delivered_at END,
-        closed_at = CASE WHEN ? = 'delivered' THEN ? ELSE NULL END,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).bind(status, note || null, status, deliveredAt, status, closedAt, orderId).run();
+  `).bind(status, status, note || null, orderId).run();
 
-  await notifyCustomerForOrderStatus(env, order, status);
+  await addV2OrderHistory(env, orderId, previousStatus, status, { username: "legacy_admin_route" }, note || "Updated from legacy admin route");
+
+  return await getV2RawOrder(env, orderId);
 }
 
 async function handleAdminUpdateOrderStatus(request, env, orderId) {
@@ -6345,19 +6446,10 @@ async function handleAdminMarkOrderDelivered(env, orderId) {
 }
 
 async function handleAdminReturnClosedOrder(env, orderId) {
-  const order = await getOrderById(env, orderId);
+  const order = await getV2RawOrder(env, orderId);
   if (!order) return redirectResponse("/admin/closedorders");
 
-  await env.DB.prepare(`
-    UPDATE shopping_carts
-    SET order_status = 'not_delivered',
-        delivered_at = NULL,
-        closed_at = NULL,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(orderId).run();
-
-  await notifyCustomerForOrderStatus(env, order, "not_delivered");
+  await updateOrderStatusByAdmin(env, orderId, "not_delivered", "Returned from closed orders");
   return redirectResponse("/admin/orders");
 }
 
@@ -9575,6 +9667,10 @@ async function notifyCustomerForV2Order(env, order, text, messageType = "order_s
 }
 
 
+function getV2OrderNotDeliveredText() {
+  return "Your order could not be delivered.";
+}
+
 function getV2OrderDeliveredText() {
   return "Your order has been delivered.";
 }
@@ -10000,55 +10096,23 @@ async function handleApiAdminV2CancelOrder(request, env, orderId) {
 
 
 const API_ALLOWED_ORDER_STATUSES = new Set([
+  "submitted",
+  "scheduled_for_next_online_order",
   "in_progress",
   "waiting_location",
   "ready_to_delivery",
   "on_the_way",
   "not_delivered",
-  "delivered"
+  "delivered",
+  "cancelled"
 ]);
 
 
 
 async function getOrderApiRowById(env, orderId) {
-  const result = await env.DB.prepare(`
-    SELECT
-      c.id,
-      c.customer_id,
-      c.status,
-      c.order_status,
-      c.delivery_location_label,
-      c.delivery_google_maps_link,
-      c.delivery_note,
-      c.delivered_at,
-      c.closed_at,
-      c.admin_status_note,
-      c.created_at,
-      c.updated_at,
-      customers.full_name,
-      customers.username,
-      customers.telegram_user_id,
-      customers.preferred_language,
-      COUNT(i.id) AS item_count,
-      COALESCE(SUM(COALESCE(i.price_snapshot, 0) * COALESCE(i.quantity, 1)), 0) AS total_amount,
-      json_group_array(
-        json_object(
-          'id', i.id,
-          'name', i.name,
-          'quantity', i.quantity,
-          'price_snapshot', i.price_snapshot
-        )
-      ) AS items_json
-    FROM shopping_carts c
-    JOIN customers ON customers.id = c.customer_id
-    LEFT JOIN shopping_cart_items i ON i.cart_id = c.id
-    WHERE c.id = ?
-    GROUP BY c.id
-    HAVING item_count > 0
-    LIMIT 1
-  `).bind(orderId).all();
-
-  return (result.results || [])[0] || null;
+  const openRows = await getOrdersContext(env, false);
+  const closedRows = await getOrdersContext(env, true);
+  return [...openRows, ...closedRows].find((order) => Number(order.id) === Number(orderId)) || null;
 }
 
 async function handleApiAdminOrderStatus(request, env, orderId) {
@@ -10077,28 +10141,13 @@ async function handleApiAdminOrderStatus(request, env, orderId) {
     });
   }
 
-  const order = await getOrderById(env, orderId);
+  const order = await getV2RawOrder(env, orderId);
   if (!order) {
     return apiError("order_not_found", "Order was not found.", 404);
   }
 
-  if (status === "not_delivered") {
-    await env.DB.prepare(`
-      UPDATE shopping_carts
-      SET order_status = 'not_delivered',
-          admin_status_note = ?,
-          delivered_at = NULL,
-          closed_at = NULL,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).bind(note || null, orderId).run();
-
-    await notifyCustomerForOrderStatus(env, order, "not_delivered");
-  } else {
-    await updateOrderStatusByAdmin(env, orderId, status, note);
-  }
-
-  await logAdminAction(env, request, session, "api_order_status_updated", `order:${orderId}:${status}`);
+  await updateOrderStatusByAdmin(env, orderId, status, note);
+  await logAdminAction(env, request, session, "api_order_status_updated_v2_compat", `order:${orderId}:${status}`);
 
   const updated = await getOrderApiRowById(env, orderId);
 
@@ -10118,13 +10167,13 @@ async function handleApiAdminOrderDelivered(request, env, orderId) {
     return apiError("method_not_allowed", "Method not allowed.", 405);
   }
 
-  const order = await getOrderById(env, orderId);
+  const order = await getV2RawOrder(env, orderId);
   if (!order) {
     return apiError("order_not_found", "Order was not found.", 404);
   }
 
   await updateOrderStatusByAdmin(env, orderId, "delivered", "");
-  await logAdminAction(env, request, session, "api_order_delivered", `order:${orderId}`);
+  await logAdminAction(env, request, session, "api_order_delivered_v2_compat", `order:${orderId}`);
 
   const updated = await getOrderApiRowById(env, orderId);
 
@@ -10144,22 +10193,13 @@ async function handleApiAdminOrderReturn(request, env, orderId) {
     return apiError("method_not_allowed", "Method not allowed.", 405);
   }
 
-  const order = await getOrderById(env, orderId);
+  const order = await getV2RawOrder(env, orderId);
   if (!order) {
     return apiError("order_not_found", "Order was not found.", 404);
   }
 
-  await env.DB.prepare(`
-    UPDATE shopping_carts
-    SET order_status = 'not_delivered',
-        delivered_at = NULL,
-        closed_at = NULL,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(orderId).run();
-
-  await notifyCustomerForOrderStatus(env, order, "not_delivered");
-  await logAdminAction(env, request, session, "api_order_returned", `order:${orderId}`);
+  await updateOrderStatusByAdmin(env, orderId, "not_delivered", "Returned from closed orders");
+  await logAdminAction(env, request, session, "api_order_returned_v2_compat", `order:${orderId}`);
 
   const updated = await getOrderApiRowById(env, orderId);
 
