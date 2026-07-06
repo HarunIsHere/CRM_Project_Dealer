@@ -2982,7 +2982,7 @@ function getProductMenuKeyboard(products, language = "en") {
     rows.push([{ text: `${product.name}: ${formatPrice(product.price)}`, callback_data: `product_select_${product.id}` }]);
   }
 
-  rows.push([{ text: ui.cart, callback_data: "basket_view" }]);
+  rows.push([{ text: ui.cart, callback_data: "cart_view" }]);
   return { inline_keyboard: rows };
 }
 
@@ -3007,7 +3007,7 @@ function getProductsInCategoryKeyboard(products, language = "en") {
   ]);
 
   rows.push([{ text: ui.back_to_products, callback_data: "product_back_to_products" }]);
-  rows.push([{ text: ui.cart, callback_data: "basket_view" }]);
+  rows.push([{ text: ui.cart, callback_data: "cart_view" }]);
   return { inline_keyboard: rows };
 }
 
@@ -3243,9 +3243,9 @@ function getAfterAddToCartKeyboard(language = "en") {
   return {
     inline_keyboard: [
       [getTelegramMiniAppButton(language)],
-      [{ text: ui.continue_shopping, callback_data: "basket_continue" }],
-      [{ text: ui.edit_cart, callback_data: "basket_view" }],
-      [{ text: ui.checkout, callback_data: "basket_checkout" }]
+      [{ text: ui.continue_shopping, callback_data: "cart_continue" }],
+      [{ text: ui.edit_cart, callback_data: "cart_view" }],
+      [{ text: ui.checkout, callback_data: "cart_checkout" }]
     ]
   };
 }
@@ -3268,17 +3268,17 @@ function getCartKeyboard(items, language = "en") {
     rows.push([
       {
         text: `${rowNumber}. ${actionText} ${item.name}`,
-        callback_data: `basket_action_${item.id}`
+        callback_data: `cart_action_${item.id}`
       }
     ]);
   }
 
   rows.push([getTelegramMiniAppButton(language)]);
   rows.push([
-    { text: ui.continue_shopping, callback_data: "basket_continue" },
-    { text: ui.checkout, callback_data: "basket_checkout" }
+    { text: ui.continue_shopping, callback_data: "cart_continue" },
+    { text: ui.checkout, callback_data: "cart_checkout" }
   ]);
-  rows.push([{ text: ui.clear_cart, callback_data: "basket_clear" }]);
+  rows.push([{ text: ui.clear_cart, callback_data: "cart_clear" }]);
 
   return { inline_keyboard: rows };
 }
@@ -3492,19 +3492,19 @@ async function handleCartSelection(env, callbackQuery) {
   const data = callbackQuery.data;
   const chatId = callbackQuery.message.chat.id;
 
-  if (data === "basket_continue") {
+  if (data === "cart_continue") {
     await sendProductMenu(env, chatId, language);
     return;
   }
 
-  if (data === "basket_view" || data === "basket_back") {
+  if (data === "cart_view" || data === "cart_back") {
     await clearPendingCartQuantityChange(env, customer.id);
     await setCustomerState(env, customer.id, null);
     await sendCartView(env, customer, chatId);
     return;
   }
 
-  if (data === "basket_checkout") {
+  if (data === "cart_checkout") {
     await sendCheckoutPrompt(env, customer, chatId);
     return;
   }
@@ -3515,7 +3515,7 @@ async function handleCartSelection(env, callbackQuery) {
     return;
   }
 
-  if (data === "basket_clear") {
+  if (data === "cart_clear") {
     const sessionToken = getCustomerOrderSessionToken(customer.id);
     await env.DB.prepare("DELETE FROM customer_cart_items_v2 WHERE session_token = ?")
       .bind(sessionToken)
@@ -3526,8 +3526,8 @@ async function handleCartSelection(env, callbackQuery) {
     return;
   }
 
-  if (data.startsWith("basket_action_")) {
-    const itemId = Number(data.replace("basket_action_", ""));
+  if (data.startsWith("cart_action_")) {
+    const itemId = Number(data.replace("cart_action_", ""));
     const item = await getCartItemForCustomer(env, customer.id, itemId);
 
     if (!item) {
@@ -3563,15 +3563,15 @@ async function handleCartSelection(env, callbackQuery) {
 
     await sendTelegramMessage(env, chatId, actionTexts[lang] || actionTexts.en, {
       inline_keyboard: [
-        [{ text: removeTexts[lang] || removeTexts.en, callback_data: `basket_remove_${item.id}` }],
-        [{ text: backTexts[lang] || backTexts.en, callback_data: "basket_back" }]
+        [{ text: removeTexts[lang] || removeTexts.en, callback_data: `cart_remove_${item.id}` }],
+        [{ text: backTexts[lang] || backTexts.en, callback_data: "cart_back" }]
       ]
     });
     return;
   }
 
-  if (data.startsWith("basket_remove_")) {
-    const itemId = Number(data.replace("basket_remove_", ""));
+  if (data.startsWith("cart_remove_")) {
+    const itemId = Number(data.replace("cart_remove_", ""));
     const sessionToken = getCustomerOrderSessionToken(customer.id);
     await env.DB.prepare("DELETE FROM customer_cart_items_v2 WHERE id = ? AND session_token = ?")
       .bind(itemId, sessionToken)
@@ -3593,7 +3593,7 @@ async function handleProductMenuSelection(env, callbackQuery) {
   const ui = getCustomerProductUiText(language);
   const data = callbackQuery.data;
 
-  if (data === "basket_view") {
+  if (data === "cart_view") {
     await sendCartView(env, customer, callbackQuery.message.chat.id);
     return;
   }
@@ -9016,7 +9016,7 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
 async function handleCallbackQuery(env, callbackQuery) {
   await answerCallbackQuery(env, callbackQuery.id);
 
-  if (callbackQuery.data.startsWith("basket_")) return handleCartSelection(env, callbackQuery);
+  if (callbackQuery.data.startsWith("cart_")) return handleCartSelection(env, callbackQuery);
   if (callbackQuery.data === "checkout_pickup") return handleTelegramPickupCheckout(env, callbackQuery);
   if (callbackQuery.data === "checkout_type_address") return handleTelegramTypeAddressCheckout(env, callbackQuery);
   if (callbackQuery.data.startsWith("product_fulfillment_")) return handleProductFulfillmentSelection(env, callbackQuery);
