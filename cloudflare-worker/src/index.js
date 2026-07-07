@@ -2970,19 +2970,67 @@ async function getActiveUncategorizedProducts(env) {
   return result.results;
 }
 
-function getProductMenuKeyboard(products, language = "en") {
+const TELEGRAM_PRODUCTS_PER_PAGE = 6;
+
+function clampTelegramPage(page, totalItems, perPage = TELEGRAM_PRODUCTS_PER_PAGE) {
+  const totalPages = Math.max(1, Math.ceil(Number(totalItems || 0) / perPage));
+  const parsedPage = Number(page || 0);
+
+  if (!Number.isFinite(parsedPage) || parsedPage < 0) return 0;
+  if (parsedPage >= totalPages) return totalPages - 1;
+
+  return parsedPage;
+}
+
+function paginateTelegramItems(items, page = 0, perPage = TELEGRAM_PRODUCTS_PER_PAGE) {
+  const safeItems = Array.isArray(items) ? items : [];
+  const safePage = clampTelegramPage(page, safeItems.length, perPage);
+  const totalPages = Math.max(1, Math.ceil(safeItems.length / perPage));
+  const start = safePage * perPage;
+
+  return {
+    page: safePage,
+    totalPages,
+    items: safeItems.slice(start, start + perPage)
+  };
+}
+
+function getTelegramPaginationRows(page, totalPages, callbackPrefix) {
+  if (totalPages <= 1) return [];
+
+  const rows = [];
+  const nav = [];
+
+  if (page > 0) {
+    nav.push({ text: "◀ Previous", callback_data: `${callbackPrefix}_${page - 1}` });
+  }
+
+  nav.push({ text: `${page + 1}/${totalPages}`, callback_data: "noop" });
+
+  if (page < totalPages - 1) {
+    nav.push({ text: "Next ▶", callback_data: `${callbackPrefix}_${page + 1}` });
+  }
+
+  rows.push(nav);
+  return rows;
+}
+
+function getProductMenuKeyboard(products, language = "en", page = 0) {
   const ui = getCustomerProductUiText(language);
+  const paged = paginateTelegramItems(products, page);
   const rows = [
     [getTelegramMiniAppButton(language)],
     [{ text: ui.show_categories, callback_data: "product_show_categories" }],
     [{ text: ui.special_request, callback_data: "product_special_request" }]
   ];
 
-  for (const product of products) {
+  for (const product of paged.items) {
     rows.push([{ text: `${product.name}: ${formatPrice(product.price)}`, callback_data: `product_select_${product.id}` }]);
   }
 
+  rows.push(...getTelegramPaginationRows(paged.page, paged.totalPages, "product_page"));
   rows.push([{ text: ui.cart, callback_data: "cart_view" }]);
+
   return { inline_keyboard: rows };
 }
 
@@ -3000,18 +3048,21 @@ function getProductCategoriesKeyboard(categories, hasUncategorized, language = "
   return { inline_keyboard: rows };
 }
 
-function getProductsInCategoryKeyboard(products, language = "en") {
+function getProductsInCategoryKeyboard(products, language = "en", callbackPrefix = "product_category_page", page = 0) {
   const ui = getCustomerProductUiText(language);
-  const rows = products.map((product) => [
+  const paged = paginateTelegramItems(products, page);
+  const rows = paged.items.map((product) => [
     { text: `${product.name}: ${formatPrice(product.price)}`, callback_data: `product_select_${product.id}` }
   ]);
 
+  rows.push(...getTelegramPaginationRows(paged.page, paged.totalPages, callbackPrefix));
   rows.push([{ text: ui.back_to_products, callback_data: "product_back_to_products" }]);
   rows.push([{ text: ui.cart, callback_data: "cart_view" }]);
+
   return { inline_keyboard: rows };
 }
 
-async function sendProductMenu(env, chatId, language = "en") {
+async function sendProductMenu(env, chatId, language = "en", page = 0) {
   const ui = getCustomerProductUiText(language);
   const products = await getActiveProducts(env);
 
@@ -3020,7 +3071,8 @@ async function sendProductMenu(env, chatId, language = "en") {
     return;
   }
 
-  await sendTelegramMessage(env, chatId, ui.available_products, getProductMenuKeyboard(products, language));
+  const paged = paginateTelegramItems(products, page);
+  await sendTelegramMessage(env, chatId, ui.available_products, getProductMenuKeyboard(products, language, paged.page));
 }
 
 async function isProductListRequestText(text) {
@@ -3592,14 +3644,21 @@ async function handleProductMenuSelection(env, callbackQuery) {
   const language = customer.preferred_language || customer.language || "en";
   const ui = getCustomerProductUiText(language);
   const data = callbackQuery.data;
+  const chatId = callbackQuery.message.chat.id;
 
   if (data === "cart_view") {
-    await sendCartView(env, customer, callbackQuery.message.chat.id);
+    await sendCartView(env, customer, chatId);
+    return;
+  }
+
+  if (data.startsWith("product_page_")) {
+    const page = Number(data.replace("product_page_", ""));
+    await sendProductMenu(env, chatId, language, page);
     return;
   }
 
   if (data === "product_back_to_products") {
-    await sendProductMenu(env, callbackQuery.message.chat.id, language);
+    await sendProductMenu(env, chatId, language, 0);
     return;
   }
 
@@ -3609,7 +3668,7 @@ async function handleProductMenuSelection(env, callbackQuery) {
 
     await sendTelegramMessage(
       env,
-      callbackQuery.message.chat.id,
+      chatId,
       ui.choose_category,
       getProductCategoriesKeyboard(categories, uncategorized.length > 0, language)
     );
@@ -3620,15 +3679,58 @@ async function handleProductMenuSelection(env, callbackQuery) {
     const products = await getActiveUncategorizedProducts(env);
 
     if (!products.length) {
-      await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.no_products_in_category);
+      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
       return;
     }
 
     await sendTelegramMessage(
       env,
-      callbackQuery.message.chat.id,
+      chatId,
       ui.uncategorized_products,
-      getProductsInCategoryKeyboard(products, language)
+      getProductsInCategoryKeyboard(products, language, "product_category_uncategorized_page", 0)
+    );
+    return;
+  }
+
+  if (data.startsWith("product_category_uncategorized_page_")) {
+    const page = Number(data.replace("product_category_uncategorized_page_", ""));
+    const products = await getActiveUncategorizedProducts(env);
+
+    if (!products.length) {
+      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
+      return;
+    }
+
+    await sendTelegramMessage(
+      env,
+      chatId,
+      ui.uncategorized_products,
+      getProductsInCategoryKeyboard(products, language, "product_category_uncategorized_page", page)
+    );
+    return;
+  }
+
+  if (data.startsWith("product_category_") && data.includes("_page_")) {
+    const match = data.match(/^product_category_(\d+)_page_(\d+)$/);
+    if (!match) {
+      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
+      return;
+    }
+
+    const categoryId = Number(match[1]);
+    const page = Number(match[2]);
+    const products = await getActiveProductsByCategory(env, categoryId);
+
+    if (!products.length) {
+      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
+      return;
+    }
+
+    await sendTelegramMessage(
+      env,
+      chatId,
+      ui.available_products,
+      getProductsInCategoryKeyboard(products, language, `product_category_${categoryId}_page`, page)
     );
     return;
   }
@@ -3638,22 +3740,22 @@ async function handleProductMenuSelection(env, callbackQuery) {
     const products = await getActiveProductsByCategory(env, categoryId);
 
     if (!products.length) {
-      await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.no_products_in_category);
+      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
       return;
     }
 
     await sendTelegramMessage(
       env,
-      callbackQuery.message.chat.id,
+      chatId,
       ui.available_products,
-      getProductsInCategoryKeyboard(products, language)
+      getProductsInCategoryKeyboard(products, language, `product_category_${categoryId}_page`, 0)
     );
     return;
   }
 
   if (data === "product_special_request") {
     await setCustomerState(env, customer.id, "awaiting_special_request");
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.type_special_request);
+    await sendTelegramMessage(env, chatId, ui.type_special_request);
     return;
   }
 
@@ -3664,13 +3766,14 @@ async function handleProductMenuSelection(env, callbackQuery) {
     ).bind(productId).first();
 
     if (!product) {
-      await sendTelegramMessage(env, callbackQuery.message.chat.id, ui.no_products_available);
+      await sendTelegramMessage(env, chatId, ui.no_products_available);
       return;
     }
 
     const quantity = 1;
     await addProductToCart(env, customer.id, product, quantity, customer);
-    await sendAddedToCart(env, customer, callbackQuery.message.chat.id, product, quantity);
+    await sendAddedToCart(env, customer, chatId, product, quantity);
+    return;
   }
 }
 
@@ -9016,6 +9119,7 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
 async function handleCallbackQuery(env, callbackQuery) {
   await answerCallbackQuery(env, callbackQuery.id);
 
+  if (callbackQuery.data === "noop") return;
   if (callbackQuery.data.startsWith("cart_")) return handleCartSelection(env, callbackQuery);
   if (callbackQuery.data === "checkout_pickup") return handleTelegramPickupCheckout(env, callbackQuery);
   if (callbackQuery.data === "checkout_type_address") return handleTelegramTypeAddressCheckout(env, callbackQuery);
