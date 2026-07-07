@@ -9020,6 +9020,7 @@ async function handleCallbackQuery(env, callbackQuery) {
   if (callbackQuery.data === "checkout_pickup") return handleTelegramPickupCheckout(env, callbackQuery);
   if (callbackQuery.data === "checkout_type_address") return handleTelegramTypeAddressCheckout(env, callbackQuery);
   if (callbackQuery.data.startsWith("product_fulfillment_")) return handleProductFulfillmentSelection(env, callbackQuery);
+  if (callbackQuery.data.startsWith("product_")) return handleProductMenuSelection(env, callbackQuery);
   if (callbackQuery.data === "location_contact_admin") return handleLocationContactAdmin(env, callbackQuery);
   if (callbackQuery.data === "location_cancel") return handleCancelLocationEntry(env, callbackQuery);
   if (callbackQuery.data === "location_back_checkout") return handleBackToCheckout(env, callbackQuery);
