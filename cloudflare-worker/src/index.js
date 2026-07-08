@@ -5842,7 +5842,12 @@ function getAdminOrderUiText(language = "en") {
       group_type_admin_addition: "Admin addition",
       group_type_customer_addition: "Customer addition",
       fulfillment_pickup: "Pickup",
-      fulfillment_delivery: "Delivery"
+      fulfillment_delivery: "Delivery",
+      language_en: "English",
+      language_de: "German",
+      language_tr: "Turkish",
+      language_ar: "Arabic",
+      language_ru: "Russian"
     },
     de: {
       orders: "Bestellungen",
@@ -5923,7 +5928,12 @@ function getAdminOrderUiText(language = "en") {
       group_type_admin_addition: "Admin-Ergänzung",
       group_type_customer_addition: "Kundenergänzung",
       fulfillment_pickup: "Abholung",
-      fulfillment_delivery: "Lieferung"
+      fulfillment_delivery: "Lieferung",
+      language_en: "Englisch",
+      language_de: "Deutsch",
+      language_tr: "Türkisch",
+      language_ar: "Arabisch",
+      language_ru: "Russisch"
     },
     tr: {
       orders: "Siparişler",
@@ -6004,7 +6014,12 @@ function getAdminOrderUiText(language = "en") {
       group_type_admin_addition: "Admin eklemesi",
       group_type_customer_addition: "Müşteri eklemesi",
       fulfillment_pickup: "Teslim alma",
-      fulfillment_delivery: "Teslimat"
+      fulfillment_delivery: "Teslimat",
+      language_en: "İngilizce",
+      language_de: "Almanca",
+      language_tr: "Türkçe",
+      language_ar: "Arapça",
+      language_ru: "Rusça"
     },
     ar: {
       orders: "الطلبات",
@@ -6085,7 +6100,12 @@ function getAdminOrderUiText(language = "en") {
       group_type_admin_addition: "إضافة الإدارة",
       group_type_customer_addition: "إضافة العميل",
       fulfillment_pickup: "استلام",
-      fulfillment_delivery: "توصيل"
+      fulfillment_delivery: "توصيل",
+      language_en: "الإنجليزية",
+      language_de: "الألمانية",
+      language_tr: "التركية",
+      language_ar: "العربية",
+      language_ru: "الروسية"
     },
     ru: {
       orders: "Заказы",
@@ -6166,13 +6186,29 @@ function getAdminOrderUiText(language = "en") {
       group_type_admin_addition: "Добавление админом",
       group_type_customer_addition: "Добавление клиентом",
       fulfillment_pickup: "Самовывоз",
-      fulfillment_delivery: "Доставка"
+      fulfillment_delivery: "Доставка",
+      language_en: "Английский",
+      language_de: "Немецкий",
+      language_tr: "Турецкий",
+      language_ar: "Арабский",
+      language_ru: "Русский"
     }
   };
 
   return texts[safeLang(language)] || texts.en;
 }
 
+
+function getAdminLanguageDisplayLabel(value, ui = getAdminOrderUiText("en")) {
+  const lang = safeLang(String(value || ""));
+  return ui[`language_${lang}`] || value || "";
+}
+
+function getAdminNoteDisplayText(note) {
+  return String(note || "")
+    .replace(/legacy admin route/g, "admin web")
+    .replace(/legacy_admin_route/g, "admin_web");
+}
 
 function getAdminOrderValueLabel(prefix, value, ui = getAdminOrderUiText("en")) {
   const normalized = String(value || "").replace(/-/g, "_");
@@ -6339,7 +6375,7 @@ function renderOrdersTable(orders, closed = false, ui = getAdminOrderUiText("en"
         ${escapeHtml(order.updated_at || "")}
       </td>
       <td>
-        ${order.admin_status_note ? `<div><small>${ui.note}: ${escapeHtml(order.admin_status_note)}</small></div>` : ""}
+        ${order.admin_status_note ? `<div><small>${ui.note}: ${escapeHtml(getAdminNoteDisplayText(order.admin_status_note))}</small></div>` : ""}
         ${renderAdminOrderActionForms(order, closed, ui)}
       </td>
     </tr>`;
@@ -6553,7 +6589,7 @@ ${renderOrdersNav(ui, session)}
     <br><strong>${ui.delivery_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.delivery_status || "", ui))}
     <br><strong>${ui.pickup_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.pickup_status || "", ui))}
     <br><strong>${ui.total}:</strong> ${escapeHtml(order.total_formatted || formatPrice(order.total_amount || 0))}
-    <br><strong>${ui.admin_note}:</strong> ${escapeHtml(order.admin_status_note || "")}
+    <br><strong>${ui.admin_note}:</strong> ${escapeHtml(getAdminNoteDisplayText(order.admin_status_note || ""))}
   </p>
 </div>
 
@@ -6563,7 +6599,7 @@ ${renderOrdersNav(ui, session)}
     <strong>${ui.customer_name}:</strong> ${escapeHtml(customer.full_name || "")}
     <br><strong>${ui.username}:</strong> ${escapeHtml(customer.username || "")}
     <br><strong>${ui.telegram}:</strong> ${escapeHtml(customer.telegram_user_id || "")}
-    <br><strong>${ui.language}:</strong> ${escapeHtml(customer.preferred_language || "")}
+    <br><strong>${ui.language}:</strong> ${escapeHtml(getAdminLanguageDisplayLabel(customer.preferred_language || "", ui))}
   </p>
 </div>
 
@@ -6732,7 +6768,7 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
   const previousStatus = order.order_status || order.status || null;
 
   if (status === "delivered") {
-    return await markTelegramV2OrderDelivered(env, orderId, note || "Marked delivered from legacy admin route");
+    return await markTelegramV2OrderDelivered(env, orderId, note || "Marked delivered from admin web");
   }
 
   if (status === "on_the_way") {
@@ -6746,7 +6782,7 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
       WHERE id = ?
     `).bind(note || null, orderId).run();
 
-    await addV2OrderHistory(env, orderId, order.delivery_status || previousStatus, "delivery:on_the_way", { username: "legacy_admin_route" }, note || "Marked on the way from legacy admin route");
+    await addV2OrderHistory(env, orderId, order.delivery_status || previousStatus, "delivery:on_the_way", { username: "admin_web" }, note || "Marked on the way from admin web");
 
     const updated = await getV2RawOrder(env, orderId);
     await notifyCustomerForV2Order(env, updated, getV2DeliveryOnTheWayText(), "order_status");
@@ -6764,7 +6800,7 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
       WHERE id = ?
     `).bind(note || null, orderId).run();
 
-    await addV2OrderHistory(env, orderId, order.pickup_status || previousStatus, "pickup:ready_to_pickup", { username: "legacy_admin_route" }, note || "Marked ready to pick up from admin route");
+    await addV2OrderHistory(env, orderId, order.pickup_status || previousStatus, "pickup:ready_to_pickup", { username: "admin_web" }, note || "Marked ready to pick up from admin web");
 
     return await getV2RawOrder(env, orderId);
   }
@@ -6783,7 +6819,7 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
       WHERE id = ?
     `).bind(note || null, orderId).run();
 
-    await addV2OrderHistory(env, orderId, previousStatus, "not_delivered", { username: "legacy_admin_route" }, note || "Marked not delivered from legacy admin route");
+    await addV2OrderHistory(env, orderId, previousStatus, "not_delivered", { username: "admin_web" }, note || "Marked not delivered from admin web");
 
     const updated = await getV2RawOrder(env, orderId);
     await notifyCustomerForV2Order(env, updated, getV2OrderNotDeliveredText(), "order_status");
@@ -6830,7 +6866,7 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
       WHERE customer_order_id = ?
     `).bind(note || null, orderId).run();
 
-    await addV2OrderHistory(env, orderId, previousStatus, "cancelled", { username: "legacy_admin_route" }, note || "Cancelled from legacy admin route");
+    await addV2OrderHistory(env, orderId, previousStatus, "cancelled", { username: "admin_web" }, note || "Cancelled from admin web");
 
     const updated = await getV2RawOrder(env, orderId);
     await notifyCustomerForV2Order(env, updated, getV2OrderCancelledText(note), "order_status");
@@ -6846,7 +6882,7 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
     WHERE id = ?
   `).bind(status, status, note || null, orderId).run();
 
-  await addV2OrderHistory(env, orderId, previousStatus, status, { username: "legacy_admin_route" }, note || "Updated from legacy admin route");
+  await addV2OrderHistory(env, orderId, previousStatus, status, { username: "admin_web" }, note || "Updated from admin web");
 
   return await getV2RawOrder(env, orderId);
 }
