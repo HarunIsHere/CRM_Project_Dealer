@@ -6145,6 +6145,7 @@ function getOrderStatusOptions(selectedStatus) {
     "submitted",
     "scheduled_for_next_online_order",
     "on_the_way",
+    "ready_to_pickup",
     "not_delivered",
     "delivered",
     "cancelled"
@@ -6237,46 +6238,143 @@ function renderOrdersNav(ui, session = null) {
 </div>`;
 }
 
-function renderOrdersTable(orders, closed = false) {
-  const rows = orders.map((order) => {
-    const customerLabel = order.full_name || order.username || order.telegram_user_id || "";
-    const mapLink = order.delivery_google_maps_link
-      ? `<br><a href="${escapeHtml(order.delivery_google_maps_link)}" target="_blank">Open map</a>`
-      : "";
+function renderAdminOrderStatusBadges(order) {
+  const parts = [];
 
-    const statusCell = closed ? `
-      ${escapeHtml(getOrderStatusLabel(order.order_status))}
+  if (order.fulfillment_type) {
+    parts.push(`Fulfillment: ${escapeHtml(order.fulfillment_type)}`);
+  }
+
+  if (order.order_status || order.status) {
+    parts.push(`Order: ${escapeHtml(getOrderStatusLabel(order.order_status || order.status))}`);
+  }
+
+  if (order.delivery_status) {
+    parts.push(`Delivery: ${escapeHtml(getOrderStatusLabel(order.delivery_status))}`);
+  }
+
+  if (order.pickup_status) {
+    parts.push(`Pickup: ${escapeHtml(getOrderStatusLabel(order.pickup_status))}`);
+  }
+
+  return parts.map((part) => `<div>${part}</div>`).join("");
+}
+
+function renderAdminOrderLocationCell(order) {
+  const locationLabel = order.delivery_location_label || order.delivery_address || "";
+  const mapLink = order.delivery_google_maps_link
+    ? `<br><a href="${escapeHtml(order.delivery_google_maps_link)}" target="_blank">Open map</a>`
+    : "";
+
+  if (!locationLabel && !mapLink) {
+    return "";
+  }
+
+  return `${escapeHtml(locationLabel)}${mapLink}`;
+}
+
+function renderAdminOrderActionForms(order, closed = false) {
+  if (closed) {
+    return `
       <form action="/admin/orders/${order.id}/return" method="post" style="display:inline;">
         <button type="submit">Return as not delivered</button>
       </form>
-    ` : `
-      <form action="/admin/orders/${order.id}/status" method="post">
-        <select name="order_status">
-          ${getOrderStatusOptions(order.order_status || "in_progress")}
-        </select>
-        <input type="text" name="admin_status_note" value="${escapeHtml(order.admin_status_note || "")}" placeholder="Optional admin note">
-        <button type="submit">Update</button>
-      </form>
+    `;
+  }
+
+  const noteInput = `<input type="text" name="admin_status_note" value="${escapeHtml(order.admin_status_note || "")}" placeholder="Optional admin note">`;
+  const forms = [];
+
+  if (order.fulfillment_type === "delivery") {
+    if (order.delivery_status !== "on_the_way" && order.order_status !== "delivered") {
+      forms.push(`
+        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+          <input type="hidden" name="order_status" value="on_the_way">
+          ${noteInput}
+          <button type="submit">On the way</button>
+        </form>
+      `);
+    }
+
+    forms.push(`
       <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
         <button type="submit">Delivered</button>
       </form>
-    `;
+    `);
+
+    forms.push(`
+      <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+        <input type="hidden" name="order_status" value="not_delivered">
+        <button type="submit">Not delivered</button>
+      </form>
+    `);
+  } else if (order.fulfillment_type === "pickup") {
+    if (order.pickup_status !== "ready_to_pickup" && order.pickup_status !== "picked_up") {
+      forms.push(`
+        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+          <input type="hidden" name="order_status" value="ready_to_pickup">
+          ${noteInput}
+          <button type="submit">Ready to pick up</button>
+        </form>
+      `);
+    }
+
+    forms.push(`
+      <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+        <button type="submit">Picked up / delivered</button>
+      </form>
+    `);
+  } else {
+    forms.push(`
+      <form action="/admin/orders/${order.id}/status" method="post">
+        <select name="order_status">
+          ${getOrderStatusOptions(order.order_status || order.status || "submitted")}
+        </select>
+        ${noteInput}
+        <button type="submit">Update</button>
+      </form>
+    `);
+  }
+
+  forms.push(`
+    <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+      <input type="hidden" name="order_status" value="cancelled">
+      <button type="submit">Cancel</button>
+    </form>
+  `);
+
+  return forms.join("\n");
+}
+
+function renderOrdersTable(orders, closed = false) {
+  const rows = orders.map((order) => {
+    const customerLabel = order.full_name || order.username || order.telegram_user_id || "";
 
     return `<tr>
-      <td>${escapeHtml(order.id)}</td>
+      <td>
+        <strong>${escapeHtml(order.id)}</strong>
+        ${order.public_order_code ? `<br><small>${escapeHtml(order.public_order_code)}</small>` : ""}
+      </td>
       <td>${escapeHtml(customerLabel)}<br><small>${escapeHtml(order.telegram_user_id || "")}</small></td>
-      <td>${escapeHtml(getOrderStatusLabel(order.order_status || "in_progress"))}</td>
+      <td>${renderAdminOrderStatusBadges(order)}</td>
       <td>${formatOrderItemsText(order.items_json)}</td>
       <td>${escapeHtml(formatPrice(order.total_amount || 0))}</td>
-      <td>${escapeHtml(order.delivery_location_label || "")}${mapLink}</td>
-      <td>${escapeHtml(order.created_at || "")}<br>${escapeHtml(order.updated_at || "")}</td>
-      <td>${statusCell}</td>
+      <td>${renderAdminOrderLocationCell(order)}</td>
+      <td>
+        ${escapeHtml(order.created_at || "")}
+        <br>
+        ${escapeHtml(order.updated_at || "")}
+      </td>
+      <td>
+        ${order.admin_status_note ? `<div><small>Note: ${escapeHtml(order.admin_status_note)}</small></div>` : ""}
+        ${renderAdminOrderActionForms(order, closed)}
+      </td>
     </tr>`;
   }).join("");
 
   return `<table border="1" cellpadding="10">
     <tr>
-      <th>Order ID</th>
+      <th>Order</th>
       <th>Customer</th>
       <th>Status</th>
       <th>Items</th>
@@ -6285,7 +6383,7 @@ function renderOrdersTable(orders, closed = false) {
       <th>Created / Updated</th>
       <th>Action</th>
     </tr>
-    ${rows}
+    ${rows || `<tr><td colspan="8">No orders found.</td></tr>`}
   </table>`;
 }
 
@@ -6451,6 +6549,22 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
     const updated = await getV2RawOrder(env, orderId);
     await notifyCustomerForV2Order(env, updated, getV2DeliveryOnTheWayText(), "order_status");
     return updated;
+  }
+
+  if (status === "ready_to_pickup") {
+    if (order.fulfillment_type !== "pickup") return order;
+
+    await env.DB.prepare(`
+      UPDATE customer_orders_v2
+      SET pickup_status = 'ready_to_pickup',
+          admin_status_note = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(note || null, orderId).run();
+
+    await addV2OrderHistory(env, orderId, order.pickup_status || previousStatus, "pickup:ready_to_pickup", { username: "legacy_admin_route" }, note || "Marked ready to pick up from admin route");
+
+    return await getV2RawOrder(env, orderId);
   }
 
   if (status === "not_delivered") {
