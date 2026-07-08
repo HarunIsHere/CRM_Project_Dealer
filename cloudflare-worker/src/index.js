@@ -5853,7 +5853,13 @@ function getAdminOrderUiText(language = "en") {
       note_marked_ready_pickup_admin_web: "Marked ready to pick up from admin web",
       note_marked_not_delivered_admin_web: "Marked not delivered from admin web",
       note_cancelled_admin_web: "Cancelled from admin web",
-      note_updated_admin_web: "Updated from admin web"
+      note_updated_admin_web: "Updated from admin web",
+      status_history: "Status History",
+      from_status: "From",
+      to_status: "To",
+      changed_by: "Changed by",
+      changed_at: "Changed at",
+      no_status_history: "No status history yet."
     },
     de: {
       orders: "Bestellungen",
@@ -5945,7 +5951,13 @@ function getAdminOrderUiText(language = "en") {
       note_marked_ready_pickup_admin_web: "Von Admin-Web als abholbereit markiert",
       note_marked_not_delivered_admin_web: "Von Admin-Web als nicht geliefert markiert",
       note_cancelled_admin_web: "Von Admin-Web storniert",
-      note_updated_admin_web: "Von Admin-Web aktualisiert"
+      note_updated_admin_web: "Von Admin-Web aktualisiert",
+      status_history: "Statushistorie",
+      from_status: "Von",
+      to_status: "Zu",
+      changed_by: "Geändert von",
+      changed_at: "Geändert am",
+      no_status_history: "Noch keine Statushistorie."
     },
     tr: {
       orders: "Siparişler",
@@ -6037,7 +6049,13 @@ function getAdminOrderUiText(language = "en") {
       note_marked_ready_pickup_admin_web: "Admin web tarafından teslim almaya hazır olarak işaretlendi",
       note_marked_not_delivered_admin_web: "Admin web tarafından teslim edilmedi olarak işaretlendi",
       note_cancelled_admin_web: "Admin web tarafından iptal edildi",
-      note_updated_admin_web: "Admin web tarafından güncellendi"
+      note_updated_admin_web: "Admin web tarafından güncellendi",
+      status_history: "Durum geçmişi",
+      from_status: "Önceki",
+      to_status: "Yeni",
+      changed_by: "Değiştiren",
+      changed_at: "Değiştirilme zamanı",
+      no_status_history: "Henüz durum geçmişi yok."
     },
     ar: {
       orders: "الطلبات",
@@ -6129,7 +6147,13 @@ function getAdminOrderUiText(language = "en") {
       note_marked_ready_pickup_admin_web: "تم تحديده كجاهز للاستلام من لوحة الإدارة",
       note_marked_not_delivered_admin_web: "تم تحديده كغير مُسلّم من لوحة الإدارة",
       note_cancelled_admin_web: "تم إلغاؤه من لوحة الإدارة",
-      note_updated_admin_web: "تم تحديثه من لوحة الإدارة"
+      note_updated_admin_web: "تم تحديثه من لوحة الإدارة",
+      status_history: "سجل الحالة",
+      from_status: "من",
+      to_status: "إلى",
+      changed_by: "تم التغيير بواسطة",
+      changed_at: "وقت التغيير",
+      no_status_history: "لا يوجد سجل حالة بعد."
     },
     ru: {
       orders: "Заказы",
@@ -6221,7 +6245,13 @@ function getAdminOrderUiText(language = "en") {
       note_marked_ready_pickup_admin_web: "Отмечено как готовое к самовывозу через админ-панель",
       note_marked_not_delivered_admin_web: "Отмечено как не доставленное через админ-панель",
       note_cancelled_admin_web: "Отменено через админ-панель",
-      note_updated_admin_web: "Обновлено через админ-панель"
+      note_updated_admin_web: "Обновлено через админ-панель",
+      status_history: "История статусов",
+      from_status: "От",
+      to_status: "К",
+      changed_by: "Кем изменено",
+      changed_at: "Когда изменено",
+      no_status_history: "Истории статусов пока нет."
     }
   };
 
@@ -6437,6 +6467,43 @@ function renderOrdersTable(orders, closed = false, ui = getAdminOrderUiText("en"
   </table>`;
 }
 
+async function getAdminOrderStatusHistory(env, orderId) {
+  const result = await env.DB.prepare(`
+    SELECT *
+    FROM customer_order_status_history_v2
+    WHERE order_id = ?
+    ORDER BY datetime(created_at) DESC, id DESC
+  `).bind(orderId).all();
+
+  return result.results || [];
+}
+
+function renderAdminOrderStatusHistory(history = [], ui = getAdminOrderUiText("en")) {
+  const rows = (history || []).map((entry) => {
+    const changedBy = entry.changed_by_admin_username || entry.changed_by_username || entry.changed_by || entry.admin_username || entry.created_by || "";
+    const note = entry.note || entry.reason || entry.status_note || "";
+
+    return `<tr>
+      <td>${escapeHtml(getAdminOrderStatusLabel(entry.from_status || entry.previous_status || "", ui))}</td>
+      <td>${escapeHtml(getAdminOrderStatusLabel(entry.to_status || entry.new_status || entry.status || "", ui))}</td>
+      <td>${escapeHtml(getAdminNoteDisplayText(note, ui))}</td>
+      <td>${escapeHtml(changedBy)}</td>
+      <td>${escapeHtml(entry.created_at || entry.changed_at || "")}</td>
+    </tr>`;
+  }).join("");
+
+  return `<table border="1" cellpadding="8">
+    <tr>
+      <th>${ui.from_status}</th>
+      <th>${ui.to_status}</th>
+      <th>${ui.note}</th>
+      <th>${ui.changed_by}</th>
+      <th>${ui.changed_at}</th>
+    </tr>
+    ${rows || `<tr><td colspan="5">${ui.no_status_history}</td></tr>`}
+  </table>`;
+}
+
 function renderAdminOrderDetailItems(items = [], ui = getAdminOrderUiText("en")) {
   const rows = (items || []).map((item) => `
     <tr>
@@ -6574,6 +6641,7 @@ async function handleAdminOrderDetailPage(env, session, orderId) {
   const language = await getSetting(env, "admin_view_language") || "en";
   const ui = getAdminUiText(language);
   const order = await getV2AdminOrder(env, orderId);
+  const statusHistory = order ? await getAdminOrderStatusHistory(env, orderId) : [];
 
   if (!order) {
     return htmlResponse(`<!DOCTYPE html>
@@ -6660,6 +6728,11 @@ ${renderOrdersNav(ui, session)}
 <div class="admin-section">
   <h2>${ui.groups_and_items}</h2>
   ${renderAdminOrderDetailGroups(order, ui)}
+</div>
+
+<div class="admin-section">
+  <h2>${ui.status_history}</h2>
+  ${renderAdminOrderStatusHistory(statusHistory, ui)}
 </div>
 
 </body>
