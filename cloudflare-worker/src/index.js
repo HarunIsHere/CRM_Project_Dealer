@@ -1160,6 +1160,12 @@ function i18nAdmin(language = "en") {
       : {}
   );
 
+  const orderUi = (
+    typeof getAdminOrderUiText === "function"
+      ? getAdminOrderUiText(language)
+      : {}
+  );
+
   const extra = {
     en: {
       save_ai_response_mode: "Save Bot Response Mode",
@@ -1550,6 +1556,7 @@ function i18nAdmin(language = "en") {
 
   return {
     ...base,
+    ...orderUi,
     ...(extra[language] || extra.en),
     _language: language
   };
@@ -5267,11 +5274,11 @@ function renderAdminDashboard(data, section = "dashboard") {
 <div class="page-actions">
   <a href="/admin"><button type="button">${ui.general}</button></a>
   <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
-  <a href="/admin/orders"><button type="button">Orders</button></a>
-  <a href="/admin/closedorders"><button type="button">Closed Orders</button></a>
+  <a href="/admin/orders"><button type="button">${ui.orders}</button></a>
+  <a href="/admin/closedorders"><button type="button">${ui.closed_orders}</button></a>
   <a href="/admin/products"><button type="button">${ui.products}</button></a>
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
-  <a href="/admin/ai"><button type="button">AI Info</button></a>
+  <a href="/admin/ai"><button type="button">${ui.ai_info}</button></a>
   <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
   ${superadminNav}
 </div>
@@ -7917,11 +7924,11 @@ async function handleOpenRequestsPage(env) {
 <div class="page-actions">
   <a href="/admin"><button type="button">${ui.general}</button></a>
   <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
-  <a href="/admin/orders"><button type="button">Orders</button></a>
-  <a href="/admin/closedorders"><button type="button">Closed Orders</button></a>
+  <a href="/admin/orders"><button type="button">${ui.orders}</button></a>
+  <a href="/admin/closedorders"><button type="button">${ui.closed_orders}</button></a>
   <a href="/admin/products"><button type="button">${ui.products}</button></a>
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
-  <a href="/admin/ai"><button type="button">AI Info</button></a>
+  <a href="/admin/ai"><button type="button">${ui.ai_info}</button></a>
   <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
 </div>
 <hr><hr>
