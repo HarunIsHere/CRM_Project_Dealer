@@ -1563,7 +1563,7 @@ function i18nAdmin(language = "en") {
 }
 
 function i18nStatus(status, language = "en") {
-  const ui = i18nAdmin(language);
+  const ui = getAdminUiText(language);
   const value = String(status || "");
 
   if (value === "pending") return ui.pending_status;
@@ -5129,7 +5129,7 @@ async function getAdminData(env) {
 }
 
 function renderAdminDashboard(data, section = "dashboard") {
-  const ui = { ...i18nAdmin(data.settings.admin_view_language), ...getProductCategoryUiText(data.settings.admin_view_language), ...getAdminGeneralExtraUiText(data.settings.admin_view_language) };
+  const ui = getAdminUiText(data.settings.admin_view_language);
   const superadminNav = data.session?.is_superadmin ? `<a href="/admin/superadmin"><button type="button">${ui.superadmin}</button></a>` : "";
   const adminText = ADMIN_TEXTS[data.settings.admin_view_language] || ADMIN_TEXTS.en;
 
@@ -6911,7 +6911,7 @@ function renderAdminOrderDetailActions(order, ui = getAdminOrderUiText("en")) {
 
 async function handleAdminOrderDetailPage(env, session, orderId) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language), ...getAdminOrderUiText(language) };
+  const ui = getAdminUiText(language);
   const order = await getV2AdminOrder(env, orderId);
 
   if (!order) {
@@ -7007,7 +7007,7 @@ ${renderOrdersNav(ui, session)}
 
 async function handleAdminOrdersPage(env, session = null) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language), ...getAdminOrderUiText(language) };
+  const ui = getAdminUiText(language);
   const orders = await getOrdersContext(env, false);
 
   return htmlResponse(`<!DOCTYPE html>
@@ -7036,7 +7036,7 @@ ${renderOrdersTable(orders, false, ui)}
 
 async function handleAdminClosedOrdersPage(env, session = null) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language), ...getAdminOrderUiText(language) };
+  const ui = getAdminUiText(language);
   const orders = await getOrdersContext(env, true);
 
   return htmlResponse(`<!DOCTYPE html>
@@ -7397,7 +7397,7 @@ async function handleAdminHome(env, session = null) {
 
 async function handleAdminSuperadminPage(env, session) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language), ...getAdminOrderUiText(language) };
+  const ui = getAdminUiText(language);
   const admins = await getAdminUsersForSuperadmin(env);
   const logs = await getAdminAuditLogs(env);
 
@@ -7911,7 +7911,7 @@ function renderOpenRequestsTable(context, ui = i18nAdmin("en")) {
 
 async function handleOpenRequestsPage(env, session = null) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = i18nAdmin(language);
+  const ui = getAdminUiText(language);
   const table = renderOpenRequestsTable(await getOpenRequestContext(env), ui);
 
   return htmlResponse(`<!DOCTYPE html>
@@ -7988,7 +7988,7 @@ setInterval(refreshOpenRequests, 10000);
 }
 
 async function handleOpenRequestsPartial(env) {
-  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
+  const ui = getAdminUiText(await getSetting(env, "admin_view_language") || "en");
   return htmlResponse(renderOpenRequestsTable(await getOpenRequestContext(env), ui));
 }
 
@@ -7999,7 +7999,7 @@ async function handleCustomerDetail(env, customerId) {
 
   if (!customer) return redirectResponse("/admin");
 
-  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
+  const ui = getAdminUiText(await getSetting(env, "admin_view_language") || "en");
 
   const messages = await env.DB.prepare(
     "SELECT * FROM messages WHERE customer_id = ? ORDER BY created_at DESC"
