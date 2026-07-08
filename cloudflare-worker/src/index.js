@@ -5888,8 +5888,8 @@ function formatOrderItemsText(itemsText) {
 
 async function getOrdersContext(env, closed = false) {
   const closedWhere = closed
-    ? "COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled', 'not_delivered')"
-    : "COALESCE(o.order_status, o.status, '') NOT IN ('delivered', 'closed', 'cancelled', 'not_delivered')";
+    ? "COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled')"
+    : "COALESCE(o.order_status, o.status, '') NOT IN ('delivered', 'closed', 'cancelled')";
 
   const rows = await env.DB.prepare(`
     SELECT
@@ -5905,7 +5905,7 @@ async function getOrdersContext(env, closed = false) {
       o.notes AS delivery_note,
       NULL AS delivered_at,
       CASE
-        WHEN COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled', 'not_delivered')
+        WHEN COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled')
         THEN o.updated_at
         ELSE NULL
       END AS closed_at,
@@ -7146,6 +7146,10 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
           delivery_status = CASE
             WHEN fulfillment_type = 'delivery' THEN 'not_delivered'
             ELSE delivery_status
+          END,
+          pickup_status = CASE
+            WHEN fulfillment_type = 'pickup' THEN 'not_delivered'
+            ELSE pickup_status
           END,
           admin_status_note = ?,
           updated_at = CURRENT_TIMESTAMP
