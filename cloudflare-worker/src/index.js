@@ -5859,7 +5859,12 @@ function getAdminOrderUiText(language = "en") {
       to_status: "To",
       changed_by: "Changed by",
       changed_at: "Changed at",
-      no_status_history: "No status history yet."
+      no_status_history: "No status history yet.",
+      status_pickup_ready_to_pickup: "Pickup ready",
+      status_delivery_on_the_way: "Delivery on the way",
+      actor_admin_web: "Admin web",
+      actor_legacy_admin_route: "Admin web",
+      actor_telegram_bot: "Telegram bot"
     },
     de: {
       orders: "Bestellungen",
@@ -5957,7 +5962,12 @@ function getAdminOrderUiText(language = "en") {
       to_status: "Zu",
       changed_by: "Geändert von",
       changed_at: "Geändert am",
-      no_status_history: "Noch keine Statushistorie."
+      no_status_history: "Noch keine Statushistorie.",
+      status_pickup_ready_to_pickup: "Abholung bereit",
+      status_delivery_on_the_way: "Lieferung unterwegs",
+      actor_admin_web: "Admin-Web",
+      actor_legacy_admin_route: "Admin-Web",
+      actor_telegram_bot: "Telegram-Bot"
     },
     tr: {
       orders: "Siparişler",
@@ -6055,7 +6065,12 @@ function getAdminOrderUiText(language = "en") {
       to_status: "Yeni",
       changed_by: "Değiştiren",
       changed_at: "Değiştirilme zamanı",
-      no_status_history: "Henüz durum geçmişi yok."
+      no_status_history: "Henüz durum geçmişi yok.",
+      status_pickup_ready_to_pickup: "Teslim alma hazır",
+      status_delivery_on_the_way: "Teslimat yolda",
+      actor_admin_web: "Admin web",
+      actor_legacy_admin_route: "Admin web",
+      actor_telegram_bot: "Telegram botu"
     },
     ar: {
       orders: "الطلبات",
@@ -6153,7 +6168,12 @@ function getAdminOrderUiText(language = "en") {
       to_status: "إلى",
       changed_by: "تم التغيير بواسطة",
       changed_at: "وقت التغيير",
-      no_status_history: "لا يوجد سجل حالة بعد."
+      no_status_history: "لا يوجد سجل حالة بعد.",
+      status_pickup_ready_to_pickup: "الاستلام جاهز",
+      status_delivery_on_the_way: "التوصيل في الطريق",
+      actor_admin_web: "لوحة الإدارة",
+      actor_legacy_admin_route: "لوحة الإدارة",
+      actor_telegram_bot: "بوت Telegram"
     },
     ru: {
       orders: "Заказы",
@@ -6251,7 +6271,12 @@ function getAdminOrderUiText(language = "en") {
       to_status: "К",
       changed_by: "Кем изменено",
       changed_at: "Когда изменено",
-      no_status_history: "Истории статусов пока нет."
+      no_status_history: "Истории статусов пока нет.",
+      status_pickup_ready_to_pickup: "Самовывоз готов",
+      status_delivery_on_the_way: "Доставка в пути",
+      actor_admin_web: "Админ-панель",
+      actor_legacy_admin_route: "Админ-панель",
+      actor_telegram_bot: "Telegram-бот"
     }
   };
 
@@ -6267,7 +6292,8 @@ function getAdminLanguageDisplayLabel(value, ui = getAdminOrderUiText("en")) {
 function getAdminNoteDisplayText(note, ui = getAdminOrderUiText("en")) {
   const cleaned = String(note || "")
     .replace(/legacy admin route/g, "admin web")
-    .replace(/legacy_admin_route/g, "admin_web");
+    .replace(/legacy_admin_route/g, "admin_web")
+    .replace(/admin route/g, "admin web");
 
   const knownNotes = {
     "Marked delivered from admin web": ui.note_marked_delivered_admin_web,
@@ -6288,7 +6314,12 @@ function getAdminOrderValueLabel(prefix, value, ui = getAdminOrderUiText("en")) 
 }
 
 function getAdminOrderStatusLabel(status, ui = getAdminOrderUiText("en")) {
-  const normalized = String(status || "").replace(/-/g, "_");
+  const normalized = String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
   const key = `status_${normalized}`;
   return ui[key] || getOrderStatusLabel(status);
 }
@@ -6478,6 +6509,17 @@ async function getAdminOrderStatusHistory(env, orderId) {
   return result.results || [];
 }
 
+
+function getAdminActorDisplayLabel(value, ui = getAdminOrderUiText("en")) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return ui[`actor_${normalized}`] || value || "";
+}
+
 function renderAdminOrderStatusHistory(history = [], ui = getAdminOrderUiText("en")) {
   const rows = (history || []).map((entry) => {
     const changedBy = entry.changed_by_admin_username || entry.changed_by_username || entry.changed_by || entry.admin_username || entry.created_by || "";
@@ -6487,7 +6529,7 @@ function renderAdminOrderStatusHistory(history = [], ui = getAdminOrderUiText("e
       <td>${escapeHtml(getAdminOrderStatusLabel(entry.from_status || entry.previous_status || "", ui))}</td>
       <td>${escapeHtml(getAdminOrderStatusLabel(entry.to_status || entry.new_status || entry.status || "", ui))}</td>
       <td>${escapeHtml(getAdminNoteDisplayText(note, ui))}</td>
-      <td>${escapeHtml(changedBy)}</td>
+      <td>${escapeHtml(getAdminActorDisplayLabel(changedBy, ui))}</td>
       <td>${escapeHtml(entry.created_at || entry.changed_at || "")}</td>
     </tr>`;
   }).join("");
