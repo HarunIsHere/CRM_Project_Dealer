@@ -6274,7 +6274,14 @@ function renderAdminOrderLocationCell(order) {
 }
 
 function renderAdminOrderActionForms(order, closed = false) {
+  const currentStatus = order.order_status || order.status || "";
+  const noteInput = `<input type="text" name="admin_status_note" value="${escapeHtml(order.admin_status_note || "")}" placeholder="Optional admin note">`;
+
   if (closed) {
+    if (currentStatus === "cancelled") {
+      return `<em>No action for cancelled order.</em>`;
+    }
+
     return `
       <form action="/admin/orders/${order.id}/return" method="post" style="display:inline;">
         <button type="submit">Return as not delivered</button>
@@ -6282,11 +6289,12 @@ function renderAdminOrderActionForms(order, closed = false) {
     `;
   }
 
-  const noteInput = `<input type="text" name="admin_status_note" value="${escapeHtml(order.admin_status_note || "")}" placeholder="Optional admin note">`;
   const forms = [];
 
+  forms.push(`<a href="/admin/orders/${order.id}"><button type="button">Details</button></a>`);
+
   if (order.fulfillment_type === "delivery") {
-    if (order.delivery_status !== "on_the_way" && order.order_status !== "delivered") {
+    if (order.delivery_status !== "on_the_way" && currentStatus !== "delivered") {
       forms.push(`
         <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
           <input type="hidden" name="order_status" value="on_the_way">
@@ -6328,7 +6336,7 @@ function renderAdminOrderActionForms(order, closed = false) {
     forms.push(`
       <form action="/admin/orders/${order.id}/status" method="post">
         <select name="order_status">
-          ${getOrderStatusOptions(order.order_status || order.status || "submitted")}
+          ${getOrderStatusOptions(currentStatus || "submitted")}
         </select>
         ${noteInput}
         <button type="submit">Update</button>
@@ -6354,6 +6362,7 @@ function renderOrdersTable(orders, closed = false) {
       <td>
         <strong>${escapeHtml(order.id)}</strong>
         ${order.public_order_code ? `<br><small>${escapeHtml(order.public_order_code)}</small>` : ""}
+        <br><a href="/admin/orders/${order.id}"><button type="button">Details</button></a>
       </td>
       <td>${escapeHtml(customerLabel)}<br><small>${escapeHtml(order.telegram_user_id || "")}</small></td>
       <td>${renderAdminOrderStatusBadges(order)}</td>
@@ -6385,6 +6394,235 @@ function renderOrdersTable(orders, closed = false) {
     </tr>
     ${rows || `<tr><td colspan="8">No orders found.</td></tr>`}
   </table>`;
+}
+
+function renderAdminOrderDetailItems(items = []) {
+  const rows = (items || []).map((item) => `
+    <tr>
+      <td>${escapeHtml(item.name || item.product_name || "")}</td>
+      <td>${escapeHtml(item.quantity || "")}</td>
+      <td>${escapeHtml(formatPrice(item.unit_price || item.price_snapshot || 0))}</td>
+      <td>${escapeHtml(formatPrice(item.line_total || 0))}</td>
+      <td>${escapeHtml(item.item_status || "")}</td>
+      <td>${escapeHtml(item.admin_decision || "")}</td>
+      <td>${escapeHtml(item.admin_decision_note || "")}</td>
+    </tr>
+  `).join("");
+
+  return `<table border="1" cellpadding="8">
+    <tr>
+      <th>Product</th>
+      <th>Qty</th>
+      <th>Unit</th>
+      <th>Total</th>
+      <th>Item Status</th>
+      <th>Admin Decision</th>
+      <th>Note</th>
+    </tr>
+    ${rows || `<tr><td colspan="7">No items.</td></tr>`}
+  </table>`;
+}
+
+function renderAdminOrderDetailGroups(order) {
+  const groups = order.groups || [];
+
+  if (!groups.length) {
+    return "<p>No item groups.</p>";
+  }
+
+  return groups.map((group) => {
+    const groupActions = group.group_status === "pending_admin_approval" && order.fulfillment_type === "delivery"
+      ? `
+        <div class="page-actions">
+          <form action="/admin/orders/${order.id}/groups/${group.id}/approve" method="post" style="display:inline;">
+            <button type="submit">Approve group</button>
+          </form>
+          <form action="/admin/orders/${order.id}/groups/${group.id}/reject" method="post" style="display:inline;">
+            <input type="text" name="admin_decision_note" placeholder="Reject note">
+            <button type="submit">Reject group</button>
+          </form>
+        </div>
+      `
+      : "";
+
+    return `<div class="admin-section">
+      <h3>Group ${escapeHtml(group.id)} — ${escapeHtml(group.group_type || "")}</h3>
+      <p>
+        <strong>Status:</strong> ${escapeHtml(group.group_status || "")}
+        <br><strong>Fulfillment:</strong> ${escapeHtml(group.fulfillment_type || "")}
+        <br><strong>Requires admin approval:</strong> ${group.requires_admin_approval ? "Yes" : "No"}
+        <br><strong>Total:</strong> ${escapeHtml(group.total_formatted || formatPrice(group.total_amount || 0))}
+      </p>
+      ${groupActions}
+      ${renderAdminOrderDetailItems(group.items || [])}
+    </div>`;
+  }).join("");
+}
+
+function renderAdminOrderDetailActions(order) {
+  const currentStatus = order.order_status || order.status || "";
+
+  if (currentStatus === "cancelled") {
+    return `<em>No lifecycle action for cancelled order.</em>`;
+  }
+
+  const forms = [];
+
+  if (order.fulfillment_type === "delivery") {
+    if (order.delivery_status !== "on_the_way" && currentStatus !== "delivered") {
+      forms.push(`
+        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+          <input type="hidden" name="order_status" value="on_the_way">
+          <input type="text" name="admin_status_note" placeholder="Optional admin note">
+          <button type="submit">On the way</button>
+        </form>
+      `);
+    }
+
+    if (currentStatus !== "delivered") {
+      forms.push(`
+        <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+          <button type="submit">Delivered</button>
+        </form>
+      `);
+    }
+
+    if (currentStatus !== "not_delivered") {
+      forms.push(`
+        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+          <input type="hidden" name="order_status" value="not_delivered">
+          <button type="submit">Not delivered</button>
+        </form>
+      `);
+    }
+  }
+
+  if (order.fulfillment_type === "pickup") {
+    if (order.pickup_status !== "ready_to_pickup" && order.pickup_status !== "picked_up") {
+      forms.push(`
+        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+          <input type="hidden" name="order_status" value="ready_to_pickup">
+          <input type="text" name="admin_status_note" placeholder="Optional admin note">
+          <button type="submit">Ready to pick up</button>
+        </form>
+      `);
+    }
+
+    if (order.pickup_status !== "picked_up" && currentStatus !== "delivered") {
+      forms.push(`
+        <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+          <button type="submit">Picked up / delivered</button>
+        </form>
+      `);
+    }
+  }
+
+  if (!["delivered", "cancelled", "not_delivered", "closed"].includes(currentStatus)) {
+    forms.push(`
+      <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+        <input type="hidden" name="order_status" value="cancelled">
+        <button type="submit">Cancel</button>
+      </form>
+    `);
+  }
+
+  return forms.join("\n") || `<em>No available action.</em>`;
+}
+
+async function handleAdminOrderDetailPage(env, session, orderId) {
+  const language = await getSetting(env, "admin_view_language") || "en";
+  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language) };
+  const order = await getV2AdminOrder(env, orderId);
+
+  if (!order) {
+    return htmlResponse(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Order not found</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+${renderOrdersNav(ui, session)}
+<h1>Order not found</h1>
+<p><a href="/admin/orders">Back to orders</a></p>
+</body>
+</html>`, 404);
+  }
+
+  const customer = order.customer || {};
+  const location = order.delivery_location_label || order.delivery_address || "";
+  const mapLink = order.delivery_google_maps_link
+    ? `<a href="${escapeHtml(order.delivery_google_maps_link)}" target="_blank">Open map</a>`
+    : "";
+
+  return htmlResponse(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Order ${escapeHtml(order.id)}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+<div class="admin-header">
+  <h1>Order ${escapeHtml(order.id)}</h1>
+  <div class="header-actions">
+    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
+    <a href="/admin/change-password"><button type="button">${ui.change_password}</button></a>
+  </div>
+</div>
+<hr><hr>
+${renderOrdersNav(ui, session)}
+<hr><hr>
+
+<p>
+  <a href="/admin/orders"><button type="button">Open Orders</button></a>
+  <a href="/admin/closedorders"><button type="button">Closed Orders</button></a>
+</p>
+
+<div class="admin-section">
+  <h2>Summary</h2>
+  <p>
+    <strong>Code:</strong> ${escapeHtml(order.public_order_code || "")}
+    <br><strong>Fulfillment:</strong> ${escapeHtml(order.fulfillment_type || "")}
+    <br><strong>Order status:</strong> ${escapeHtml(order.order_status_label || order.order_status || "")}
+    <br><strong>Delivery status:</strong> ${escapeHtml(order.delivery_status_label || order.delivery_status || "")}
+    <br><strong>Pickup status:</strong> ${escapeHtml(order.pickup_status_label || order.pickup_status || "")}
+    <br><strong>Total:</strong> ${escapeHtml(order.total_formatted || formatPrice(order.total_amount || 0))}
+    <br><strong>Admin note:</strong> ${escapeHtml(order.admin_status_note || "")}
+  </p>
+</div>
+
+<div class="admin-section">
+  <h2>Customer</h2>
+  <p>
+    <strong>Name:</strong> ${escapeHtml(customer.full_name || "")}
+    <br><strong>Username:</strong> ${escapeHtml(customer.username || "")}
+    <br><strong>Telegram:</strong> ${escapeHtml(customer.telegram_user_id || "")}
+    <br><strong>Language:</strong> ${escapeHtml(customer.preferred_language || "")}
+  </p>
+</div>
+
+<div class="admin-section">
+  <h2>Location</h2>
+  <p>
+    ${escapeHtml(location || "No delivery location.")}
+    ${mapLink ? `<br>${mapLink}` : ""}
+  </p>
+</div>
+
+<div class="admin-section">
+  <h2>Actions</h2>
+  ${renderAdminOrderDetailActions(order)}
+</div>
+
+<div class="admin-section">
+  <h2>Groups and Items</h2>
+  ${renderAdminOrderDetailGroups(order)}
+</div>
+
+</body>
+</html>`);
 }
 
 async function handleAdminOrdersPage(env, session = null) {
@@ -6668,6 +6906,83 @@ async function handleAdminReturnClosedOrder(env, orderId) {
 
   await updateOrderStatusByAdmin(env, orderId, "not_delivered", "Returned from closed orders");
   return redirectResponse("/admin/orders");
+}
+
+async function handleAdminOrderGroupApprove(env, orderId, groupId, session = {}) {
+  const order = await getV2RawOrder(env, orderId);
+  const group = await getV2RawGroup(env, groupId, orderId);
+
+  if (!order || !group) {
+    return redirectResponse(`/admin/orders/${orderId}`);
+  }
+
+  if (order.fulfillment_type !== "delivery" || group.group_status !== "pending_admin_approval") {
+    return redirectResponse(`/admin/orders/${orderId}`);
+  }
+
+  await env.DB.prepare(`
+    UPDATE order_addition_groups_v2
+    SET group_status = 'approved',
+        admin_decision = 'approved',
+        decided_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND customer_order_id = ?
+  `).bind(groupId, orderId).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_order_items_v2
+    SET item_status = 'confirmed',
+        admin_decision = 'approved',
+        decided_at = CURRENT_TIMESTAMP
+    WHERE group_id = ? AND customer_order_id = ?
+  `).bind(groupId, orderId).run();
+
+  await updateV2OrderConfirmedTotal(env, orderId);
+  await addV2OrderHistory(env, orderId, "group:pending_admin_approval", "group:approved", session, `Group ${groupId} approved from admin web`);
+  await notifyCustomerForV2Order(env, order, getV2DeliveryAdditionApprovedText(), "order_addition");
+
+  return redirectResponse(`/admin/orders/${orderId}`);
+}
+
+async function handleAdminOrderGroupReject(request, env, orderId, groupId, session = {}) {
+  const form = await request.formData();
+  const note = String(form.get("admin_decision_note") || "").trim();
+
+  const order = await getV2RawOrder(env, orderId);
+  const group = await getV2RawGroup(env, groupId, orderId);
+
+  if (!order || !group) {
+    return redirectResponse(`/admin/orders/${orderId}`);
+  }
+
+  if (order.fulfillment_type !== "delivery" || group.group_status !== "pending_admin_approval") {
+    return redirectResponse(`/admin/orders/${orderId}`);
+  }
+
+  await env.DB.prepare(`
+    UPDATE order_addition_groups_v2
+    SET group_status = 'rejected',
+        admin_decision = 'rejected',
+        admin_decision_note = ?,
+        decided_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND customer_order_id = ?
+  `).bind(note || null, groupId, orderId).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_order_items_v2
+    SET item_status = 'rejected',
+        admin_decision = 'rejected',
+        admin_decision_note = ?,
+        decided_at = CURRENT_TIMESTAMP
+    WHERE group_id = ? AND customer_order_id = ?
+  `).bind(note || null, groupId, orderId).run();
+
+  await updateV2OrderConfirmedTotal(env, orderId);
+  await addV2OrderHistory(env, orderId, "group:pending_admin_approval", "group:rejected", session, `Group ${groupId} rejected from admin web${note ? ": " + note : ""}`);
+  await notifyCustomerForV2Order(env, order, getV2DeliveryAdditionRejectedText(), "order_addition");
+
+  return redirectResponse(`/admin/orders/${orderId}`);
 }
 
 async function handleAdminProductsPage(env) {
@@ -13901,6 +14216,19 @@ async function routeRequest(request, env) {
   if (url.pathname === "/admin/settings/delivery-cities" && request.method === "POST") return handleUpdateDeliveryCities(request, env);
   if (url.pathname === "/admin/settings/admin-language" && request.method === "POST") return handleUpdateAdminLanguage(request, env);
   if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
+
+  const adminOrderDetail = url.pathname.match(/^\/admin\/orders\/(\d+)$/);
+  if (adminOrderDetail && request.method === "GET") return handleAdminOrderDetailPage(env, adminSession, Number(adminOrderDetail[1]));
+
+  const orderGroupApprove = url.pathname.match(/^\/admin\/orders\/(\d+)\/groups\/(\d+)\/approve$/);
+  if (orderGroupApprove && request.method === "POST") {
+    return handleAdminOrderGroupApprove(env, Number(orderGroupApprove[1]), Number(orderGroupApprove[2]), adminSession);
+  }
+
+  const orderGroupReject = url.pathname.match(/^\/admin\/orders\/(\d+)\/groups\/(\d+)\/reject$/);
+  if (orderGroupReject && request.method === "POST") {
+    return handleAdminOrderGroupReject(request, env, Number(orderGroupReject[1]), Number(orderGroupReject[2]), adminSession);
+  }
 
   const orderStatusUpdate = url.pathname.match(/^\/admin\/orders\/(\d+)\/status$/);
   if (orderStatusUpdate && request.method === "POST") return handleAdminUpdateOrderStatus(request, env, Number(orderStatusUpdate[1]));
