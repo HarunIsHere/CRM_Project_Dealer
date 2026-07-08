@@ -5847,7 +5847,13 @@ function getAdminOrderUiText(language = "en") {
       language_de: "German",
       language_tr: "Turkish",
       language_ar: "Arabic",
-      language_ru: "Russian"
+      language_ru: "Russian",
+      note_marked_delivered_admin_web: "Marked delivered from admin web",
+      note_marked_on_the_way_admin_web: "Marked on the way from admin web",
+      note_marked_ready_pickup_admin_web: "Marked ready to pick up from admin web",
+      note_marked_not_delivered_admin_web: "Marked not delivered from admin web",
+      note_cancelled_admin_web: "Cancelled from admin web",
+      note_updated_admin_web: "Updated from admin web"
     },
     de: {
       orders: "Bestellungen",
@@ -5933,7 +5939,13 @@ function getAdminOrderUiText(language = "en") {
       language_de: "Deutsch",
       language_tr: "Türkisch",
       language_ar: "Arabisch",
-      language_ru: "Russisch"
+      language_ru: "Russisch",
+      note_marked_delivered_admin_web: "Von Admin-Web als geliefert markiert",
+      note_marked_on_the_way_admin_web: "Von Admin-Web als unterwegs markiert",
+      note_marked_ready_pickup_admin_web: "Von Admin-Web als abholbereit markiert",
+      note_marked_not_delivered_admin_web: "Von Admin-Web als nicht geliefert markiert",
+      note_cancelled_admin_web: "Von Admin-Web storniert",
+      note_updated_admin_web: "Von Admin-Web aktualisiert"
     },
     tr: {
       orders: "Siparişler",
@@ -6019,7 +6031,13 @@ function getAdminOrderUiText(language = "en") {
       language_de: "Almanca",
       language_tr: "Türkçe",
       language_ar: "Arapça",
-      language_ru: "Rusça"
+      language_ru: "Rusça",
+      note_marked_delivered_admin_web: "Admin web tarafından teslim edildi olarak işaretlendi",
+      note_marked_on_the_way_admin_web: "Admin web tarafından yolda olarak işaretlendi",
+      note_marked_ready_pickup_admin_web: "Admin web tarafından teslim almaya hazır olarak işaretlendi",
+      note_marked_not_delivered_admin_web: "Admin web tarafından teslim edilmedi olarak işaretlendi",
+      note_cancelled_admin_web: "Admin web tarafından iptal edildi",
+      note_updated_admin_web: "Admin web tarafından güncellendi"
     },
     ar: {
       orders: "الطلبات",
@@ -6105,7 +6123,13 @@ function getAdminOrderUiText(language = "en") {
       language_de: "الألمانية",
       language_tr: "التركية",
       language_ar: "العربية",
-      language_ru: "الروسية"
+      language_ru: "الروسية",
+      note_marked_delivered_admin_web: "تم تحديده كمُسلّم من لوحة الإدارة",
+      note_marked_on_the_way_admin_web: "تم تحديده كقيد التوصيل من لوحة الإدارة",
+      note_marked_ready_pickup_admin_web: "تم تحديده كجاهز للاستلام من لوحة الإدارة",
+      note_marked_not_delivered_admin_web: "تم تحديده كغير مُسلّم من لوحة الإدارة",
+      note_cancelled_admin_web: "تم إلغاؤه من لوحة الإدارة",
+      note_updated_admin_web: "تم تحديثه من لوحة الإدارة"
     },
     ru: {
       orders: "Заказы",
@@ -6191,7 +6215,13 @@ function getAdminOrderUiText(language = "en") {
       language_de: "Немецкий",
       language_tr: "Турецкий",
       language_ar: "Арабский",
-      language_ru: "Русский"
+      language_ru: "Русский",
+      note_marked_delivered_admin_web: "Отмечено как доставленное через админ-панель",
+      note_marked_on_the_way_admin_web: "Отмечено как в пути через админ-панель",
+      note_marked_ready_pickup_admin_web: "Отмечено как готовое к самовывозу через админ-панель",
+      note_marked_not_delivered_admin_web: "Отмечено как не доставленное через админ-панель",
+      note_cancelled_admin_web: "Отменено через админ-панель",
+      note_updated_admin_web: "Обновлено через админ-панель"
     }
   };
 
@@ -6204,10 +6234,21 @@ function getAdminLanguageDisplayLabel(value, ui = getAdminOrderUiText("en")) {
   return ui[`language_${lang}`] || value || "";
 }
 
-function getAdminNoteDisplayText(note) {
-  return String(note || "")
+function getAdminNoteDisplayText(note, ui = getAdminOrderUiText("en")) {
+  const cleaned = String(note || "")
     .replace(/legacy admin route/g, "admin web")
     .replace(/legacy_admin_route/g, "admin_web");
+
+  const knownNotes = {
+    "Marked delivered from admin web": ui.note_marked_delivered_admin_web,
+    "Marked on the way from admin web": ui.note_marked_on_the_way_admin_web,
+    "Marked ready to pick up from admin web": ui.note_marked_ready_pickup_admin_web,
+    "Marked not delivered from admin web": ui.note_marked_not_delivered_admin_web,
+    "Cancelled from admin web": ui.note_cancelled_admin_web,
+    "Updated from admin web": ui.note_updated_admin_web
+  };
+
+  return knownNotes[cleaned] || cleaned;
 }
 
 function getAdminOrderValueLabel(prefix, value, ui = getAdminOrderUiText("en")) {
@@ -6375,7 +6416,7 @@ function renderOrdersTable(orders, closed = false, ui = getAdminOrderUiText("en"
         ${escapeHtml(order.updated_at || "")}
       </td>
       <td>
-        ${order.admin_status_note ? `<div><small>${ui.note}: ${escapeHtml(getAdminNoteDisplayText(order.admin_status_note))}</small></div>` : ""}
+        ${order.admin_status_note ? `<div><small>${ui.note}: ${escapeHtml(getAdminNoteDisplayText(order.admin_status_note, ui))}</small></div>` : ""}
         ${renderAdminOrderActionForms(order, closed, ui)}
       </td>
     </tr>`;
@@ -6589,7 +6630,7 @@ ${renderOrdersNav(ui, session)}
     <br><strong>${ui.delivery_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.delivery_status || "", ui))}
     <br><strong>${ui.pickup_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.pickup_status || "", ui))}
     <br><strong>${ui.total}:</strong> ${escapeHtml(order.total_formatted || formatPrice(order.total_amount || 0))}
-    <br><strong>${ui.admin_note}:</strong> ${escapeHtml(getAdminNoteDisplayText(order.admin_status_note || ""))}
+    <br><strong>${ui.admin_note}:</strong> ${escapeHtml(getAdminNoteDisplayText(order.admin_status_note || "", ui))}
   </p>
 </div>
 
