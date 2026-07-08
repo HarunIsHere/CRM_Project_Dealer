@@ -5833,7 +5833,16 @@ function getAdminOrderUiText(language = "en") {
       status_not_delivered: "Not delivered",
       status_on_the_way: "On the way",
       status_ready_to_pickup: "Ready to pick up",
-      status_picked_up: "Picked up"
+      status_picked_up: "Picked up",
+      status_waiting_ready_to_pickup: "Waiting for pickup readiness",
+      status_pending_admin_approval: "Pending admin approval",
+      status_approved: "Approved",
+      status_rejected: "Rejected",
+      group_type_initial_checkout: "Initial checkout",
+      group_type_admin_addition: "Admin addition",
+      group_type_customer_addition: "Customer addition",
+      fulfillment_pickup: "Pickup",
+      fulfillment_delivery: "Delivery"
     },
     de: {
       orders: "Bestellungen",
@@ -5905,7 +5914,16 @@ function getAdminOrderUiText(language = "en") {
       status_not_delivered: "Nicht geliefert",
       status_on_the_way: "Unterwegs",
       status_ready_to_pickup: "Bereit zur Abholung",
-      status_picked_up: "Abgeholt"
+      status_picked_up: "Abgeholt",
+      status_waiting_ready_to_pickup: "Wartet auf Abholbereitschaft",
+      status_pending_admin_approval: "Wartet auf Admin-Freigabe",
+      status_approved: "Genehmigt",
+      status_rejected: "Abgelehnt",
+      group_type_initial_checkout: "Erster Checkout",
+      group_type_admin_addition: "Admin-Ergänzung",
+      group_type_customer_addition: "Kundenergänzung",
+      fulfillment_pickup: "Abholung",
+      fulfillment_delivery: "Lieferung"
     },
     tr: {
       orders: "Siparişler",
@@ -5977,7 +5995,16 @@ function getAdminOrderUiText(language = "en") {
       status_not_delivered: "Teslim edilmedi",
       status_on_the_way: "Yolda",
       status_ready_to_pickup: "Teslim almaya hazır",
-      status_picked_up: "Teslim alındı"
+      status_picked_up: "Teslim alındı",
+      status_waiting_ready_to_pickup: "Teslim almaya hazır olmayı bekliyor",
+      status_pending_admin_approval: "Admin onayı bekliyor",
+      status_approved: "Onaylandı",
+      status_rejected: "Reddedildi",
+      group_type_initial_checkout: "İlk checkout",
+      group_type_admin_addition: "Admin eklemesi",
+      group_type_customer_addition: "Müşteri eklemesi",
+      fulfillment_pickup: "Teslim alma",
+      fulfillment_delivery: "Teslimat"
     },
     ar: {
       orders: "الطلبات",
@@ -6049,7 +6076,16 @@ function getAdminOrderUiText(language = "en") {
       status_not_delivered: "لم يتم التسليم",
       status_on_the_way: "في الطريق",
       status_ready_to_pickup: "جاهز للاستلام",
-      status_picked_up: "تم الاستلام"
+      status_picked_up: "تم الاستلام",
+      status_waiting_ready_to_pickup: "بانتظار الجاهزية للاستلام",
+      status_pending_admin_approval: "بانتظار موافقة الإدارة",
+      status_approved: "تمت الموافقة",
+      status_rejected: "مرفوض",
+      group_type_initial_checkout: "الدفع الأولي",
+      group_type_admin_addition: "إضافة الإدارة",
+      group_type_customer_addition: "إضافة العميل",
+      fulfillment_pickup: "استلام",
+      fulfillment_delivery: "توصيل"
     },
     ru: {
       orders: "Заказы",
@@ -6121,15 +6157,32 @@ function getAdminOrderUiText(language = "en") {
       status_not_delivered: "Не доставлен",
       status_on_the_way: "В пути",
       status_ready_to_pickup: "Готов к самовывозу",
-      status_picked_up: "Получен"
+      status_picked_up: "Получен",
+      status_waiting_ready_to_pickup: "Ожидает готовности к самовывозу",
+      status_pending_admin_approval: "Ожидает одобрения админа",
+      status_approved: "Одобрено",
+      status_rejected: "Отклонено",
+      group_type_initial_checkout: "Первичный checkout",
+      group_type_admin_addition: "Добавление админом",
+      group_type_customer_addition: "Добавление клиентом",
+      fulfillment_pickup: "Самовывоз",
+      fulfillment_delivery: "Доставка"
     }
   };
 
   return texts[safeLang(language)] || texts.en;
 }
 
+
+function getAdminOrderValueLabel(prefix, value, ui = getAdminOrderUiText("en")) {
+  const normalized = String(value || "").replace(/-/g, "_");
+  const key = `${prefix}_${normalized}`;
+  return ui[key] || value || "";
+}
+
 function getAdminOrderStatusLabel(status, ui = getAdminOrderUiText("en")) {
-  const key = `status_${String(status || "").replace(/-/g, "_")}`;
+  const normalized = String(status || "").replace(/-/g, "_");
+  const key = `status_${normalized}`;
   return ui[key] || getOrderStatusLabel(status);
 }
 
@@ -6153,7 +6206,7 @@ function renderAdminOrderStatusBadges(order, ui = getAdminOrderUiText("en")) {
   const parts = [];
 
   if (order.fulfillment_type) {
-    parts.push(`${ui.fulfillment}: ${escapeHtml(order.fulfillment_type)}`);
+    parts.push(`${ui.fulfillment}: ${escapeHtml(getAdminOrderValueLabel("fulfillment", order.fulfillment_type, ui))}`);
   }
 
   if (order.order_status || order.status) {
@@ -6357,10 +6410,10 @@ function renderAdminOrderDetailGroups(order, ui = getAdminOrderUiText("en")) {
       : "";
 
     return `<div class="admin-section">
-      <h3>${ui.group} ${escapeHtml(group.id)} — ${escapeHtml(group.group_type || "")}</h3>
+      <h3>${ui.group} ${escapeHtml(group.id)} — ${escapeHtml(getAdminOrderValueLabel("group_type", group.group_type, ui))}</h3>
       <p>
         <strong>${ui.status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(group.group_status || "", ui))}
-        <br><strong>${ui.fulfillment}:</strong> ${escapeHtml(group.fulfillment_type || "")}
+        <br><strong>${ui.fulfillment}:</strong> ${escapeHtml(getAdminOrderValueLabel("fulfillment", group.fulfillment_type, ui))}
         <br><strong>${ui.requires_admin_approval}:</strong> ${group.requires_admin_approval ? ui.yes : ui.no}
         <br><strong>${ui.total}:</strong> ${escapeHtml(group.total_formatted || formatPrice(group.total_amount || 0))}
       </p>
@@ -6495,7 +6548,7 @@ ${renderOrdersNav(ui, session)}
   <h2>${ui.summary}</h2>
   <p>
     <strong>${ui.code}:</strong> ${escapeHtml(order.public_order_code || "")}
-    <br><strong>${ui.fulfillment}:</strong> ${escapeHtml(order.fulfillment_type || "")}
+    <br><strong>${ui.fulfillment}:</strong> ${escapeHtml(getAdminOrderValueLabel("fulfillment", order.fulfillment_type, ui))}
     <br><strong>${ui.order_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.order_status || order.status || "", ui))}
     <br><strong>${ui.delivery_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.delivery_status || "", ui))}
     <br><strong>${ui.pickup_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.pickup_status || "", ui))}
