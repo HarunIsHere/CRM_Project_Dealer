@@ -1755,6 +1755,174 @@ function detectUnsupportedDeliveryCity(text, allowedCities) {
   return knownCities.find((city) => clean.includes(city) && !allowed.includes(city)) || null;
 }
 
+function extractCoordinatesFromGoogleMapsLink(value) {
+  let raw = String(value || "");
+
+  try {
+    raw = decodeURIComponent(raw);
+  } catch (_) {}
+
+  const patterns = [
+    /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    /\b(-?\d{1,2}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)\b/
+  ];
+
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (!match) continue;
+
+    const latitude = Number(match[1]);
+    const longitude = Number(match[2]);
+
+    if (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180
+    ) {
+      return {
+        latitude: String(latitude),
+        longitude: String(longitude)
+      };
+    }
+  }
+
+  return null;
+}
+
+function getLocationCoordinates(location = {}) {
+  const latitude = location.latitude !== undefined && location.latitude !== null ? String(location.latitude).trim() : "";
+  const longitude = location.longitude !== undefined && location.longitude !== null ? String(location.longitude).trim() : "";
+
+  if (latitude && longitude) {
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lon) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lon >= -180 &&
+      lon <= 180
+    ) {
+      return {
+        latitude: String(lat),
+        longitude: String(lon)
+      };
+    }
+  }
+
+  return extractCoordinatesFromGoogleMapsLink(location.google_maps_link || location.delivery_google_maps_link || "");
+}
+
+function textMentionsAllowedDeliveryCity(value, allowedCities = []) {
+  const clean = normalizeText(value);
+  const allowed = allowedCities.map(normalizeText).filter(Boolean);
+
+  return allowed.some((city) => clean.includes(city));
+}
+
+function getReverseGeocodeCityText(reverseData = {}) {
+  const address = reverseData.address || {};
+
+  return [
+    address.city,
+    address.town,
+    address.village,
+    address.municipality,
+    address.borough,
+    address.suburb,
+    address.county,
+    address.state,
+    address.country,
+    reverseData.display_name
+  ].filter(Boolean).join(", ");
+}
+
+async function reverseGeocodeDeliveryCoordinates(latitude, longitude) {
+  const url = new URL("https://nominatim.openstreetmap.org/reverse");
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("lat", latitude);
+  url.searchParams.set("lon", longitude);
+  url.searchParams.set("addressdetails", "1");
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+  try {
+    const response = await fetch(url.toString(), {
+      headers: { "user-agent": "CRMProjectDealer/1.0" },
+      signal: controller.signal
+    });
+
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (_) {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+
+async function validateDeliveryLocationAgainstAllowedCities(env, location = {}) {
+  const allowedCities = await getAllowedDeliveryCities(env);
+  const directText = [
+    location.label,
+    location.location_label,
+    location.address,
+    location.description,
+    location.delivery_location_label,
+    location.delivery_address
+  ].filter(Boolean).join(", ");
+
+  const coordinates = getLocationCoordinates(location);
+
+  if (coordinates) {
+    const reverseData = await reverseGeocodeDeliveryCoordinates(coordinates.latitude, coordinates.longitude);
+    const reverseText = getReverseGeocodeCityText(reverseData || {});
+
+    if (textMentionsAllowedDeliveryCity(reverseText, allowedCities)) {
+      return { ok: true, allowed_cities: allowedCities, reverse_text: reverseText };
+    }
+
+    return {
+      ok: false,
+      code: "delivery_city_not_allowed",
+      message: `Delivery is currently available only in: ${formatAllowedCities(allowedCities)}.`,
+      allowed_cities: allowedCities,
+      detected_city: reverseText || `${coordinates.latitude}, ${coordinates.longitude}`
+    };
+  }
+
+  if (textMentionsAllowedDeliveryCity(directText, allowedCities)) {
+    return { ok: true, allowed_cities: allowedCities };
+  }
+
+  const unsupportedCity = detectUnsupportedDeliveryCity(directText, allowedCities);
+
+  if (unsupportedCity) {
+    return {
+      ok: false,
+      code: "delivery_city_not_allowed",
+      message: `Delivery is currently available only in: ${formatAllowedCities(allowedCities)}.`,
+      allowed_cities: allowedCities,
+      detected_city: unsupportedCity
+    };
+  }
+
+  return {
+    ok: false,
+    code: "delivery_city_not_confirmed",
+    message: `Delivery location must be inside: ${formatAllowedCities(allowedCities)}.`,
+    allowed_cities: allowedCities
+  };
+}
+
 function getUnsupportedCityReply(language, allowedCities) {
   const cities = formatAllowedCities(allowedCities);
   const replies = {
@@ -3628,9 +3796,18 @@ async function submitTelegramV2Checkout(env, customer, fulfillmentType, body = {
 
   if (result.error) {
     let message = "Checkout could not be completed.";
+
     try {
       const payload = await result.error.clone().json();
-      message = payload.message || payload.error || message;
+      const error = payload.error || {};
+      message = error.message || payload.message || message;
+
+      if (["delivery_city_not_allowed", "delivery_city_not_confirmed"].includes(error.code)) {
+        message = getUnsupportedCityReply(
+          customer.preferred_language || customer.language || "en",
+          error.details?.allowed_cities || await getAllowedDeliveryCities(env)
+        );
+      }
     } catch (_) {}
 
     return { ok: false, message };
@@ -8175,13 +8352,40 @@ async function sendMeetingPointChoiceOrDirect(env, customer, chatId, incomingTex
   await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
 }
 
+async function getTelegramLocationReceivedText(language = "en") {
+  const replies = {
+    en: "Location received. We will confirm delivery shortly.",
+    de: "Standort erhalten. Wir bestätigen die Lieferung in Kürze.",
+    tr: "Konum alındı. Teslimatı kısa süre içinde onaylayacağız.",
+    ar: "تم استلام الموقع. سنؤكد التوصيل قريباً.",
+    ru: "Локация получена. Мы скоро подтвердим доставку."
+  };
+
+  return replies[safeLang(language)] || replies.en;
+}
+
 async function handleLocationMessage(env, message) {
   const detectedLanguage = "unknown";
   const customer = await upsertCustomer(env, message.from, detectedLanguage);
+  const language = customer.preferred_language || customer.language || "en";
   const latitude = String(message.location.latitude);
   const longitude = String(message.location.longitude);
   const googleMapsLink = makeGoogleMapsLink(latitude, longitude);
   const locationLabel = `Telegram shared location: ${latitude}, ${longitude}`;
+
+  const cityValidation = await validateDeliveryLocationAgainstAllowedCities(env, {
+    label: locationLabel,
+    google_maps_link: googleMapsLink,
+    latitude,
+    longitude
+  });
+
+  if (!cityValidation.ok) {
+    const replyText = getUnsupportedCityReply(language, cityValidation.allowed_cities || await getAllowedDeliveryCities(env));
+    await saveMessage(env, customer.id, "outgoing", replyText, language);
+    await sendTelegramMessage(env, message.chat.id, replyText, getBackToCheckoutKeyboard(language));
+    return;
+  }
 
   await saveMessage(env, customer.id, "incoming", googleMapsLink, customer.preferred_language, "telegram_location");
 
@@ -8214,11 +8418,11 @@ async function handleLocationMessage(env, message) {
   await sendTelegramMessage(
     env,
     message.chat.id,
-    getSetPreferredLocationText(customer.preferred_language || customer.language || "en"),
+    getSetPreferredLocationText(language),
     getSetPreferredLocationKeyboard(customerLocationId)
   );
 
-  const replyText = "Location received. We will confirm delivery shortly.";
+  const replyText = getTelegramLocationReceivedText(language);
   await sendTelegramMessage(env, message.chat.id, replyText);
   await saveMessage(env, customer.id, "outgoing", replyText, customer.preferred_language);
 }
@@ -12767,6 +12971,23 @@ async function submitV2Checkout(env, session, body, fulfillmentType) {
           "This delivery address is not confirmed. Please choose a saved location, share a map location, or select a geocoded address.",
           400,
           { address: location.address || location.label || "" }
+        )
+      };
+    }
+
+    const cityValidation = await validateDeliveryLocationAgainstAllowedCities(env, location);
+
+    if (!cityValidation.ok) {
+      return {
+        error: apiError(
+          cityValidation.code || "delivery_city_not_allowed",
+          cityValidation.message || "Delivery is not available for this location.",
+          400,
+          {
+            allowed_cities: cityValidation.allowed_cities || [],
+            detected_city: cityValidation.detected_city || "",
+            delivery_location_label: location.label || location.address || ""
+          }
         )
       };
     }
