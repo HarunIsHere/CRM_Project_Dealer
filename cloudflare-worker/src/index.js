@@ -7365,20 +7365,28 @@ async function handleAdminOrderGroupReject(request, env, orderId, groupId, sessi
   return redirectResponse(`/admin/orders/${orderId}`);
 }
 
-async function handleAdminProductsPage(env) {
-  return htmlResponse(renderAdminDashboard(await getAdminData(env), "products"));
+async function handleAdminProductsPage(env, session = null) {
+  const data = await getAdminData(env);
+  data.session = session;
+  return htmlResponse(renderAdminDashboard(data, "products"));
 }
 
-async function handleAdminMeetingPointsPage(env) {
-  return htmlResponse(renderAdminDashboard(await getAdminData(env), "meeting_points"));
+async function handleAdminMeetingPointsPage(env, session = null) {
+  const data = await getAdminData(env);
+  data.session = session;
+  return htmlResponse(renderAdminDashboard(data, "meeting_points"));
 }
 
-async function handleAdminAiPage(env) {
-  return htmlResponse(renderAdminDashboard(await getAdminData(env), "ai"));
+async function handleAdminAiPage(env, session = null) {
+  const data = await getAdminData(env);
+  data.session = session;
+  return htmlResponse(renderAdminDashboard(data, "ai"));
 }
 
-async function handleAdminCustomersPage(env) {
-  return htmlResponse(renderAdminDashboard(await getAdminData(env), "customers"));
+async function handleAdminCustomersPage(env, session = null) {
+  const data = await getAdminData(env);
+  data.session = session;
+  return htmlResponse(renderAdminDashboard(data, "customers"));
 }
 
 async function handleAdminHome(env, session = null) {
@@ -7901,8 +7909,9 @@ function renderOpenRequestsTable(context, ui = i18nAdmin("en")) {
   </table>`;
 }
 
-async function handleOpenRequestsPage(env) {
-  const ui = i18nAdmin(await getSetting(env, "admin_view_language") || "en");
+async function handleOpenRequestsPage(env, session = null) {
+  const language = await getSetting(env, "admin_view_language") || "en";
+  const ui = i18nAdmin(language);
   const table = renderOpenRequestsTable(await getOpenRequestContext(env), ui);
 
   return htmlResponse(`<!DOCTYPE html>
@@ -7921,16 +7930,7 @@ async function handleOpenRequestsPage(env) {
   </div>
 </div>
 <hr><hr>
-<div class="page-actions">
-  <a href="/admin"><button type="button">${ui.general}</button></a>
-  <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
-  <a href="/admin/orders"><button type="button">${ui.orders}</button></a>
-  <a href="/admin/closedorders"><button type="button">${ui.closed_orders}</button></a>
-  <a href="/admin/products"><button type="button">${ui.products}</button></a>
-  <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
-  <a href="/admin/ai"><button type="button">${ui.ai_info}</button></a>
-  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
-</div>
+${renderOrdersNav(ui, session)}
 <hr><hr>
 
 <h2>${ui.open_requests}</h2>
@@ -7941,69 +7941,43 @@ async function handleOpenRequestsPage(env) {
 
 <div
   id="customer-message-modal"
-  style="display:none; position:fixed; z-index:99999; inset:0; background:rgba(15,23,42,0.55); padding:24px; box-sizing:border-box; align-items:center; justify-content:center;"
+  style="display:none; position:fixed; z-index:99999; inset:0; background:rgba(15,23,42,0.55); padding:24px; box-sizing:border-box;"
 >
-  <div
-    style="width:min(640px,100%); max-height:calc(100vh - 48px); overflow:auto; background:#fff; border-radius:16px; padding:24px; box-shadow:0 24px 80px rgba(15,23,42,0.35);"
-  >
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px;">
-      <h3 style="margin:0;">${ui.message_customer || ui.answer || "Message Customer"}</h3>
-      <button type="button" onclick="closeCustomerMessageModal()" style="font-size:24px; line-height:1;">×</button>
+  <div style="background:white; max-width:720px; margin:40px auto; padding:20px; border-radius:14px; box-shadow:0 20px 50px rgba(15,23,42,0.25);">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+      <h3 id="customer-message-title" style="margin:0;">${ui.message_customer}</h3>
+      <button type="button" onclick="closeCustomerMessageModal()">×</button>
     </div>
-
-    <p id="customer-message-modal-name"></p>
-
-    <form id="customer-message-form" method="post">
-      <textarea name="reply_text" rows="6" required style="width:100%; box-sizing:border-box;"></textarea>
-      <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
-        <button type="submit">${ui.send || "Send"}</button>
-        <button type="button" onclick="closeCustomerMessageModal()">${ui.cancel || "Cancel"}</button>
+    <form id="customer-message-form" method="post" style="margin-top:16px;">
+      <textarea name="message" rows="6" style="width:100%;" required></textarea>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button type="submit">${ui.send}</button>
+        <button type="button" onclick="closeCustomerMessageModal()">${ui.cancel}</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-
-function openCustomerMessageModal(customerId, customerName) {
+function openCustomerMessageModal(customerId, customerLabel) {
   const modal = document.getElementById("customer-message-modal");
   const form = document.getElementById("customer-message-form");
-  const name = document.getElementById("customer-message-modal-name");
-
-  if (!modal || !form || !name) return;
-
-  form.action = "/admin/customers/" + customerId + "/reply";
-  name.textContent = customerName || "";
-  modal.style.display = "flex";
-
-  const textarea = form.querySelector("textarea");
-  if (textarea) textarea.focus();
+  const title = document.getElementById("customer-message-title");
+  form.action = "/admin/customers/" + customerId + "/message";
+  title.textContent = ${JSON.stringify(ui.message_customer)} + ": " + customerLabel;
+  modal.style.display = "block";
 }
 
 function closeCustomerMessageModal() {
   const modal = document.getElementById("customer-message-modal");
   const form = document.getElementById("customer-message-form");
-
-  if (modal) modal.style.display = "none";
-  if (form) form.reset();
+  form.reset();
+  modal.style.display = "none";
 }
 
-window.addEventListener("click", (event) => {
-  const modal = document.getElementById("customer-message-modal");
-
-  if (modal && event.target === modal) {
-    closeCustomerMessageModal();
-  }
-});
-
-window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    closeCustomerMessageModal();
-  }
-});
-
 async function refreshOpenRequests() {
-  const response = await fetch("/admin/open-requests");
+  const response = await fetch("/admin/open-requests", { credentials: "same-origin" });
+  if (!response.ok) return;
   const html = await response.text();
   document.getElementById("open-requests-container").innerHTML = html;
 }
@@ -14573,17 +14547,17 @@ async function routeRequest(request, env) {
     if (!adminSession?.is_superadmin) return jsonResponse({ error: "Forbidden" }, 403);
     return handleSuperadminDeleteAdmin(request, env, adminSession, Number(superadminDeleteAdmin[1]));
   }
-  if ((url.pathname === "/admin/products" || url.pathname === "/admin/products/") && request.method === "GET") return handleAdminProductsPage(env);
-  if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env);
-  if ((url.pathname === "/admin/ai" || url.pathname === "/admin/ai/") && request.method === "GET") return handleAdminAiPage(env);
-  if ((url.pathname === "/admin/customers" || url.pathname === "/admin/customers/") && request.method === "GET") return handleAdminCustomersPage(env);
+  if ((url.pathname === "/admin/products" || url.pathname === "/admin/products/") && request.method === "GET") return handleAdminProductsPage(env, adminSession);
+  if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env, adminSession);
+  if ((url.pathname === "/admin/ai" || url.pathname === "/admin/ai/") && request.method === "GET") return handleAdminAiPage(env, adminSession);
+  if ((url.pathname === "/admin/customers" || url.pathname === "/admin/customers/") && request.method === "GET") return handleAdminCustomersPage(env, adminSession);
   const customerDelete = url.pathname.match(/^\/admin\/customers\/(\d+)\/delete$/);
   if (customerDelete && request.method === "POST") return handleDeleteCustomer(env, Number(customerDelete[1]));
   if (url.pathname === "/admin/logout" && request.method === "POST") return handleAdminLogout();
   if (url.pathname === "/admin/change-password" && request.method === "GET") return handleChangePasswordPage();
   if (url.pathname === "/admin/change-password" && request.method === "POST") return handleChangePassword(request, env);
 
-  if (url.pathname === "/admin/openrequests/" || url.pathname === "/admin/openrequests") return handleOpenRequestsPage(env);
+  if (url.pathname === "/admin/openrequests/" || url.pathname === "/admin/openrequests") return handleOpenRequestsPage(env, adminSession);
   if (url.pathname === "/admin/open-requests") return handleOpenRequestsPartial(env);
 
   if (url.pathname === "/admin/search-location" && request.method === "GET") {
