@@ -10045,12 +10045,20 @@ async function handleApiAdminOrders(request, env, closed = false) {
 }
 
 async function getV2AdminOrders(env, orderId = null) {
-  const whereOrder = orderId ? "WHERE id = ?" : "";
+  const whereOrder = orderId ? "WHERE o.id = ?" : "";
   const stmt = env.DB.prepare(`
-    SELECT *
-    FROM customer_orders_v2
+    SELECT
+      o.*,
+      c.id AS customer_id,
+      c.full_name AS customer_full_name,
+      c.username AS customer_username,
+      c.telegram_user_id AS customer_telegram_user_id,
+      c.preferred_language AS customer_preferred_language,
+      c.language AS customer_language
+    FROM customer_orders_v2 o
+    LEFT JOIN customers c ON o.session_token = ('app_customer_' || c.id)
     ${whereOrder}
-    ORDER BY datetime(updated_at) DESC, id DESC
+    ORDER BY datetime(o.updated_at) DESC, o.id DESC
     LIMIT 300
   `);
 
@@ -12070,11 +12078,24 @@ async function mapV2OrderForApi(env, order) {
   const groups = (await getV2OrderGroups(env, order.id)).map((group) => mapV2OrderGroupForApi(group, items));
   const sectionTotals = calculateOrderSectionTotals(items);
   const confirmedTotal = sectionTotals.confirmed.total_amount;
+  const activeTotal =
+    sectionTotals.confirmed.total_amount +
+    sectionTotals.pending_admin_approval.total_amount +
+    sectionTotals.waiting_ready_to_pickup.total_amount +
+    sectionTotals.scheduled_for_next_online_order.total_amount;
+  const displayTotal = confirmedTotal || Number(order.total_amount || 0) || activeTotal;
 
   return {
     id: Number(order.id),
     public_order_code: order.public_order_code || "",
     session_token: order.session_token || "",
+    customer: {
+      id: order.customer_id !== null && order.customer_id !== undefined ? Number(order.customer_id) : null,
+      full_name: order.customer_full_name || "",
+      username: order.customer_username || "",
+      telegram_user_id: order.customer_telegram_user_id || "",
+      preferred_language: order.customer_preferred_language || order.customer_language || ""
+    },
     status: order.status || order.order_status || "draft",
     order_status: order.order_status || order.status || "draft",
     order_status_label: normalizeOrderStatusLabel(order.order_status || order.status || "draft"),
@@ -12094,8 +12115,8 @@ async function mapV2OrderForApi(env, order) {
     cancelled_at: order.cancelled_at || "",
     cancel_reason: order.cancel_reason || "",
     currency: order.currency || "EUR",
-    total_amount: confirmedTotal,
-    total_formatted: formatPrice(confirmedTotal),
+    total_amount: displayTotal,
+    total_formatted: formatPrice(displayTotal),
     section_totals: {
       confirmed: { ...sectionTotals.confirmed, total_formatted: formatPrice(sectionTotals.confirmed.total_amount) },
       pending_admin_approval: { ...sectionTotals.pending_admin_approval, total_formatted: formatPrice(sectionTotals.pending_admin_approval.total_amount) },
