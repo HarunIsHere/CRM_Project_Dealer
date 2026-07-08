@@ -6223,47 +6223,420 @@ async function getOrdersContext(env, closed = false) {
   return rows.results || [];
 }
 
+function getAdminOrderUiText(language = "en") {
+  const texts = {
+    en: {
+      orders: "Orders",
+      closed_orders: "Closed Orders",
+      open_orders: "Open Orders",
+      ai_info: "AI Info",
+      details: "Details",
+      action: "Action",
+      actions: "Actions",
+      order: "Order",
+      customer: "Customer",
+      status: "Status",
+      items: "Items",
+      total: "Total",
+      location: "Location",
+      created_updated: "Created / Updated",
+      fulfillment: "Fulfillment",
+      delivery: "Delivery",
+      pickup: "Pickup",
+      open_map: "Open map",
+      no_orders_found: "No orders found.",
+      optional_admin_note: "Optional admin note",
+      on_the_way: "On the way",
+      delivered: "Delivered",
+      not_delivered: "Not delivered",
+      ready_to_pick_up: "Ready to pick up",
+      picked_up_delivered: "Picked up / delivered",
+      cancel: "Cancel",
+      update: "Update",
+      return_not_delivered: "Return as not delivered",
+      no_action_cancelled: "No action for cancelled order.",
+      no_lifecycle_action_cancelled: "No lifecycle action for cancelled order.",
+      no_available_action: "No available action.",
+      order_not_found: "Order not found",
+      back_to_orders: "Back to orders",
+      summary: "Summary",
+      code: "Code",
+      order_status: "Order status",
+      delivery_status: "Delivery status",
+      pickup_status: "Pickup status",
+      admin_note: "Admin note",
+      customer_name: "Name",
+      username: "Username",
+      telegram: "Telegram",
+      language: "Language",
+      groups_and_items: "Groups and Items",
+      no_delivery_location: "No delivery location.",
+      product: "Product",
+      qty: "Qty",
+      unit: "Unit",
+      item_status: "Item Status",
+      admin_decision: "Admin Decision",
+      note: "Note",
+      no_items: "No items.",
+      no_item_groups: "No item groups.",
+      group: "Group",
+      requires_admin_approval: "Requires admin approval",
+      approve_group: "Approve group",
+      reject_group: "Reject group",
+      reject_note: "Reject note",
+      yes: "Yes",
+      no: "No",
+      status_submitted: "Submitted",
+      status_preparing: "Preparing",
+      status_scheduled_for_next_online_order: "Scheduled",
+      status_cancelled: "Cancelled",
+      status_closed: "Closed",
+      status_delivered: "Delivered",
+      status_not_delivered: "Not delivered",
+      status_on_the_way: "On the way",
+      status_ready_to_pickup: "Ready to pick up",
+      status_picked_up: "Picked up"
+    },
+    de: {
+      orders: "Bestellungen",
+      closed_orders: "Geschlossene Bestellungen",
+      open_orders: "Offene Bestellungen",
+      ai_info: "KI-Info",
+      details: "Details",
+      action: "Aktion",
+      actions: "Aktionen",
+      order: "Bestellung",
+      customer: "Kunde",
+      status: "Status",
+      items: "Artikel",
+      total: "Gesamt",
+      location: "Standort",
+      created_updated: "Erstellt / Aktualisiert",
+      fulfillment: "Abwicklung",
+      delivery: "Lieferung",
+      pickup: "Abholung",
+      open_map: "Karte öffnen",
+      no_orders_found: "Keine Bestellungen gefunden.",
+      optional_admin_note: "Optionale Admin-Notiz",
+      on_the_way: "Unterwegs",
+      delivered: "Geliefert",
+      not_delivered: "Nicht geliefert",
+      ready_to_pick_up: "Bereit zur Abholung",
+      picked_up_delivered: "Abgeholt / geliefert",
+      cancel: "Abbrechen",
+      update: "Aktualisieren",
+      return_not_delivered: "Als nicht geliefert zurücksetzen",
+      no_action_cancelled: "Keine Aktion für stornierte Bestellung.",
+      no_lifecycle_action_cancelled: "Keine Lifecycle-Aktion für stornierte Bestellung.",
+      no_available_action: "Keine verfügbare Aktion.",
+      order_not_found: "Bestellung nicht gefunden",
+      back_to_orders: "Zurück zu Bestellungen",
+      summary: "Zusammenfassung",
+      code: "Code",
+      order_status: "Bestellstatus",
+      delivery_status: "Lieferstatus",
+      pickup_status: "Abholstatus",
+      admin_note: "Admin-Notiz",
+      customer_name: "Name",
+      username: "Benutzername",
+      telegram: "Telegram",
+      language: "Sprache",
+      groups_and_items: "Gruppen und Artikel",
+      no_delivery_location: "Kein Lieferstandort.",
+      product: "Produkt",
+      qty: "Menge",
+      unit: "Einheit",
+      item_status: "Artikelstatus",
+      admin_decision: "Admin-Entscheidung",
+      note: "Notiz",
+      no_items: "Keine Artikel.",
+      no_item_groups: "Keine Artikelgruppen.",
+      group: "Gruppe",
+      requires_admin_approval: "Admin-Freigabe erforderlich",
+      approve_group: "Gruppe genehmigen",
+      reject_group: "Gruppe ablehnen",
+      reject_note: "Ablehnungsnotiz",
+      yes: "Ja",
+      no: "Nein",
+      status_submitted: "Eingereicht",
+      status_preparing: "In Vorbereitung",
+      status_scheduled_for_next_online_order: "Geplant",
+      status_cancelled: "Storniert",
+      status_closed: "Geschlossen",
+      status_delivered: "Geliefert",
+      status_not_delivered: "Nicht geliefert",
+      status_on_the_way: "Unterwegs",
+      status_ready_to_pickup: "Bereit zur Abholung",
+      status_picked_up: "Abgeholt"
+    },
+    tr: {
+      orders: "Siparişler",
+      closed_orders: "Kapalı Siparişler",
+      open_orders: "Açık Siparişler",
+      ai_info: "AI Bilgisi",
+      details: "Detaylar",
+      action: "İşlem",
+      actions: "İşlemler",
+      order: "Sipariş",
+      customer: "Müşteri",
+      status: "Durum",
+      items: "Ürünler",
+      total: "Toplam",
+      location: "Konum",
+      created_updated: "Oluşturuldu / Güncellendi",
+      fulfillment: "Teslimat türü",
+      delivery: "Teslimat",
+      pickup: "Teslim alma",
+      open_map: "Haritayı aç",
+      no_orders_found: "Sipariş bulunamadı.",
+      optional_admin_note: "İsteğe bağlı admin notu",
+      on_the_way: "Yolda",
+      delivered: "Teslim edildi",
+      not_delivered: "Teslim edilmedi",
+      ready_to_pick_up: "Teslim almaya hazır",
+      picked_up_delivered: "Teslim alındı / teslim edildi",
+      cancel: "İptal",
+      update: "Güncelle",
+      return_not_delivered: "Teslim edilmedi olarak geri al",
+      no_action_cancelled: "İptal edilen sipariş için işlem yok.",
+      no_lifecycle_action_cancelled: "İptal edilen sipariş için lifecycle işlemi yok.",
+      no_available_action: "Uygun işlem yok.",
+      order_not_found: "Sipariş bulunamadı",
+      back_to_orders: "Siparişlere dön",
+      summary: "Özet",
+      code: "Kod",
+      order_status: "Sipariş durumu",
+      delivery_status: "Teslimat durumu",
+      pickup_status: "Teslim alma durumu",
+      admin_note: "Admin notu",
+      customer_name: "İsim",
+      username: "Kullanıcı adı",
+      telegram: "Telegram",
+      language: "Dil",
+      groups_and_items: "Gruplar ve ürünler",
+      no_delivery_location: "Teslimat konumu yok.",
+      product: "Ürün",
+      qty: "Adet",
+      unit: "Birim",
+      item_status: "Ürün durumu",
+      admin_decision: "Admin kararı",
+      note: "Not",
+      no_items: "Ürün yok.",
+      no_item_groups: "Ürün grubu yok.",
+      group: "Grup",
+      requires_admin_approval: "Admin onayı gerekli",
+      approve_group: "Grubu onayla",
+      reject_group: "Grubu reddet",
+      reject_note: "Red notu",
+      yes: "Evet",
+      no: "Hayır",
+      status_submitted: "Gönderildi",
+      status_preparing: "Hazırlanıyor",
+      status_scheduled_for_next_online_order: "Planlandı",
+      status_cancelled: "İptal edildi",
+      status_closed: "Kapalı",
+      status_delivered: "Teslim edildi",
+      status_not_delivered: "Teslim edilmedi",
+      status_on_the_way: "Yolda",
+      status_ready_to_pickup: "Teslim almaya hazır",
+      status_picked_up: "Teslim alındı"
+    },
+    ar: {
+      orders: "الطلبات",
+      closed_orders: "الطلبات المغلقة",
+      open_orders: "الطلبات المفتوحة",
+      ai_info: "معلومات الذكاء الاصطناعي",
+      details: "التفاصيل",
+      action: "الإجراء",
+      actions: "الإجراءات",
+      order: "الطلب",
+      customer: "العميل",
+      status: "الحالة",
+      items: "العناصر",
+      total: "المجموع",
+      location: "الموقع",
+      created_updated: "تم الإنشاء / التحديث",
+      fulfillment: "طريقة التنفيذ",
+      delivery: "التوصيل",
+      pickup: "الاستلام",
+      open_map: "فتح الخريطة",
+      no_orders_found: "لا توجد طلبات.",
+      optional_admin_note: "ملاحظة إدارية اختيارية",
+      on_the_way: "في الطريق",
+      delivered: "تم التسليم",
+      not_delivered: "لم يتم التسليم",
+      ready_to_pick_up: "جاهز للاستلام",
+      picked_up_delivered: "تم الاستلام / التسليم",
+      cancel: "إلغاء",
+      update: "تحديث",
+      return_not_delivered: "إرجاع كغير مُسلّم",
+      no_action_cancelled: "لا يوجد إجراء للطلب الملغي.",
+      no_lifecycle_action_cancelled: "لا يوجد إجراء دورة حياة للطلب الملغي.",
+      no_available_action: "لا يوجد إجراء متاح.",
+      order_not_found: "الطلب غير موجود",
+      back_to_orders: "العودة إلى الطلبات",
+      summary: "الملخص",
+      code: "الكود",
+      order_status: "حالة الطلب",
+      delivery_status: "حالة التوصيل",
+      pickup_status: "حالة الاستلام",
+      admin_note: "ملاحظة الإدارة",
+      customer_name: "الاسم",
+      username: "اسم المستخدم",
+      telegram: "Telegram",
+      language: "اللغة",
+      groups_and_items: "المجموعات والعناصر",
+      no_delivery_location: "لا يوجد موقع توصيل.",
+      product: "المنتج",
+      qty: "الكمية",
+      unit: "الوحدة",
+      item_status: "حالة العنصر",
+      admin_decision: "قرار الإدارة",
+      note: "ملاحظة",
+      no_items: "لا توجد عناصر.",
+      no_item_groups: "لا توجد مجموعات عناصر.",
+      group: "المجموعة",
+      requires_admin_approval: "يتطلب موافقة الإدارة",
+      approve_group: "الموافقة على المجموعة",
+      reject_group: "رفض المجموعة",
+      reject_note: "ملاحظة الرفض",
+      yes: "نعم",
+      no: "لا",
+      status_submitted: "تم الإرسال",
+      status_preparing: "قيد التحضير",
+      status_scheduled_for_next_online_order: "مجدول",
+      status_cancelled: "ملغي",
+      status_closed: "مغلق",
+      status_delivered: "تم التسليم",
+      status_not_delivered: "لم يتم التسليم",
+      status_on_the_way: "في الطريق",
+      status_ready_to_pickup: "جاهز للاستلام",
+      status_picked_up: "تم الاستلام"
+    },
+    ru: {
+      orders: "Заказы",
+      closed_orders: "Закрытые заказы",
+      open_orders: "Открытые заказы",
+      ai_info: "AI Info",
+      details: "Детали",
+      action: "Действие",
+      actions: "Действия",
+      order: "Заказ",
+      customer: "Клиент",
+      status: "Статус",
+      items: "Товары",
+      total: "Итого",
+      location: "Локация",
+      created_updated: "Создан / обновлен",
+      fulfillment: "Выполнение",
+      delivery: "Доставка",
+      pickup: "Самовывоз",
+      open_map: "Открыть карту",
+      no_orders_found: "Заказы не найдены.",
+      optional_admin_note: "Необязательная заметка админа",
+      on_the_way: "В пути",
+      delivered: "Доставлено",
+      not_delivered: "Не доставлено",
+      ready_to_pick_up: "Готов к самовывозу",
+      picked_up_delivered: "Получено / доставлено",
+      cancel: "Отмена",
+      update: "Обновить",
+      return_not_delivered: "Вернуть как не доставлено",
+      no_action_cancelled: "Нет действия для отмененного заказа.",
+      no_lifecycle_action_cancelled: "Нет lifecycle-действия для отмененного заказа.",
+      no_available_action: "Нет доступного действия.",
+      order_not_found: "Заказ не найден",
+      back_to_orders: "Назад к заказам",
+      summary: "Сводка",
+      code: "Код",
+      order_status: "Статус заказа",
+      delivery_status: "Статус доставки",
+      pickup_status: "Статус самовывоза",
+      admin_note: "Заметка админа",
+      customer_name: "Имя",
+      username: "Имя пользователя",
+      telegram: "Telegram",
+      language: "Язык",
+      groups_and_items: "Группы и товары",
+      no_delivery_location: "Нет локации доставки.",
+      product: "Товар",
+      qty: "Кол-во",
+      unit: "Цена",
+      item_status: "Статус товара",
+      admin_decision: "Решение админа",
+      note: "Заметка",
+      no_items: "Нет товаров.",
+      no_item_groups: "Нет групп товаров.",
+      group: "Группа",
+      requires_admin_approval: "Требуется одобрение админа",
+      approve_group: "Одобрить группу",
+      reject_group: "Отклонить группу",
+      reject_note: "Заметка отклонения",
+      yes: "Да",
+      no: "Нет",
+      status_submitted: "Отправлен",
+      status_preparing: "Готовится",
+      status_scheduled_for_next_online_order: "Запланирован",
+      status_cancelled: "Отменен",
+      status_closed: "Закрыт",
+      status_delivered: "Доставлен",
+      status_not_delivered: "Не доставлен",
+      status_on_the_way: "В пути",
+      status_ready_to_pickup: "Готов к самовывозу",
+      status_picked_up: "Получен"
+    }
+  };
+
+  return texts[safeLang(language)] || texts.en;
+}
+
+function getAdminOrderStatusLabel(status, ui = getAdminOrderUiText("en")) {
+  const key = `status_${String(status || "").replace(/-/g, "_")}`;
+  return ui[key] || getOrderStatusLabel(status);
+}
+
 function renderOrdersNav(ui, session = null) {
   const superadminNav = session?.is_superadmin ? `<a href="/admin/superadmin"><button type="button">${ui.superadmin}</button></a>` : "";
+
   return `<div class="page-actions">
   <a href="/admin"><button type="button">${ui.general}</button></a>
   <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
-  <a href="/admin/orders"><button type="button">Orders</button></a>
-  <a href="/admin/closedorders"><button type="button">Closed Orders</button></a>
+  <a href="/admin/orders"><button type="button">${ui.orders}</button></a>
+  <a href="/admin/closedorders"><button type="button">${ui.closed_orders}</button></a>
   <a href="/admin/products"><button type="button">${ui.products}</button></a>
   <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
-  <a href="/admin/ai"><button type="button">AI Info</button></a>
+  <a href="/admin/ai"><button type="button">${ui.ai_info}</button></a>
   <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
   ${superadminNav}
 </div>`;
 }
 
-function renderAdminOrderStatusBadges(order) {
+function renderAdminOrderStatusBadges(order, ui = getAdminOrderUiText("en")) {
   const parts = [];
 
   if (order.fulfillment_type) {
-    parts.push(`Fulfillment: ${escapeHtml(order.fulfillment_type)}`);
+    parts.push(`${ui.fulfillment}: ${escapeHtml(order.fulfillment_type)}`);
   }
 
   if (order.order_status || order.status) {
-    parts.push(`Order: ${escapeHtml(getOrderStatusLabel(order.order_status || order.status))}`);
+    parts.push(`${ui.order}: ${escapeHtml(getAdminOrderStatusLabel(order.order_status || order.status, ui))}`);
   }
 
   if (order.delivery_status) {
-    parts.push(`Delivery: ${escapeHtml(getOrderStatusLabel(order.delivery_status))}`);
+    parts.push(`${ui.delivery}: ${escapeHtml(getAdminOrderStatusLabel(order.delivery_status, ui))}`);
   }
 
   if (order.pickup_status) {
-    parts.push(`Pickup: ${escapeHtml(getOrderStatusLabel(order.pickup_status))}`);
+    parts.push(`${ui.pickup}: ${escapeHtml(getAdminOrderStatusLabel(order.pickup_status, ui))}`);
   }
 
   return parts.map((part) => `<div>${part}</div>`).join("");
 }
 
-function renderAdminOrderLocationCell(order) {
+function renderAdminOrderLocationCell(order, ui = getAdminOrderUiText("en")) {
   const locationLabel = order.delivery_location_label || order.delivery_address || "";
   const mapLink = order.delivery_google_maps_link
-    ? `<br><a href="${escapeHtml(order.delivery_google_maps_link)}" target="_blank">Open map</a>`
+    ? `<br><a href="${escapeHtml(order.delivery_google_maps_link)}" target="_blank">${ui.open_map}</a>`
     : "";
 
   if (!locationLabel && !mapLink) {
@@ -6273,25 +6646,25 @@ function renderAdminOrderLocationCell(order) {
   return `${escapeHtml(locationLabel)}${mapLink}`;
 }
 
-function renderAdminOrderActionForms(order, closed = false) {
+function renderAdminOrderActionForms(order, closed = false, ui = getAdminOrderUiText("en")) {
   const currentStatus = order.order_status || order.status || "";
-  const noteInput = `<input type="text" name="admin_status_note" value="${escapeHtml(order.admin_status_note || "")}" placeholder="Optional admin note">`;
+  const noteInput = `<input type="text" name="admin_status_note" value="${escapeHtml(order.admin_status_note || "")}" placeholder="${escapeHtml(ui.optional_admin_note)}">`;
 
   if (closed) {
     if (currentStatus === "cancelled") {
-      return `<em>No action for cancelled order.</em>`;
+      return `<em>${ui.no_action_cancelled}</em>`;
     }
 
     return `
       <form action="/admin/orders/${order.id}/return" method="post" style="display:inline;">
-        <button type="submit">Return as not delivered</button>
+        <button type="submit">${ui.return_not_delivered}</button>
       </form>
     `;
   }
 
   const forms = [];
 
-  forms.push(`<a href="/admin/orders/${order.id}"><button type="button">Details</button></a>`);
+  forms.push(`<a href="/admin/orders/${order.id}"><button type="button">${ui.details}</button></a>`);
 
   if (order.fulfillment_type === "delivery") {
     if (order.delivery_status !== "on_the_way" && currentStatus !== "delivered") {
@@ -6299,21 +6672,21 @@ function renderAdminOrderActionForms(order, closed = false) {
         <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
           <input type="hidden" name="order_status" value="on_the_way">
           ${noteInput}
-          <button type="submit">On the way</button>
+          <button type="submit">${ui.on_the_way}</button>
         </form>
       `);
     }
 
     forms.push(`
       <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
-        <button type="submit">Delivered</button>
+        <button type="submit">${ui.delivered}</button>
       </form>
     `);
 
     forms.push(`
       <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
         <input type="hidden" name="order_status" value="not_delivered">
-        <button type="submit">Not delivered</button>
+        <button type="submit">${ui.not_delivered}</button>
       </form>
     `);
   } else if (order.fulfillment_type === "pickup") {
@@ -6322,14 +6695,14 @@ function renderAdminOrderActionForms(order, closed = false) {
         <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
           <input type="hidden" name="order_status" value="ready_to_pickup">
           ${noteInput}
-          <button type="submit">Ready to pick up</button>
+          <button type="submit">${ui.ready_to_pick_up}</button>
         </form>
       `);
     }
 
     forms.push(`
       <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
-        <button type="submit">Picked up / delivered</button>
+        <button type="submit">${ui.picked_up_delivered}</button>
       </form>
     `);
   } else {
@@ -6339,7 +6712,7 @@ function renderAdminOrderActionForms(order, closed = false) {
           ${getOrderStatusOptions(currentStatus || "submitted")}
         </select>
         ${noteInput}
-        <button type="submit">Update</button>
+        <button type="submit">${ui.update}</button>
       </form>
     `);
   }
@@ -6347,14 +6720,14 @@ function renderAdminOrderActionForms(order, closed = false) {
   forms.push(`
     <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
       <input type="hidden" name="order_status" value="cancelled">
-      <button type="submit">Cancel</button>
+      <button type="submit">${ui.cancel}</button>
     </form>
   `);
 
   return forms.join("\n");
 }
 
-function renderOrdersTable(orders, closed = false) {
+function renderOrdersTable(orders, closed = false, ui = getAdminOrderUiText("en")) {
   const rows = orders.map((order) => {
     const customerLabel = order.full_name || order.username || order.telegram_user_id || "";
 
@@ -6362,48 +6735,48 @@ function renderOrdersTable(orders, closed = false) {
       <td>
         <strong>${escapeHtml(order.id)}</strong>
         ${order.public_order_code ? `<br><small>${escapeHtml(order.public_order_code)}</small>` : ""}
-        <br><a href="/admin/orders/${order.id}"><button type="button">Details</button></a>
+        <br><a href="/admin/orders/${order.id}"><button type="button">${ui.details}</button></a>
       </td>
       <td>${escapeHtml(customerLabel)}<br><small>${escapeHtml(order.telegram_user_id || "")}</small></td>
-      <td>${renderAdminOrderStatusBadges(order)}</td>
+      <td>${renderAdminOrderStatusBadges(order, ui)}</td>
       <td>${formatOrderItemsText(order.items_json)}</td>
       <td>${escapeHtml(formatPrice(order.total_amount || 0))}</td>
-      <td>${renderAdminOrderLocationCell(order)}</td>
+      <td>${renderAdminOrderLocationCell(order, ui)}</td>
       <td>
         ${escapeHtml(order.created_at || "")}
         <br>
         ${escapeHtml(order.updated_at || "")}
       </td>
       <td>
-        ${order.admin_status_note ? `<div><small>Note: ${escapeHtml(order.admin_status_note)}</small></div>` : ""}
-        ${renderAdminOrderActionForms(order, closed)}
+        ${order.admin_status_note ? `<div><small>${ui.note}: ${escapeHtml(order.admin_status_note)}</small></div>` : ""}
+        ${renderAdminOrderActionForms(order, closed, ui)}
       </td>
     </tr>`;
   }).join("");
 
   return `<table border="1" cellpadding="10">
     <tr>
-      <th>Order</th>
-      <th>Customer</th>
-      <th>Status</th>
-      <th>Items</th>
-      <th>Total</th>
-      <th>Location</th>
-      <th>Created / Updated</th>
-      <th>Action</th>
+      <th>${ui.order}</th>
+      <th>${ui.customer}</th>
+      <th>${ui.status}</th>
+      <th>${ui.items}</th>
+      <th>${ui.total}</th>
+      <th>${ui.location}</th>
+      <th>${ui.created_updated}</th>
+      <th>${ui.action}</th>
     </tr>
-    ${rows || `<tr><td colspan="8">No orders found.</td></tr>`}
+    ${rows || `<tr><td colspan="8">${ui.no_orders_found}</td></tr>`}
   </table>`;
 }
 
-function renderAdminOrderDetailItems(items = []) {
+function renderAdminOrderDetailItems(items = [], ui = getAdminOrderUiText("en")) {
   const rows = (items || []).map((item) => `
     <tr>
       <td>${escapeHtml(item.name || item.product_name || "")}</td>
       <td>${escapeHtml(item.quantity || "")}</td>
       <td>${escapeHtml(formatPrice(item.unit_price || item.price_snapshot || 0))}</td>
       <td>${escapeHtml(formatPrice(item.line_total || 0))}</td>
-      <td>${escapeHtml(item.item_status || "")}</td>
+      <td>${escapeHtml(getAdminOrderStatusLabel(item.item_status || "", ui))}</td>
       <td>${escapeHtml(item.admin_decision || "")}</td>
       <td>${escapeHtml(item.admin_decision_note || "")}</td>
     </tr>
@@ -6411,23 +6784,23 @@ function renderAdminOrderDetailItems(items = []) {
 
   return `<table border="1" cellpadding="8">
     <tr>
-      <th>Product</th>
-      <th>Qty</th>
-      <th>Unit</th>
-      <th>Total</th>
-      <th>Item Status</th>
-      <th>Admin Decision</th>
-      <th>Note</th>
+      <th>${ui.product}</th>
+      <th>${ui.qty}</th>
+      <th>${ui.unit}</th>
+      <th>${ui.total}</th>
+      <th>${ui.item_status}</th>
+      <th>${ui.admin_decision}</th>
+      <th>${ui.note}</th>
     </tr>
-    ${rows || `<tr><td colspan="7">No items.</td></tr>`}
+    ${rows || `<tr><td colspan="7">${ui.no_items}</td></tr>`}
   </table>`;
 }
 
-function renderAdminOrderDetailGroups(order) {
+function renderAdminOrderDetailGroups(order, ui = getAdminOrderUiText("en")) {
   const groups = order.groups || [];
 
   if (!groups.length) {
-    return "<p>No item groups.</p>";
+    return `<p>${ui.no_item_groups}</p>`;
   }
 
   return groups.map((group) => {
@@ -6435,35 +6808,35 @@ function renderAdminOrderDetailGroups(order) {
       ? `
         <div class="page-actions">
           <form action="/admin/orders/${order.id}/groups/${group.id}/approve" method="post" style="display:inline;">
-            <button type="submit">Approve group</button>
+            <button type="submit">${ui.approve_group}</button>
           </form>
           <form action="/admin/orders/${order.id}/groups/${group.id}/reject" method="post" style="display:inline;">
-            <input type="text" name="admin_decision_note" placeholder="Reject note">
-            <button type="submit">Reject group</button>
+            <input type="text" name="admin_decision_note" placeholder="${escapeHtml(ui.reject_note)}">
+            <button type="submit">${ui.reject_group}</button>
           </form>
         </div>
       `
       : "";
 
     return `<div class="admin-section">
-      <h3>Group ${escapeHtml(group.id)} — ${escapeHtml(group.group_type || "")}</h3>
+      <h3>${ui.group} ${escapeHtml(group.id)} — ${escapeHtml(group.group_type || "")}</h3>
       <p>
-        <strong>Status:</strong> ${escapeHtml(group.group_status || "")}
-        <br><strong>Fulfillment:</strong> ${escapeHtml(group.fulfillment_type || "")}
-        <br><strong>Requires admin approval:</strong> ${group.requires_admin_approval ? "Yes" : "No"}
-        <br><strong>Total:</strong> ${escapeHtml(group.total_formatted || formatPrice(group.total_amount || 0))}
+        <strong>${ui.status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(group.group_status || "", ui))}
+        <br><strong>${ui.fulfillment}:</strong> ${escapeHtml(group.fulfillment_type || "")}
+        <br><strong>${ui.requires_admin_approval}:</strong> ${group.requires_admin_approval ? ui.yes : ui.no}
+        <br><strong>${ui.total}:</strong> ${escapeHtml(group.total_formatted || formatPrice(group.total_amount || 0))}
       </p>
       ${groupActions}
-      ${renderAdminOrderDetailItems(group.items || [])}
+      ${renderAdminOrderDetailItems(group.items || [], ui)}
     </div>`;
   }).join("");
 }
 
-function renderAdminOrderDetailActions(order) {
+function renderAdminOrderDetailActions(order, ui = getAdminOrderUiText("en")) {
   const currentStatus = order.order_status || order.status || "";
 
   if (currentStatus === "cancelled") {
-    return `<em>No lifecycle action for cancelled order.</em>`;
+    return `<em>${ui.no_lifecycle_action_cancelled}</em>`;
   }
 
   const forms = [];
@@ -6473,8 +6846,8 @@ function renderAdminOrderDetailActions(order) {
       forms.push(`
         <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
           <input type="hidden" name="order_status" value="on_the_way">
-          <input type="text" name="admin_status_note" placeholder="Optional admin note">
-          <button type="submit">On the way</button>
+          <input type="text" name="admin_status_note" placeholder="${escapeHtml(ui.optional_admin_note)}">
+          <button type="submit">${ui.on_the_way}</button>
         </form>
       `);
     }
@@ -6482,7 +6855,7 @@ function renderAdminOrderDetailActions(order) {
     if (currentStatus !== "delivered") {
       forms.push(`
         <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
-          <button type="submit">Delivered</button>
+          <button type="submit">${ui.delivered}</button>
         </form>
       `);
     }
@@ -6491,7 +6864,7 @@ function renderAdminOrderDetailActions(order) {
       forms.push(`
         <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
           <input type="hidden" name="order_status" value="not_delivered">
-          <button type="submit">Not delivered</button>
+          <button type="submit">${ui.not_delivered}</button>
         </form>
       `);
     }
@@ -6502,8 +6875,8 @@ function renderAdminOrderDetailActions(order) {
       forms.push(`
         <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
           <input type="hidden" name="order_status" value="ready_to_pickup">
-          <input type="text" name="admin_status_note" placeholder="Optional admin note">
-          <button type="submit">Ready to pick up</button>
+          <input type="text" name="admin_status_note" placeholder="${escapeHtml(ui.optional_admin_note)}">
+          <button type="submit">${ui.ready_to_pick_up}</button>
         </form>
       `);
     }
@@ -6511,7 +6884,7 @@ function renderAdminOrderDetailActions(order) {
     if (order.pickup_status !== "picked_up" && currentStatus !== "delivered") {
       forms.push(`
         <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
-          <button type="submit">Picked up / delivered</button>
+          <button type="submit">${ui.picked_up_delivered}</button>
         </form>
       `);
     }
@@ -6521,31 +6894,31 @@ function renderAdminOrderDetailActions(order) {
     forms.push(`
       <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
         <input type="hidden" name="order_status" value="cancelled">
-        <button type="submit">Cancel</button>
+        <button type="submit">${ui.cancel}</button>
       </form>
     `);
   }
 
-  return forms.join("\n") || `<em>No available action.</em>`;
+  return forms.join("\n") || `<em>${ui.no_available_action}</em>`;
 }
 
 async function handleAdminOrderDetailPage(env, session, orderId) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language) };
+  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language), ...getAdminOrderUiText(language) };
   const order = await getV2AdminOrder(env, orderId);
 
   if (!order) {
     return htmlResponse(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Order not found</title>
+  <title>${ui.order_not_found}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/static/admin.css">
 </head>
 <body>
 ${renderOrdersNav(ui, session)}
-<h1>Order not found</h1>
-<p><a href="/admin/orders">Back to orders</a></p>
+<h1>${ui.order_not_found}</h1>
+<p><a href="/admin/orders">${ui.back_to_orders}</a></p>
 </body>
 </html>`, 404);
   }
@@ -6553,19 +6926,19 @@ ${renderOrdersNav(ui, session)}
   const customer = order.customer || {};
   const location = order.delivery_location_label || order.delivery_address || "";
   const mapLink = order.delivery_google_maps_link
-    ? `<a href="${escapeHtml(order.delivery_google_maps_link)}" target="_blank">Open map</a>`
+    ? `<a href="${escapeHtml(order.delivery_google_maps_link)}" target="_blank">${ui.open_map}</a>`
     : "";
 
   return htmlResponse(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Order ${escapeHtml(order.id)}</title>
+  <title>${ui.order} ${escapeHtml(order.id)}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/static/admin.css">
 </head>
 <body>
 <div class="admin-header">
-  <h1>Order ${escapeHtml(order.id)}</h1>
+  <h1>${ui.order} ${escapeHtml(order.id)}</h1>
   <div class="header-actions">
     <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
     <a href="/admin/change-password"><button type="button">${ui.change_password}</button></a>
@@ -6576,49 +6949,49 @@ ${renderOrdersNav(ui, session)}
 <hr><hr>
 
 <p>
-  <a href="/admin/orders"><button type="button">Open Orders</button></a>
-  <a href="/admin/closedorders"><button type="button">Closed Orders</button></a>
+  <a href="/admin/orders"><button type="button">${ui.open_orders}</button></a>
+  <a href="/admin/closedorders"><button type="button">${ui.closed_orders}</button></a>
 </p>
 
 <div class="admin-section">
-  <h2>Summary</h2>
+  <h2>${ui.summary}</h2>
   <p>
-    <strong>Code:</strong> ${escapeHtml(order.public_order_code || "")}
-    <br><strong>Fulfillment:</strong> ${escapeHtml(order.fulfillment_type || "")}
-    <br><strong>Order status:</strong> ${escapeHtml(order.order_status_label || order.order_status || "")}
-    <br><strong>Delivery status:</strong> ${escapeHtml(order.delivery_status_label || order.delivery_status || "")}
-    <br><strong>Pickup status:</strong> ${escapeHtml(order.pickup_status_label || order.pickup_status || "")}
-    <br><strong>Total:</strong> ${escapeHtml(order.total_formatted || formatPrice(order.total_amount || 0))}
-    <br><strong>Admin note:</strong> ${escapeHtml(order.admin_status_note || "")}
+    <strong>${ui.code}:</strong> ${escapeHtml(order.public_order_code || "")}
+    <br><strong>${ui.fulfillment}:</strong> ${escapeHtml(order.fulfillment_type || "")}
+    <br><strong>${ui.order_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.order_status || order.status || "", ui))}
+    <br><strong>${ui.delivery_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.delivery_status || "", ui))}
+    <br><strong>${ui.pickup_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.pickup_status || "", ui))}
+    <br><strong>${ui.total}:</strong> ${escapeHtml(order.total_formatted || formatPrice(order.total_amount || 0))}
+    <br><strong>${ui.admin_note}:</strong> ${escapeHtml(order.admin_status_note || "")}
   </p>
 </div>
 
 <div class="admin-section">
-  <h2>Customer</h2>
+  <h2>${ui.customer}</h2>
   <p>
-    <strong>Name:</strong> ${escapeHtml(customer.full_name || "")}
-    <br><strong>Username:</strong> ${escapeHtml(customer.username || "")}
-    <br><strong>Telegram:</strong> ${escapeHtml(customer.telegram_user_id || "")}
-    <br><strong>Language:</strong> ${escapeHtml(customer.preferred_language || "")}
+    <strong>${ui.customer_name}:</strong> ${escapeHtml(customer.full_name || "")}
+    <br><strong>${ui.username}:</strong> ${escapeHtml(customer.username || "")}
+    <br><strong>${ui.telegram}:</strong> ${escapeHtml(customer.telegram_user_id || "")}
+    <br><strong>${ui.language}:</strong> ${escapeHtml(customer.preferred_language || "")}
   </p>
 </div>
 
 <div class="admin-section">
-  <h2>Location</h2>
+  <h2>${ui.location}</h2>
   <p>
-    ${escapeHtml(location || "No delivery location.")}
+    ${escapeHtml(location || ui.no_delivery_location)}
     ${mapLink ? `<br>${mapLink}` : ""}
   </p>
 </div>
 
 <div class="admin-section">
-  <h2>Actions</h2>
-  ${renderAdminOrderDetailActions(order)}
+  <h2>${ui.actions}</h2>
+  ${renderAdminOrderDetailActions(order, ui)}
 </div>
 
 <div class="admin-section">
-  <h2>Groups and Items</h2>
-  ${renderAdminOrderDetailGroups(order)}
+  <h2>${ui.groups_and_items}</h2>
+  ${renderAdminOrderDetailGroups(order, ui)}
 </div>
 
 </body>
@@ -6627,19 +7000,19 @@ ${renderOrdersNav(ui, session)}
 
 async function handleAdminOrdersPage(env, session = null) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language) };
+  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language), ...getAdminOrderUiText(language) };
   const orders = await getOrdersContext(env, false);
 
   return htmlResponse(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Orders</title>
+  <title>${ui.orders}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/static/admin.css">
 </head>
 <body>
 <div class="admin-header">
-  <h1>Orders</h1>
+  <h1>${ui.orders}</h1>
   <div class="header-actions">
     <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
     <a href="/admin/change-password"><button type="button">${ui.change_password}</button></a>
@@ -6648,27 +7021,27 @@ async function handleAdminOrdersPage(env, session = null) {
 <hr><hr>
 ${renderOrdersNav(ui, session)}
 <hr><hr>
-<h2>Orders</h2>
-${renderOrdersTable(orders, false)}
+<h2>${ui.orders}</h2>
+${renderOrdersTable(orders, false, ui)}
 </body>
 </html>`);
 }
 
 async function handleAdminClosedOrdersPage(env, session = null) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language) };
+  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language), ...getAdminOrderUiText(language) };
   const orders = await getOrdersContext(env, true);
 
   return htmlResponse(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Closed Orders</title>
+  <title>${ui.closed_orders}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/static/admin.css">
 </head>
 <body>
 <div class="admin-header">
-  <h1>Closed Orders</h1>
+  <h1>${ui.closed_orders}</h1>
   <div class="header-actions">
     <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
     <a href="/admin/change-password"><button type="button">${ui.change_password}</button></a>
@@ -6677,8 +7050,8 @@ async function handleAdminClosedOrdersPage(env, session = null) {
 <hr><hr>
 ${renderOrdersNav(ui, session)}
 <hr><hr>
-<h2>Closed Orders</h2>
-${renderOrdersTable(orders, true)}
+<h2>${ui.closed_orders}</h2>
+${renderOrdersTable(orders, true, ui)}
 </body>
 </html>`);
 }
@@ -7009,7 +7382,7 @@ async function handleAdminHome(env, session = null) {
 
 async function handleAdminSuperadminPage(env, session) {
   const language = await getSetting(env, "admin_view_language") || "en";
-  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language) };
+  const ui = { ...i18nAdmin(language), ...getAdminGeneralExtraUiText(language), ...getAdminOrderUiText(language) };
   const admins = await getAdminUsersForSuperadmin(env);
   const logs = await getAdminAuditLogs(env);
 
