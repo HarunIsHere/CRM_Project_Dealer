@@ -7094,6 +7094,51 @@ async function notifyCustomerForOrderStatus(env, order, status) {
   await saveMessage(env, order.customer_id, "outgoing", text, language, "order_status");
 }
 
+function getCustomerIdFromV2Order(order = {}) {
+  const raw = String(order.session_token || "");
+
+  if (!raw.startsWith("app_customer_")) return null;
+
+  const customerId = Number(raw.replace("app_customer_", ""));
+
+  return Number.isFinite(customerId) ? customerId : null;
+}
+
+async function closeDeliveryLocationRequestsForV2Order(env, order, status = "done") {
+  if (!order || order.fulfillment_type !== "delivery") return;
+
+  const customerId = getCustomerIdFromV2Order(order);
+  if (!customerId) return;
+
+  const googleMapsLink = String(order.delivery_google_maps_link || "").trim();
+  const locationLabel = String(order.delivery_location_label || "").trim();
+  const deliveryAddress = String(order.delivery_address || "").trim();
+
+  if (!googleMapsLink && !locationLabel && !deliveryAddress) return;
+
+  await env.DB.prepare(`
+    UPDATE customer_requests
+    SET status = ?
+    WHERE customer_id = ?
+      AND request_type = 'delivery_location'
+      AND status NOT IN ('done', 'cancelled')
+      AND (
+        (? != '' AND google_maps_link = ?)
+        OR (? != '' AND location_label = ?)
+        OR (? != '' AND request_text = ?)
+      )
+  `).bind(
+    status,
+    customerId,
+    googleMapsLink,
+    googleMapsLink,
+    locationLabel,
+    locationLabel,
+    deliveryAddress,
+    deliveryAddress
+  ).run();
+}
+
 async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
   const order = await getV2RawOrder(env, orderId);
   if (!order) return null;
@@ -7202,6 +7247,8 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
           decided_at = CURRENT_TIMESTAMP
       WHERE customer_order_id = ?
     `).bind(note || null, orderId).run();
+
+    await closeDeliveryLocationRequestsForV2Order(env, order, "cancelled");
 
     await addV2OrderHistory(env, orderId, previousStatus, "cancelled", { username: "admin_web" }, note || "Cancelled from admin web");
 
@@ -9619,6 +9666,7 @@ async function markTelegramV2OrderDelivered(env, orderId, note = "") {
   );
 
   const updatedOrder = await getV2RawOrder(env, orderId);
+  await closeDeliveryLocationRequestsForV2Order(env, updatedOrder, "done");
   await notifyCustomerForV2Order(env, updatedOrder, getV2OrderDeliveredText(), "order_status");
 
   return updatedOrder;
@@ -9812,6 +9860,11 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
     return;
   }
 
+  if (["done", "cancelled"].includes(String(requestRow.status || ""))) {
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, "Delivery request is already closed.");
+    return;
+  }
+
   const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(requestRow.customer_id).first();
   if (!customer) {
     await sendTelegramMessage(env, callbackQuery.message.chat.id, "Customer not found.");
@@ -9827,11 +9880,12 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
   let etaValue;
   let replyText;
   let updatedOrder = null;
+  let nextRequestStatus = "in_progress";
 
   if (etaText === null) {
     etaValue = "No delivery";
     replyText = t("no_delivery", customer.preferred_language || "en");
-    await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE id = ?").bind(requestId).run();
+    nextRequestStatus = "done";
 
     updatedOrder = await updateTelegramV2DeliveryStatusForCustomer(
       env,
@@ -9850,7 +9904,6 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
       ru: `Доставка будет выполнена по вашей локации через ${etaText}.`
     };
     replyText = replies[safeLang(customer.preferred_language)] || replies.en;
-    await env.DB.prepare("UPDATE customer_requests SET status = 'in_progress' WHERE id = ?").bind(requestId).run();
 
     updatedOrder = await updateTelegramV2DeliveryStatusForCustomer(
       env,
@@ -9862,9 +9915,17 @@ async function handleDeliveryEtaSelection(env, callbackQuery) {
   }
 
   if (!updatedOrder) {
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, "No active V2 delivery order found for this customer.");
+    await env.DB.prepare("UPDATE customer_requests SET status = 'cancelled' WHERE id = ?")
+      .bind(requestId)
+      .run();
+
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, "No active V2 delivery order found for this customer. Delivery request was closed.");
     return;
   }
+
+  await env.DB.prepare("UPDATE customer_requests SET status = ? WHERE id = ?")
+    .bind(nextRequestStatus, requestId)
+    .run();
 
   clickedValues.add(etaValue);
   await setSetting(env, clickedKey, [...clickedValues].sort().join("|"));
@@ -10963,6 +11024,8 @@ async function handleApiAdminV2CancelOrder(request, env, orderId) {
         decided_at = CURRENT_TIMESTAMP
     WHERE customer_order_id = ?
   `).bind(reason || null, orderId).run();
+
+  await closeDeliveryLocationRequestsForV2Order(env, order, "cancelled");
 
   await addV2OrderHistory(env, orderId, previousStatus, "cancelled", session, reason);
   await notifyCustomerForV2Order(env, order, getV2OrderCancelledText(reason), "order_status");
