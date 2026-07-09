@@ -84,6 +84,58 @@ data class CustomerProfileUpdateRequest(
 )
 
 @Serializable
+data class CustomerLocation(
+    val id: Int,
+    @SerialName("customer_id")
+    val customerId: Int? = null,
+    @SerialName("session_token")
+    val sessionToken: String = "",
+    @SerialName("request_type")
+    val requestType: String = "delivery_location",
+    val label: String = "",
+    val address: String = "",
+    val description: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    @SerialName("google_maps_link")
+    val googleMapsLink: String = "",
+    val source: String = "",
+    @SerialName("is_preferred")
+    val isPreferred: Boolean = false,
+    @SerialName("created_at")
+    val createdAt: String? = null,
+    @SerialName("updated_at")
+    val updatedAt: String? = null
+)
+
+@Serializable
+data class CustomerLocationsResponse(
+    val ok: Boolean,
+    val locations: List<CustomerLocation> = emptyList(),
+    val count: Int = 0
+)
+
+@Serializable
+data class CustomerLocationResponse(
+    val ok: Boolean,
+    val location: CustomerLocation,
+    val locations: List<CustomerLocation> = emptyList(),
+    val count: Int = 0
+)
+
+@Serializable
+data class CreateCustomerLocationRequest(
+    val label: String = "",
+    val address: String = "",
+    @SerialName("google_maps_link")
+    val googleMapsLink: String = "",
+    val latitude: String = "",
+    val longitude: String = "",
+    @SerialName("save_as_preferred")
+    val saveAsPreferred: Boolean = false
+)
+
+@Serializable
 data class CustomerCartResponse(
     val ok: Boolean,
     val cart: CustomerCart
@@ -158,9 +210,13 @@ data class UpdateCartItemRequest(
 
 @Serializable
 data class CheckoutRequest(
-    val address: String,
+    @SerialName("saved_location_id")
+    val savedLocationId: Int? = null,
+    @SerialName("use_preferred_location")
+    val usePreferredLocation: Boolean = false,
+    val address: String = "",
     @SerialName("location_label")
-    val locationLabel: String,
+    val locationLabel: String = "",
     @SerialName("google_maps_link")
     val googleMapsLink: String = "",
     val latitude: String = "",

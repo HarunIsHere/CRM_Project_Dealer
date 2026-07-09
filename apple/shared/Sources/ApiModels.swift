@@ -256,6 +256,87 @@ public struct CustomerSession: Codable, Sendable {
     }
 }
 
+public struct CustomerLocation: Codable, Identifiable, Hashable, Sendable {
+    public let id: Int
+    public let customerId: Int?
+    public let sessionToken: String?
+    public let requestType: String?
+    public let label: String
+    public let address: String?
+    public let description: String?
+    public let latitude: Double?
+    public let longitude: Double?
+    public let googleMapsLink: String?
+    public let source: String?
+    public let isPreferred: Bool?
+    public let createdAt: String?
+    public let updatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case customerId = "customer_id"
+        case sessionToken = "session_token"
+        case requestType = "request_type"
+        case label
+        case address
+        case description
+        case latitude
+        case longitude
+        case googleMapsLink = "google_maps_link"
+        case source
+        case isPreferred = "is_preferred"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+public struct CustomerLocationsResponse: Codable, Sendable {
+    public let ok: Bool
+    public let locations: [CustomerLocation]
+    public let count: Int?
+}
+
+public struct CustomerLocationResponse: Codable, Sendable {
+    public let ok: Bool
+    public let location: CustomerLocation
+    public let locations: [CustomerLocation]?
+    public let count: Int?
+}
+
+public struct CreateCustomerLocationRequest: Codable, Sendable {
+    public let label: String
+    public let address: String
+    public let googleMapsLink: String
+    public let latitude: String
+    public let longitude: String
+    public let saveAsPreferred: Bool
+
+    public init(
+        label: String = "",
+        address: String = "",
+        googleMapsLink: String = "",
+        latitude: String = "",
+        longitude: String = "",
+        saveAsPreferred: Bool = false
+    ) {
+        self.label = label
+        self.address = address
+        self.googleMapsLink = googleMapsLink
+        self.latitude = latitude
+        self.longitude = longitude
+        self.saveAsPreferred = saveAsPreferred
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case label
+        case address
+        case googleMapsLink = "google_maps_link"
+        case latitude
+        case longitude
+        case saveAsPreferred = "save_as_preferred"
+    }
+}
+
 public struct CustomerCartResponse: Codable, Sendable {
     public let ok: Bool
     public let cart: CustomerCart
@@ -353,6 +434,8 @@ public struct UpdateCartItemRequest: Codable, Sendable {
 
 
 public struct CheckoutRequest: Codable, Sendable {
+    public let savedLocationId: Int?
+    public let usePreferredLocation: Bool
     public let address: String
     public let locationLabel: String
     public let googleMapsLink: String
@@ -362,14 +445,18 @@ public struct CheckoutRequest: Codable, Sendable {
     public let saveAsPreferred: Bool
 
     public init(
-        address: String,
-        locationLabel: String,
+        savedLocationId: Int? = nil,
+        usePreferredLocation: Bool = false,
+        address: String = "",
+        locationLabel: String = "",
         googleMapsLink: String = "",
         latitude: String = "",
         longitude: String = "",
         deliveryNote: String,
         saveAsPreferred: Bool = false
     ) {
+        self.savedLocationId = savedLocationId
+        self.usePreferredLocation = usePreferredLocation
         self.address = address
         self.locationLabel = locationLabel
         self.googleMapsLink = googleMapsLink
@@ -380,6 +467,8 @@ public struct CheckoutRequest: Codable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case savedLocationId = "saved_location_id"
+        case usePreferredLocation = "use_preferred_location"
         case address
         case locationLabel = "location_label"
         case googleMapsLink = "google_maps_link"

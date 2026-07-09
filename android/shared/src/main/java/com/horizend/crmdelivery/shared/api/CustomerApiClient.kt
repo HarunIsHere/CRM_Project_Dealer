@@ -91,6 +91,35 @@ object CustomerApiClient {
             )
         }.body()
 
+    suspend fun getCustomerLocations(accessToken: String): CustomerLocationsResponse =
+        httpClient.get("$customerApiBaseUrl/customer/locations") {
+            header("Authorization", bearer(accessToken))
+        }.body()
+
+    suspend fun createCustomerLocation(
+        accessToken: String,
+        label: String = "",
+        address: String = "",
+        googleMapsLink: String = "",
+        latitude: String = "",
+        longitude: String = "",
+        saveAsPreferred: Boolean = false
+    ): CustomerLocationResponse =
+        httpClient.post("$customerApiBaseUrl/customer/locations") {
+            header("Authorization", bearer(accessToken))
+            contentType(ContentType.Application.Json)
+            setBody(
+                CreateCustomerLocationRequest(
+                    label = label,
+                    address = address,
+                    googleMapsLink = googleMapsLink,
+                    latitude = latitude,
+                    longitude = longitude,
+                    saveAsPreferred = saveAsPreferred
+                )
+            )
+        }.body()
+
     suspend fun getCustomerCart(accessToken: String): CustomerCartResponse =
         httpClient.get("$customerApiBaseUrl/customer/cart") {
             header("Authorization", bearer(accessToken))
@@ -117,8 +146,11 @@ object CustomerApiClient {
 
     suspend fun checkoutCustomerCart(
         accessToken: String,
-        deliveryAddress: String,
+        deliveryAddress: String = "",
         notes: String,
+        savedLocationId: Int? = null,
+        usePreferredLocation: Boolean = false,
+        locationLabel: String = deliveryAddress,
         googleMapsLink: String = "",
         latitude: String = "",
         longitude: String = "",
@@ -129,8 +161,10 @@ object CustomerApiClient {
             contentType(ContentType.Application.Json)
             setBody(
                 CheckoutRequest(
+                    savedLocationId = savedLocationId,
+                    usePreferredLocation = usePreferredLocation,
                     address = deliveryAddress,
-                    locationLabel = deliveryAddress,
+                    locationLabel = locationLabel,
                     googleMapsLink = googleMapsLink,
                     latitude = latitude,
                     longitude = longitude,

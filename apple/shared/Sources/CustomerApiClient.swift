@@ -54,6 +54,31 @@ public enum CustomerApiClient {
         return try await patch(URL(string: "\(customerApiBaseURL)/customer/me")!, body: request, accessToken: accessToken)
     }
 
+    public static func getCustomerLocations(accessToken: String) async throws -> CustomerLocationsResponse {
+        try await fetch(URL(string: "\(customerApiBaseURL)/customer/locations")!, accessToken: accessToken)
+    }
+
+    public static func createCustomerLocation(
+        accessToken: String,
+        label: String = "",
+        address: String = "",
+        googleMapsLink: String = "",
+        latitude: String = "",
+        longitude: String = "",
+        saveAsPreferred: Bool = false
+    ) async throws -> CustomerLocationResponse {
+        let request = CreateCustomerLocationRequest(
+            label: label,
+            address: address,
+            googleMapsLink: googleMapsLink,
+            latitude: latitude,
+            longitude: longitude,
+            saveAsPreferred: saveAsPreferred
+        )
+
+        return try await post(URL(string: "\(customerApiBaseURL)/customer/locations")!, body: request, accessToken: accessToken)
+    }
+
     public static func getCustomerCart(accessToken: String) async throws -> CustomerCartResponse {
         try await fetch(URL(string: "\(customerApiBaseURL)/customer/cart")!, accessToken: accessToken)
     }
@@ -74,16 +99,21 @@ public enum CustomerApiClient {
 
     public static func checkoutCustomerCart(
         accessToken: String,
-        deliveryAddress: String,
+        deliveryAddress: String = "",
         notes: String,
+        savedLocationId: Int? = nil,
+        usePreferredLocation: Bool = false,
+        locationLabel: String? = nil,
         googleMapsLink: String = "",
         latitude: String = "",
         longitude: String = "",
         saveAsPreferred: Bool = false
     ) async throws -> CustomerOrderResponse {
         let request = CheckoutRequest(
+            savedLocationId: savedLocationId,
+            usePreferredLocation: usePreferredLocation,
             address: deliveryAddress,
-            locationLabel: deliveryAddress,
+            locationLabel: locationLabel ?? deliveryAddress,
             googleMapsLink: googleMapsLink,
             latitude: latitude,
             longitude: longitude,
