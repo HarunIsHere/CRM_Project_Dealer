@@ -12652,11 +12652,19 @@ function mapV2CartItemForApi(item) {
 
 async function getActiveV2Order(env, sessionToken) {
   return await env.DB.prepare(`
-    SELECT *
-    FROM customer_orders_v2
-    WHERE session_token = ?
-      AND COALESCE(order_status, status, 'draft') NOT IN ('cancelled', 'closed', 'delivered')
-    ORDER BY datetime(updated_at) DESC, id DESC
+    SELECT
+      o.*,
+      c.id AS customer_id,
+      c.full_name AS customer_full_name,
+      c.username AS customer_username,
+      c.telegram_user_id AS customer_telegram_user_id,
+      c.language AS customer_language,
+      c.preferred_language AS customer_preferred_language
+    FROM customer_orders_v2 o
+    LEFT JOIN customers c ON o.session_token = ('app_customer_' || c.id)
+    WHERE o.session_token = ?
+      AND COALESCE(o.order_status, o.status, 'draft') NOT IN ('cancelled', 'closed', 'delivered')
+    ORDER BY datetime(o.updated_at) DESC, o.id DESC
     LIMIT 1
   `).bind(sessionToken).first();
 }
