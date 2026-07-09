@@ -152,36 +152,98 @@ public struct AppInfo: Codable, Hashable {
 
 
 
-public struct CustomerSessionStartRequest: Codable {
-    public let deviceId: String
-    public let platform: String
-    public let appVersion: String
-    public let fullName: String
-    public let username: String
-    public let language: String
-
-    public init(deviceId: String, platform: String, appVersion: String, fullName: String, username: String = "", language: String = "en") {
-        self.deviceId = deviceId
-        self.platform = platform
-        self.appVersion = appVersion
-        self.fullName = fullName
-        self.username = username
-        self.language = language
-    }
+public struct CustomerSession: Codable, Sendable {
+    public let accessToken: String
+    public let tokenType: String?
+    public let expiresAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case deviceId = "device_id"
-        case platform
-        case appVersion = "app_version"
+        case accessToken = "access_token"
+        case tokenType = "token_type"
+        case expiresAt = "expires_at"
+    }
+}
+
+public struct CustomerProfile: Codable, Identifiable, Hashable, Sendable {
+    public let id: Int
+    public let fullName: String?
+    public let username: String?
+    public let language: String?
+    public let preferredLanguage: String?
+    public let conversationState: String?
+    public let createdAt: String?
+    public let lastSeenAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
         case fullName = "full_name"
         case username
         case language
+        case preferredLanguage = "preferred_language"
+        case conversationState = "conversation_state"
+        case createdAt = "created_at"
+        case lastSeenAt = "last_seen_at"
     }
 }
+
+public struct CustomerSessionVerifyResponse: Codable, Sendable {
+    public let ok: Bool
+    public let valid: Bool
+    public let expiresAt: String?
+    public let customer: CustomerProfile?
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case valid
+        case expiresAt = "expires_at"
+        case customer
+    }
+}
+
+public struct CustomerLogoutResponse: Codable, Sendable {
+    public let ok: Bool
+    public let loggedOut: Bool?
+    public let revokedCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case loggedOut = "logged_out"
+        case revokedCount = "revoked_count"
+    }
+}
+
+public struct CustomerProfileResponse: Codable, Sendable {
+    public let ok: Bool
+    public let customer: CustomerProfile
+}
+
+public struct CustomerProfileUpdateRequest: Codable, Sendable {
+    public let fullName: String
+    public let username: String
+    public let preferredLanguage: String
+
+    public init(fullName: String, username: String = "", preferredLanguage: String = "en") {
+        self.fullName = fullName
+        self.username = username
+        self.preferredLanguage = preferredLanguage
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case fullName = "full_name"
+        case username
+        case preferredLanguage = "preferred_language"
+    }
+}
+
+public struct EmptyRequest: Codable, Sendable {
+    public init() {}
+}
+
 
 public struct CustomerSessionStartResponse: Codable, Sendable {
     public let ok: Bool
     public let session: CustomerSession
+    public let customer: CustomerProfile?
 }
 
 public struct CustomerSession: Codable, Sendable {
@@ -281,21 +343,50 @@ public struct AddCartItemRequest: Codable {
     }
 }
 
-public struct CheckoutRequest: Codable {
+public struct UpdateCartItemRequest: Codable, Sendable {
+    public let quantity: Int
+
+    public init(quantity: Int) {
+        self.quantity = quantity
+    }
+}
+
+
+public struct CheckoutRequest: Codable, Sendable {
     public let address: String
     public let locationLabel: String
+    public let googleMapsLink: String
+    public let latitude: String
+    public let longitude: String
     public let deliveryNote: String
+    public let saveAsPreferred: Bool
 
-    public init(address: String, locationLabel: String, deliveryNote: String) {
+    public init(
+        address: String,
+        locationLabel: String,
+        googleMapsLink: String = "",
+        latitude: String = "",
+        longitude: String = "",
+        deliveryNote: String,
+        saveAsPreferred: Bool = false
+    ) {
         self.address = address
         self.locationLabel = locationLabel
+        self.googleMapsLink = googleMapsLink
+        self.latitude = latitude
+        self.longitude = longitude
         self.deliveryNote = deliveryNote
+        self.saveAsPreferred = saveAsPreferred
     }
 
     enum CodingKeys: String, CodingKey {
         case address
         case locationLabel = "location_label"
+        case googleMapsLink = "google_maps_link"
+        case latitude
+        case longitude
         case deliveryNote = "delivery_note"
+        case saveAsPreferred = "save_as_preferred"
     }
 }
 
@@ -456,5 +547,21 @@ public struct CustomerOrderItem: Codable, Identifiable, Hashable, Sendable {
         case priceSnapshot = "price_snapshot"
         case lineTotal = "line_total"
         case createdAt = "created_at"
+    }
+}
+
+
+public struct CheckoutPickupRequest: Codable, Sendable {
+    public let notes: String
+    public let paymentMethodCode: String
+
+    public init(notes: String = "", paymentMethodCode: String = "") {
+        self.notes = notes
+        self.paymentMethodCode = paymentMethodCode
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case notes
+        case paymentMethodCode = "payment_method_code"
     }
 }
