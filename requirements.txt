@@ -9,6 +9,14 @@
 # Android apps must use the Cloudflare Worker API routes under /api/v1/...
 # and the Worker project in cloudflare-worker/.
 #
+# V2 production lifecycle note:
+# The active customer order/location/admin lifecycle is implemented in the Cloudflare Worker.
+# Latest verified lifecycle docs:
+#   docs/verification/v2-customer-order-location-admin-lifecycle.md
+#
+# Do not add Worker, Android, Apple, Telegram Mini App, or /api/v1 dependencies here.
+# This file remains only for the deprecated archived/local Python implementation.
+#
 alembic==1.18.4
 annotated-doc==0.0.4
 annotated-types==0.7.0

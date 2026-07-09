@@ -236,3 +236,55 @@ Two apps are planned:
 Both apps must support English, German, Turkish, Arabic, and Russian from the start.
 
 Backend remains the source of truth. Android apps must call backend APIs and should not duplicate business logic locally.
+
+## V2 customer order / location / admin lifecycle status
+
+Current verified V2 production lifecycle commit:
+
+    97500fe Align web admin pickup lifecycle with API
+
+Current verified documentation commit:
+
+    73db513 Document V2 customer lifecycle verification
+
+Latest verified Worker deployment:
+
+    b32f5ee3-04d5-4b6d-8591-b84054ab0eb6
+
+V2 order/location/customer-app lifecycle is now verified across:
+
+- Backend V2 cart/order/location tables
+- Telegram bot customer order flow
+- Telegram Mini App customer order flow
+- Android shared customer API parity
+- Apple shared customer API parity
+- Admin API lifecycle
+- Admin web pickup lifecycle
+
+Verified V2 tables:
+
+- customer_cart_sessions
+- customer_cart_items_v2
+- customer_orders_v2
+- customer_order_items_v2
+- customer_order_status_history_v2
+- customer_locations_v2
+
+Important current rule:
+
+- Customer app / mobile / Telegram customer order work must use the V2 customer cart/order/location model.
+- Admin API routes for customer app orders live under /api/v1/admin/customer-app-orders.
+- Admin web order forms under /admin/orders must stay behaviorally aligned with the API lifecycle routes.
+- If one lifecycle path is changed, verify both API and web-admin paths.
+
+Latest live production verification result:
+
+    delivery_order_id: 16
+    pickup_order_id: 17
+    location_id: 10
+    api_admin_lifecycle_verification: passed
+    web_admin_pickup_lifecycle_verification: passed
+
+Detailed verification note:
+
+    docs/verification/v2-customer-order-location-admin-lifecycle.md

@@ -761,3 +761,60 @@ Potential future work:
 - stronger full fuzzy matching for addresses if local street datasets are added later
 - optional analytics dashboard
 - optional richer order filtering/search on admin order pages
+
+## V2 customer app order/location lifecycle
+
+The active customer ordering implementation now uses the V2 customer cart/order/location model.
+
+V2 tables:
+
+- customer_cart_sessions
+- customer_cart_items_v2
+- customer_orders_v2
+- customer_order_items_v2
+- customer_order_status_history_v2
+- customer_locations_v2
+
+Current verified V2 lifecycle commit:
+
+    97500fe Align web admin pickup lifecycle with API
+
+Current verification documentation commit:
+
+    73db513 Document V2 customer lifecycle verification
+
+Latest verified Worker deployment:
+
+    b32f5ee3-04d5-4b6d-8591-b84054ab0eb6
+
+Verified live production lifecycle:
+
+- public catalog
+- customer session start
+- cart item add
+- saved customer delivery location creation
+- delivery checkout with saved_location_id
+- pickup checkout
+- admin API customer-app order list/detail
+- admin API delivery on-the-way
+- customer sees delivery_status = on_the_way
+- admin web ready-to-pickup form route
+- customer sees pickup_status = ready_to_pickup after web admin action
+- admin API cancel delivery order
+
+Latest live production test result:
+
+    delivery_order_id: 16
+    pickup_order_id: 17
+    location_id: 10
+    api_admin_lifecycle_verification: passed
+    web_admin_pickup_lifecycle_verification: passed
+
+Detailed verification note:
+
+    docs/verification/v2-customer-order-location-admin-lifecycle.md
+
+Important implementation rule:
+
+- Telegram, Telegram Mini App, Android shared API, Apple shared API, admin API, and admin web must stay aligned on the same V2 backend lifecycle.
+- Admin web routes under /admin/orders and API routes under /api/v1/admin/customer-app-orders must remain behaviorally consistent.
