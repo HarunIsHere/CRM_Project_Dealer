@@ -2018,41 +2018,24 @@ async function logCustomerRequest(env, customerId, requestType, requestText = nu
 }
 
 
-async function saveCustomerLocation(
-  env,
-  customerId,
-  source,
-  description = null,
-  latitude = null,
-  longitude = null,
-  googleMapsLink = null,
-  isPreferred = 0
-) {
-  const result = await env.DB.prepare(
-    `INSERT INTO customer_locations
-     (customer_id, source, description, latitude, longitude, google_maps_link, is_preferred)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    customerId,
-    source,
-    description,
-    latitude,
-    longitude,
-    googleMapsLink,
-    isPreferred ? 1 : 0
-  ).run();
-
-  return result.meta.last_row_id;
-}
-
 async function setPreferredCustomerLocation(env, customerId, locationId) {
-  await env.DB.prepare(
-    "UPDATE customer_locations SET is_preferred = 0 WHERE customer_id = ?"
-  ).bind(customerId).run();
+  const sessionToken = getCustomerOrderSessionToken(customerId);
 
-  await env.DB.prepare(
-    "UPDATE customer_locations SET is_preferred = 1 WHERE id = ? AND customer_id = ?"
-  ).bind(locationId, customerId).run();
+  await env.DB.prepare(`
+    UPDATE customer_locations_v2
+    SET is_preferred = 0,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE customer_id = ?
+       OR session_token = ?
+  `).bind(customerId, sessionToken).run();
+
+  await env.DB.prepare(`
+    UPDATE customer_locations_v2
+    SET is_preferred = 1,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+      AND (customer_id = ? OR session_token = ?)
+  `).bind(locationId, customerId, sessionToken).run();
 }
 
 function getSetPreferredLocationText(language = "en") {
@@ -2890,7 +2873,7 @@ function getCartUiText(language = "en") {
   return texts[safeLang(language)] || texts.en;
 }
 
-async function getOrCreateActiveCart(env, customerId, customer = null) {
+async function getOrCreateTelegramCartSession(env, customerId, customer = null) {
   const sessionToken = getCustomerOrderSessionToken(customerId);
   await ensureV2CartSession(env, sessionToken, customer);
   return {
@@ -2902,7 +2885,7 @@ async function getOrCreateActiveCart(env, customerId, customer = null) {
   };
 }
 
-async function getActiveCart(env, customerId) {
+async function getActiveTelegramCartSession(env, customerId) {
   const sessionToken = getCustomerOrderSessionToken(customerId);
   const items = await getV2CartItems(env, sessionToken);
 
@@ -2917,7 +2900,7 @@ async function getActiveCart(env, customerId) {
   };
 }
 
-async function addProductToCart(env, customerId, product, quantity = 1, customer = null) {
+async function addProductToTelegramCart(env, customerId, product, quantity = 1, customer = null) {
   quantity = Number(quantity);
   if (!Number.isFinite(quantity) || quantity < 1) quantity = 1;
   quantity = Math.floor(quantity);
@@ -2946,7 +2929,7 @@ async function addProductToCart(env, customerId, product, quantity = 1, customer
   };
 }
 
-async function getCartItems(env, customerId) {
+async function getTelegramCartItems(env, customerId) {
   const sessionToken = getCustomerOrderSessionToken(customerId);
   const rawItems = await getV2CartItems(env, sessionToken);
   const items = rawItems.map(mapV2CartItemForApi);
@@ -3043,7 +3026,7 @@ function getCartKeyboard(items, language = "en") {
 
 async function sendCartView(env, customer, chatId) {
   const language = customer.preferred_language || customer.language || "en";
-  const { items } = await getCartItems(env, customer.id);
+  const { items } = await getTelegramCartItems(env, customer.id);
   await sendTelegramMessage(env, chatId, formatCartText(items, language), getCartKeyboard(items, language));
 }
 
@@ -3142,7 +3125,7 @@ async function handleProductRequestFromText(env, customer, chatId, incomingText,
     return true;
   }
 
-  await addProductToCart(env, customer.id, matchedProduct, quantity, customer);
+  await addProductToTelegramCart(env, customer.id, matchedProduct, quantity, customer);
   await refreshCartStatusAfterItemChange(env, customer.id);
   await sendAddedToCart(env, customer, chatId, matchedProduct, quantity);
   return true;
@@ -3168,10 +3151,12 @@ async function refreshCartStatusAfterItemChange(env, customerId) {
   return sessionToken;
 }
 
-function getCheckoutLocationKeyboard(language = "en") {
+function getCheckoutLocationKeyboard(language = "en", options = {}) {
   const texts = {
     en: {
       pickup: "Pickup",
+      preferred_location: "Delivery: use preferred location",
+      saved_locations: "Delivery: choose saved location",
       type_address: "Delivery: type/share address",
       see_locations: "Delivery: see our locations",
       contact_admin: "Contact admin to describe location",
@@ -3179,6 +3164,8 @@ function getCheckoutLocationKeyboard(language = "en") {
     },
     de: {
       pickup: "Abholung",
+      preferred_location: "Lieferung: bevorzugten Standort verwenden",
+      saved_locations: "Lieferung: gespeicherten Standort wählen",
       type_address: "Lieferung: Adresse eingeben/teilen",
       see_locations: "Lieferung: unsere Standorte anzeigen",
       contact_admin: "Admin kontaktieren und Ort beschreiben",
@@ -3186,6 +3173,8 @@ function getCheckoutLocationKeyboard(language = "en") {
     },
     tr: {
       pickup: "Teslim alma",
+      preferred_location: "Teslimat: tercih edilen konumu kullan",
+      saved_locations: "Teslimat: kayıtlı konum seç",
       type_address: "Teslimat: adres yaz/paylaş",
       see_locations: "Teslimat: konumlarımızı gör",
       contact_admin: "Konumu tarif etmek için adminle iletişime geç",
@@ -3193,6 +3182,8 @@ function getCheckoutLocationKeyboard(language = "en") {
     },
     ar: {
       pickup: "استلام",
+      preferred_location: "توصيل: استخدم الموقع المفضل",
+      saved_locations: "توصيل: اختر موقعاً محفوظاً",
       type_address: "توصيل: اكتب/شارك العنوان",
       see_locations: "توصيل: عرض مواقعنا",
       contact_admin: "تواصل مع المسؤول لوصف الموقع",
@@ -3200,23 +3191,36 @@ function getCheckoutLocationKeyboard(language = "en") {
     },
     ru: {
       pickup: "Самовывоз",
+      preferred_location: "Доставка: использовать предпочтительную локацию",
+      saved_locations: "Доставка: выбрать сохранённую локацию",
       type_address: "Доставка: ввести/отправить адрес",
       see_locations: "Доставка: показать наши локации",
       contact_admin: "Связаться с админом и описать локацию",
       cancel: "Отменить оформление"
     }
   };
-  const ui = texts[safeLang(language)] || texts.en;
 
-  return {
-    inline_keyboard: [
-      [{ text: ui.pickup, callback_data: "checkout_pickup" }],
-      [{ text: ui.type_address, callback_data: "checkout_type_address" }],
-      [{ text: ui.see_locations, callback_data: "location_show_meeting_points" }],
-      [{ text: ui.contact_admin, callback_data: "location_contact_admin" }],
-      [{ text: ui.cancel, callback_data: "location_cancel" }]
-    ]
-  };
+  const ui = texts[safeLang(language)] || texts.en;
+  const rows = [
+    [{ text: ui.pickup, callback_data: "checkout_pickup" }]
+  ];
+
+  if (options.hasPreferredLocation) {
+    rows.push([{ text: ui.preferred_location, callback_data: "checkout_preferred_location" }]);
+  }
+
+  if (options.hasSavedLocations) {
+    rows.push([{ text: ui.saved_locations, callback_data: "checkout_saved_locations" }]);
+  }
+
+  rows.push(
+    [{ text: ui.type_address, callback_data: "checkout_type_address" }],
+    [{ text: ui.see_locations, callback_data: "location_show_meeting_points" }],
+    [{ text: ui.contact_admin, callback_data: "location_contact_admin" }],
+    [{ text: ui.cancel, callback_data: "location_cancel" }]
+  );
+
+  return { inline_keyboard: rows };
 }
 
 async function getCartItemForCustomer(env, customerId, itemId) {
@@ -3267,7 +3271,7 @@ async function handleCartSelection(env, callbackQuery) {
     return;
   }
 
-  const { cart } = await getCartItems(env, customer.id);
+  const { cart } = await getTelegramCartItems(env, customer.id);
   if (!cart) {
     await sendTelegramMessage(env, chatId, ui.cart_empty);
     return;
@@ -3477,7 +3481,7 @@ async function handleProductMenuSelection(env, callbackQuery) {
     }
 
     const quantity = 1;
-    await addProductToCart(env, customer.id, product, quantity, customer);
+    await addProductToTelegramCart(env, customer.id, product, quantity, customer);
     await sendAddedToCart(env, customer, chatId, product, quantity);
     return;
   }
@@ -3761,6 +3765,181 @@ function getBackToCheckoutKeyboard(language = "en") {
   };
 }
 
+async function getTelegramCustomerLocations(env, customer) {
+  const customerId = Number(customer?.id || customer || 0);
+  const sessionToken = customerId ? getCustomerOrderSessionToken(customerId) : "";
+
+  return await env.DB.prepare(`
+    SELECT *
+    FROM customer_locations_v2
+    WHERE customer_id = ?
+       OR session_token = ?
+    ORDER BY is_preferred DESC, datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+    LIMIT 10
+  `).bind(customerId, sessionToken).all().then((result) => result.results || []);
+}
+
+async function getTelegramCheckoutLocationKeyboard(env, customer, language = "en") {
+  const locations = await getTelegramCustomerLocations(env, customer);
+  return getCheckoutLocationKeyboard(language, {
+    hasPreferredLocation: locations.some((location) => Number(location.is_preferred || 0) === 1),
+    hasSavedLocations: locations.length > 0
+  });
+}
+
+function getChooseSavedCustomerLocationText(language = "en") {
+  const replies = {
+    en: "Choose one of your saved delivery locations.",
+    de: "Wählen Sie einen Ihrer gespeicherten Lieferstandorte.",
+    tr: "Kayıtlı teslimat konumlarınızdan birini seçin.",
+    ar: "اختر أحد مواقع التوصيل المحفوظة لديك.",
+    ru: "Выберите одну из ваших сохранённых локаций доставки."
+  };
+
+  return replies[safeLang(language)] || replies.en;
+}
+
+function getNoSavedCustomerLocationText(language = "en") {
+  const replies = {
+    en: "No saved delivery location found. Please type/share a new address.",
+    de: "Kein gespeicherter Lieferstandort gefunden. Bitte geben/teilen Sie eine neue Adresse.",
+    tr: "Kayıtlı teslimat konumu bulunamadı. Lütfen yeni bir adres yazın/paylaşın.",
+    ar: "لم يتم العثور على موقع توصيل محفوظ. يرجى كتابة/مشاركة عنوان جديد.",
+    ru: "Сохранённая локация доставки не найдена. Введите/отправьте новый адрес."
+  };
+
+  return replies[safeLang(language)] || replies.en;
+}
+
+function getSavedCustomerLocationKeyboard(locations = [], language = "en") {
+  const rows = locations.map((location) => {
+    const prefix = Number(location.is_preferred || 0) === 1 ? "★ " : "";
+    const label = String(
+      location.label ||
+      location.address ||
+      location.google_maps_link ||
+      `Location #${location.id}`
+    ).slice(0, 55);
+
+    return [{
+      text: `${prefix}${label}`,
+      callback_data: `checkout_saved_location_${location.id}`
+    }];
+  });
+
+  rows.push([{ text: getBackToCheckoutText(language), callback_data: "location_back_checkout" }]);
+
+  return { inline_keyboard: rows };
+}
+
+async function checkoutTelegramWithCustomerLocationV2(env, customer, chatId, location, note = "telegram_bot_saved_location") {
+  const language = customer.preferred_language || customer.language || "en";
+  const checkout = await submitTelegramV2Checkout(env, customer, "delivery", {
+    saved_location_id: location.id,
+    delivery_note: note
+  });
+
+  if (!checkout.ok) {
+    await sendTelegramMessage(env, chatId, checkout.message, getBackToCheckoutKeyboard(language));
+    return;
+  }
+
+  await setCustomerState(env, customer.id, null);
+
+  const replyText = getTelegramCheckoutSuccessText(checkout.order, "delivery", language);
+  await saveMessage(env, customer.id, "outgoing", replyText, language);
+  await sendTelegramMessage(env, chatId, replyText);
+}
+
+async function handleTelegramPreferredLocationCheckout(env, callbackQuery) {
+  const customer = await upsertCustomer(env, callbackQuery.from);
+  const language = customer.preferred_language || customer.language || "en";
+  const sessionToken = getCustomerOrderSessionToken(customer.id);
+
+  const location = await env.DB.prepare(`
+    SELECT *
+    FROM customer_locations_v2
+    WHERE (customer_id = ? OR session_token = ?)
+      AND is_preferred = 1
+    ORDER BY datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+    LIMIT 1
+  `).bind(customer.id, sessionToken).first();
+
+  if (!location) {
+    await sendTelegramMessage(
+      env,
+      callbackQuery.message.chat.id,
+      getNoSavedCustomerLocationText(language),
+      getBackToCheckoutKeyboard(language)
+    );
+    return;
+  }
+
+  await checkoutTelegramWithCustomerLocationV2(
+    env,
+    customer,
+    callbackQuery.message.chat.id,
+    location,
+    "telegram_bot_preferred_location"
+  );
+}
+
+async function handleTelegramSavedLocationsCheckout(env, callbackQuery) {
+  const customer = await upsertCustomer(env, callbackQuery.from);
+  const language = customer.preferred_language || customer.language || "en";
+  const locations = await getTelegramCustomerLocations(env, customer);
+
+  if (!locations.length) {
+    await sendTelegramMessage(
+      env,
+      callbackQuery.message.chat.id,
+      getNoSavedCustomerLocationText(language),
+      getBackToCheckoutKeyboard(language)
+    );
+    return;
+  }
+
+  await sendTelegramMessage(
+    env,
+    callbackQuery.message.chat.id,
+    getChooseSavedCustomerLocationText(language),
+    getSavedCustomerLocationKeyboard(locations, language)
+  );
+}
+
+async function handleTelegramSavedLocationCheckout(env, callbackQuery) {
+  const customer = await upsertCustomer(env, callbackQuery.from);
+  const language = customer.preferred_language || customer.language || "en";
+  const sessionToken = getCustomerOrderSessionToken(customer.id);
+  const locationId = Number(callbackQuery.data.replace("checkout_saved_location_", ""));
+
+  const location = await env.DB.prepare(`
+    SELECT *
+    FROM customer_locations_v2
+    WHERE id = ?
+      AND (customer_id = ? OR session_token = ?)
+    LIMIT 1
+  `).bind(locationId, customer.id, sessionToken).first();
+
+  if (!location) {
+    await sendTelegramMessage(
+      env,
+      callbackQuery.message.chat.id,
+      getNoSavedCustomerLocationText(language),
+      getBackToCheckoutKeyboard(language)
+    );
+    return;
+  }
+
+  await checkoutTelegramWithCustomerLocationV2(
+    env,
+    customer,
+    callbackQuery.message.chat.id,
+    location,
+    "telegram_bot_saved_location"
+  );
+}
+
 async function sendCheckoutPrompt(env, customer, chatId) {
   const language = customer.preferred_language || customer.language || "en";
   const checkoutTexts = {
@@ -3774,7 +3953,7 @@ async function sendCheckoutPrompt(env, customer, chatId) {
 
   await setCustomerState(env, customer.id, null);
   await saveMessage(env, customer.id, "outgoing", replyText, language);
-  await sendTelegramMessage(env, chatId, replyText, getCheckoutLocationKeyboard(language));
+  await sendTelegramMessage(env, chatId, replyText, await getTelegramCheckoutLocationKeyboard(env, customer, language));
 }
 
 function getTelegramCheckoutSuccessText(order, fulfillmentType, language = "en") {
@@ -4057,13 +4236,16 @@ async function getCustomerRequest(env, requestId) {
 }
 
 async function getPreferredCustomerLocation(env, customerId) {
-  return env.DB.prepare(
-    `SELECT *
-     FROM customer_locations
-     WHERE customer_id = ? AND is_preferred = 1
-     ORDER BY datetime(created_at) DESC, id DESC
-     LIMIT 1`
-  ).bind(customerId).first();
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+
+  return env.DB.prepare(`
+    SELECT *
+    FROM customer_locations_v2
+    WHERE (customer_id = ? OR session_token = ?)
+      AND is_preferred = 1
+    ORDER BY datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+    LIMIT 1
+  `).bind(customerId, sessionToken).first();
 }
 
 async function updateRequestLocation(env, requestId, locationLabel, latitude = null, longitude = null, googleMapsLink = null) {
@@ -4288,7 +4470,7 @@ async function forwardCustomerLocationToAdmin(env, customer, requestId, location
   if (!adminChatId) return;
 
   const language = customer.preferred_language || customer.language || "en";
-  const { items } = await getCartItems(env, customer.id);
+  const { items } = await getTelegramCartItems(env, customer.id);
   const cartText = items.length ? formatCartText(items, language) : "Cart: empty";
 
   const text = [
@@ -7083,7 +7265,7 @@ async function notifyCustomerForOrderStatus(env, order, status) {
   const text = getOrderStatusCustomerMessage(status, language);
 
   let keyboard = null;
-  if (status === "in_progress") keyboard = getCartKeyboard((await getCartItems(env, order.customer_id)).items || [], language);
+  if (status === "in_progress") keyboard = getCartKeyboard((await getTelegramCartItems(env, order.customer_id)).items || [], language);
   if (status === "waiting_location") keyboard = getCheckoutLocationKeyboard(language);
   if (status === "not_delivered") keyboard = getMenuKeyboard(language);
 
@@ -7877,7 +8059,7 @@ function renderOpenRequestsTable(context, ui = i18nAdmin("en")) {
 
     return `<tr>
       <td>${escapeHtml(customerLabel)}</td>
-      <td>${escapeHtml(i18nRequestType(item.request_type, ui._language))}</td>
+      <td>${escapeHtml(i18nRequestType(item.request_type || "delivery_location", ui._language))}</td>
       <td>${escapeHtml(item.item_name || "")}</td>
       <td>${escapeHtml(quantity || "")}</td>
       <td>${escapeHtml(item.request_count || "")}</td>
@@ -8015,10 +8197,11 @@ async function handleCustomerDetail(env, customerId) {
 
   const locations = await env.DB.prepare(`
     SELECT *
-    FROM customer_locations
+    FROM customer_locations_v2
     WHERE customer_id = ?
-    ORDER BY is_preferred DESC, datetime(created_at) DESC, id DESC
-  `).bind(customerId).all();
+       OR session_token = ?
+    ORDER BY is_preferred DESC, datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+  `).bind(customerId, getCustomerOrderSessionToken(customerId)).all();
 
   const requestRows = requests.results.map((item) => `<tr>
     <td>${item.id}</td>
@@ -8047,12 +8230,14 @@ async function handleCustomerDetail(env, customerId) {
 
     const sourceLabel = item.source === "telegram_location"
       ? (ui.telegram_location || "Telegram location")
-      : (item.source === "typed_address" ? (ui.typed_address || "Typed address") : (ui.manual_location || "Manual location"));
+      : (item.source === "typed_address" || item.source === "manual_address"
+        ? (ui.typed_address || "Typed address")
+        : (ui.manual_location || "Manual location"));
 
     const description = (
-      item.description
-      || item.description
-      || item.description
+      item.label
+      || item.address
+      || item.google_maps_link
       || ""
     );
 
@@ -8222,8 +8407,8 @@ async function handleDeleteCustomer(env, customerId) {
   ).bind(customerId).run();
 
   await env.DB.prepare(
-    "DELETE FROM customer_locations WHERE customer_id = ?"
-  ).bind(customerId).run();
+    "DELETE FROM customer_locations_v2 WHERE customer_id = ? OR session_token = ?"
+  ).bind(customerId, getCustomerOrderSessionToken(customerId)).run();
 
   await env.DB.prepare(
     `DELETE FROM app_settings
@@ -8440,6 +8625,67 @@ async function handleLocationMessage(env, message) {
 
   await saveMessage(env, customer.id, "incoming", googleMapsLink, customer.preferred_language, "telegram_location");
 
+  if (customer.conversation_state === "awaiting_typed_address") {
+    const checkout = await submitTelegramV2Checkout(env, customer, "delivery", {
+      location_label: locationLabel,
+      address: locationLabel,
+      google_maps_link: googleMapsLink,
+      latitude,
+      longitude,
+      delivery_note: "telegram_bot_shared_location"
+    });
+
+    if (!checkout.ok) {
+      await sendTelegramMessage(env, message.chat.id, checkout.message, getBackToCheckoutKeyboard(language));
+      return;
+    }
+
+    await setCustomerState(env, customer.id, null);
+
+    const requestId = await logCustomerRequest(
+      env,
+      customer.id,
+      "delivery_location",
+      locationLabel,
+      null,
+      "telegram_location",
+      locationLabel,
+      latitude,
+      longitude,
+      googleMapsLink
+    );
+
+    await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
+
+    await sendTelegramMessage(
+      env,
+      message.chat.id,
+      getTelegramCheckoutSuccessText(checkout.order, "delivery", language)
+    );
+
+    const customerLocationId = Number(checkout.order?.delivery_location_id || 0);
+    if (customerLocationId) {
+      await sendTelegramMessage(
+        env,
+        message.chat.id,
+        getSetPreferredLocationText(language),
+        getSetPreferredLocationKeyboard(customerLocationId)
+      );
+    }
+
+    return;
+  }
+
+  const sessionToken = getCustomerOrderSessionToken(customer.id);
+  const location = await createCustomerLocationV2(env, customer.id, sessionToken, {
+    label: locationLabel,
+    address: locationLabel,
+    google_maps_link: googleMapsLink,
+    latitude,
+    longitude,
+    source: "telegram_location"
+  });
+
   const requestId = await logCustomerRequest(
     env,
     customer.id,
@@ -8453,24 +8699,13 @@ async function handleLocationMessage(env, message) {
     googleMapsLink
   );
 
-  const customerLocationId = await saveCustomerLocation(
-    env,
-    customer.id,
-    "telegram_location",
-    locationLabel,
-    latitude,
-    longitude,
-    googleMapsLink,
-    0
-  );
-
   await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
 
   await sendTelegramMessage(
     env,
     message.chat.id,
     getSetPreferredLocationText(language),
-    getSetPreferredLocationKeyboard(customerLocationId)
+    getSetPreferredLocationKeyboard(location.id)
   );
 
   const replyText = getTelegramLocationReceivedText(language);
@@ -8957,7 +9192,7 @@ async function handleTelegramTextMessage(env, message) {
       return;
     }
 
-    await addProductToCart(env, customer.id, product, quantity, customer);
+    await addProductToTelegramCart(env, customer.id, product, quantity, customer);
     await clearPendingProductQuantity(env, customer.id);
     await setCustomerState(env, customer.id, null);
     await sendAddedToCart(env, customer, message.chat.id, product, quantity);
@@ -9119,7 +9354,7 @@ async function handleTelegramTextMessage(env, message) {
       const quantity = extractQuantity(incomingText);
 
       if (matchedProduct) {
-        await addProductToCart(env, customer.id, matchedProduct, quantity, customer);
+        await addProductToTelegramCart(env, customer.id, matchedProduct, quantity, customer);
         await sendAddedToCart(env, customer, message.chat.id, matchedProduct, quantity);
         return;
       }
@@ -9397,29 +9632,20 @@ async function handleAddressSelection(env, callbackQuery) {
   });
 
   if (!checkout.ok) {
-    await sendTelegramMessage(env, callbackQuery.message.chat.id, checkout.message);
+    await sendTelegramMessage(env, callbackQuery.message.chat.id, checkout.message, getBackToCheckoutKeyboard(language));
     return;
   }
 
   await setCustomerState(env, customer.id, null);
+  await setSetting(env, `address_search_results_${customer.id}`, "");
 
+  const customerLocationId = Number(checkout.order?.delivery_location_id || 0);
   const pendingProductRequestId = Number(await getSetting(env, `pending_product_fulfillment_request_${customer.id}`) || 0);
 
   if (pendingProductRequestId) {
     const request = await getCustomerRequest(env, pendingProductRequestId);
 
     if (request && Number(request.customer_id) === Number(customer.id)) {
-      const customerLocationId = await saveCustomerLocation(
-        env,
-        customer.id,
-        "typed_address",
-        locationLabel,
-        latitude,
-        longitude,
-        googleMapsLink,
-        0
-      );
-
       await updateRequestLocation(
         env,
         pendingProductRequestId,
@@ -9448,12 +9674,14 @@ async function handleAddressSelection(env, callbackQuery) {
         getTelegramCheckoutSuccessText(checkout.order, "delivery", language)
       );
 
-      await sendTelegramMessage(
-        env,
-        callbackQuery.message.chat.id,
-        getSetPreferredLocationText(language),
-        getSetPreferredLocationKeyboard(customerLocationId)
-      );
+      if (customerLocationId) {
+        await sendTelegramMessage(
+          env,
+          callbackQuery.message.chat.id,
+          getSetPreferredLocationText(language),
+          getSetPreferredLocationKeyboard(customerLocationId)
+        );
+      }
 
       return;
     }
@@ -9472,17 +9700,6 @@ async function handleAddressSelection(env, callbackQuery) {
     googleMapsLink
   );
 
-  const customerLocationId = await saveCustomerLocation(
-    env,
-    customer.id,
-    "typed_address",
-    locationLabel,
-    latitude,
-    longitude,
-    googleMapsLink,
-    0
-  );
-
   await saveMessage(env, customer.id, "incoming", locationLabel, customer.preferred_language, "typed_address_location");
   await forwardCustomerLocationToAdmin(env, customer, requestId, locationLabel, googleMapsLink);
 
@@ -9492,12 +9709,14 @@ async function handleAddressSelection(env, callbackQuery) {
     getTelegramCheckoutSuccessText(checkout.order, "delivery", language)
   );
 
-  await sendTelegramMessage(
-    env,
-    callbackQuery.message.chat.id,
-    getSetPreferredLocationText(language),
-    getSetPreferredLocationKeyboard(customerLocationId)
-  );
+  if (customerLocationId) {
+    await sendTelegramMessage(
+      env,
+      callbackQuery.message.chat.id,
+      getSetPreferredLocationText(language),
+      getSetPreferredLocationKeyboard(customerLocationId)
+    );
+  }
 }
 
 async function handleMeetingPointSelection(env, callbackQuery) {
@@ -9951,6 +10170,9 @@ async function handleCallbackQuery(env, callbackQuery) {
   if (callbackQuery.data.startsWith("cart_")) return handleCartSelection(env, callbackQuery);
   if (callbackQuery.data === "checkout_pickup") return handleTelegramPickupCheckout(env, callbackQuery);
   if (callbackQuery.data === "checkout_type_address") return handleTelegramTypeAddressCheckout(env, callbackQuery);
+  if (callbackQuery.data === "checkout_preferred_location") return handleTelegramPreferredLocationCheckout(env, callbackQuery);
+  if (callbackQuery.data === "checkout_saved_locations") return handleTelegramSavedLocationsCheckout(env, callbackQuery);
+  if (callbackQuery.data.startsWith("checkout_saved_location_")) return handleTelegramSavedLocationCheckout(env, callbackQuery);
   if (callbackQuery.data.startsWith("product_fulfillment_")) return handleProductFulfillmentSelection(env, callbackQuery);
   if (callbackQuery.data.startsWith("product_")) return handleProductMenuSelection(env, callbackQuery);
   if (callbackQuery.data === "location_contact_admin") return handleLocationContactAdmin(env, callbackQuery);
@@ -11632,15 +11854,19 @@ function mapCustomerRequestForApi(item) {
 function mapCustomerLocationForApi(item) {
   return {
     id: Number(item.id),
-    customer_id: Number(item.customer_id),
-    request_type: item.request_type || "",
-    description: item.description || "",
-    latitude: item.latitude === null || item.latitude === undefined ? null : Number(item.latitude),
-    longitude: item.longitude === null || item.longitude === undefined ? null : Number(item.longitude),
+    customer_id: item.customer_id === null || item.customer_id === undefined ? null : Number(item.customer_id),
+    session_token: item.session_token || "",
+    request_type: item.request_type || "delivery_location",
+    label: item.label || "",
+    address: item.address || "",
+    description: item.label || item.address || item.google_maps_link || "",
+    latitude: item.latitude === null || item.latitude === undefined || item.latitude === "" ? null : Number(item.latitude),
+    longitude: item.longitude === null || item.longitude === undefined || item.longitude === "" ? null : Number(item.longitude),
     google_maps_link: item.google_maps_link || "",
     source: item.source || "",
     is_preferred: Number(item.is_preferred || 0) === 1,
-    created_at: item.created_at || ""
+    created_at: item.created_at || "",
+    updated_at: item.updated_at || ""
   };
 }
 
@@ -11719,10 +11945,11 @@ async function handleApiAdminCustomerDetail(request, env, customerId) {
       env.DB.prepare("SELECT * FROM customer_requests WHERE customer_id = ? ORDER BY created_at DESC").bind(customerId).all(),
       env.DB.prepare(`
         SELECT *
-        FROM customer_locations
+        FROM customer_locations_v2
         WHERE customer_id = ?
-        ORDER BY is_preferred DESC, datetime(created_at) DESC, id DESC
-      `).bind(customerId).all()
+           OR session_token = ?
+        ORDER BY is_preferred DESC, datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+      `).bind(customerId, getCustomerOrderSessionToken(customerId)).all()
     ]);
 
     return apiOk({
@@ -11736,7 +11963,9 @@ async function handleApiAdminCustomerDetail(request, env, customerId) {
   if (request.method === "DELETE") {
     await env.DB.prepare("DELETE FROM messages WHERE customer_id = ?").bind(customerId).run();
     await env.DB.prepare("DELETE FROM customer_requests WHERE customer_id = ?").bind(customerId).run();
-    await env.DB.prepare("DELETE FROM customer_locations WHERE customer_id = ?").bind(customerId).run();
+    await env.DB.prepare("DELETE FROM customer_locations_v2 WHERE customer_id = ? OR session_token = ?")
+      .bind(customerId, getCustomerOrderSessionToken(customerId))
+      .run();
     await env.DB.prepare(
       `DELETE FROM app_settings
        WHERE key IN (?, ?)`
@@ -13710,356 +13939,3 @@ export default {
     return routeRequest(request, env);
   }
 };
-
-
-function customerApiJson(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
-      "access-control-allow-headers": "content-type,authorization,x-customer-session-token"
-    }
-  });
-}
-
-function getCustomerSessionToken(request, url = null, body = null) {
-  const headerToken = request.headers.get("x-customer-session-token") || "";
-  const queryToken = url ? (url.searchParams.get("session_token") || url.searchParams.get("session_id") || "") : "";
-  const bodyToken = body ? (body.session_token || body.session_id || "") : "";
-  const token = String(headerToken || queryToken || bodyToken || "").trim();
-
-  if (token.length >= 12 && token.length <= 128) {
-    return token;
-  }
-
-  const randomPart = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
-  return `cust_${randomPart}`;
-}
-
-async function readCustomerJson(request) {
-  try {
-    return await request.json();
-  } catch (_) {
-    return {};
-  }
-}
-
-async function ensureCustomerCartSession(env, sessionToken, body = {}) {
-  await env.DB.prepare(`
-    INSERT OR IGNORE INTO customer_cart_sessions (session_token, customer_name, phone)
-    VALUES (?, ?, ?)
-  `).bind(
-    sessionToken,
-    String(body.customer_name || body.customerName || ""),
-    String(body.phone || "")
-  ).run();
-
-  await env.DB.prepare(`
-    UPDATE customer_cart_sessions
-    SET updated_at = CURRENT_TIMESTAMP
-    WHERE session_token = ?
-  `).bind(sessionToken).run();
-}
-
-async function getCustomerCart(env, sessionToken) {
-  const items = await env.DB.prepare(`
-    SELECT
-      ci.product_id,
-      ci.quantity,
-      p.name AS product_name,
-      p.price AS unit_price,
-      COALESCE(p.shop_id, 1) AS shop_id,
-      s.name AS shop_name,
-      (ci.quantity * p.price) AS line_total
-    FROM customer_cart_items_v2 ci
-    JOIN products p ON p.id = ci.product_id
-    LEFT JOIN shops s ON s.id = COALESCE(p.shop_id, 1)
-    WHERE ci.session_token = ?
-    ORDER BY ci.created_at ASC, ci.id ASC
-  `).bind(sessionToken).all();
-
-  const rows = items.results || [];
-  const totalAmount = rows.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
-
-  return {
-    session_token: sessionToken,
-    items: rows,
-    total_amount: totalAmount,
-    currency: "EUR",
-    item_count: rows.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
-  };
-}
-
-async function handleCustomerCartApi(request, env) {
-  const url = new URL(request.url);
-  const sessionToken = getCustomerSessionToken(request, url);
-  await ensureCustomerCartSession(env, sessionToken);
-  const cart = await getCustomerCart(env, sessionToken);
-  return customerApiJson({ ok: true, cart });
-}
-
-async function handleCustomerCartAddItemApi(request, env) {
-  const body = await readCustomerJson(request);
-  const sessionToken = getCustomerSessionToken(request, null, body);
-  const productId = Number(body.product_id || body.productId || 0);
-  const quantity = Math.max(1, Number(body.quantity || 1));
-
-  if (!productId) {
-    return customerApiJson({ ok: false, error: "product_id_required" }, 400);
-  }
-
-  const product = await env.DB.prepare(`
-    SELECT id, name, price, COALESCE(shop_id, 1) AS shop_id
-    FROM products
-    WHERE id = ?
-  `).bind(productId).first();
-
-  if (!product) {
-    return customerApiJson({ ok: false, error: "product_not_found" }, 404);
-  }
-
-  await ensureCustomerCartSession(env, sessionToken, body);
-
-  await env.DB.prepare(`
-    INSERT INTO customer_cart_items_v2 (session_token, product_id, quantity)
-    VALUES (?, ?, ?)
-    ON CONFLICT(session_token, product_id)
-    DO UPDATE SET
-      quantity = quantity + excluded.quantity,
-      updated_at = CURRENT_TIMESTAMP
-  `).bind(sessionToken, productId, quantity).run();
-
-  const cart = await getCustomerCart(env, sessionToken);
-  return customerApiJson({ ok: true, cart });
-}
-
-async function handleCustomerCartUpdateItemApi(request, env, url) {
-  const body = await readCustomerJson(request);
-  const sessionToken = getCustomerSessionToken(request, url, body);
-  const productId = Number(url.pathname.split("/").pop() || 0);
-  const quantity = Math.max(0, Number(body.quantity || 0));
-
-  if (!productId) {
-    return customerApiJson({ ok: false, error: "product_id_required" }, 400);
-  }
-
-  await ensureCustomerCartSession(env, sessionToken, body);
-
-  if (quantity === 0) {
-    await env.DB.prepare(`
-      DELETE FROM customer_cart_items_v2
-      WHERE session_token = ? AND product_id = ?
-    `).bind(sessionToken, productId).run();
-  } else {
-    await env.DB.prepare(`
-      UPDATE customer_cart_items_v2
-      SET quantity = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE session_token = ? AND product_id = ?
-    `).bind(quantity, sessionToken, productId).run();
-  }
-
-  const cart = await getCustomerCart(env, sessionToken);
-  return customerApiJson({ ok: true, cart });
-}
-
-async function handleCustomerCartDeleteItemApi(request, env, url) {
-  const sessionToken = getCustomerSessionToken(request, url);
-  const productId = Number(url.pathname.split("/").pop() || 0);
-
-  if (!productId) {
-    return customerApiJson({ ok: false, error: "product_id_required" }, 400);
-  }
-
-  await env.DB.prepare(`
-    DELETE FROM customer_cart_items_v2
-    WHERE session_token = ? AND product_id = ?
-  `).bind(sessionToken, productId).run();
-
-  const cart = await getCustomerCart(env, sessionToken);
-  return customerApiJson({ ok: true, cart });
-}
-
-async function handleCustomerCheckoutApi(request, env) {
-  const body = await readCustomerJson(request);
-  const sessionToken = getCustomerSessionToken(request, null, body);
-  await ensureCustomerCartSession(env, sessionToken, body);
-
-  const cart = await getCustomerCart(env, sessionToken);
-
-  if (!cart.items.length) {
-    return customerApiJson({ ok: false, error: "cart_empty" }, 400);
-  }
-
-  const orderCode = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const customerName = String(body.customer_name || body.customerName || "");
-  const phone = String(body.phone || "");
-  const deliveryAddress = String(body.delivery_address || body.deliveryAddress || "");
-  const paymentMethodCode = String(body.payment_method_code || body.paymentMethodCode || "");
-  const notes = String(body.notes || "");
-
-  const orderInsert = await env.DB.prepare(`
-    INSERT INTO customer_orders_v2 (
-      public_order_code,
-      session_token,
-      status,
-      total_amount,
-      currency,
-      customer_name,
-      phone,
-      delivery_address,
-      payment_method_code,
-      notes
-    )
-    VALUES (?, ?, 'new', ?, 'EUR', ?, ?, ?, ?, ?)
-  `).bind(
-    orderCode,
-    sessionToken,
-    cart.total_amount,
-    customerName,
-    phone,
-    deliveryAddress,
-    paymentMethodCode,
-    notes
-  ).run();
-
-  const orderId = orderInsert.meta.last_row_id;
-
-  for (const item of cart.items) {
-    await env.DB.prepare(`
-      INSERT INTO customer_order_items_v2 (
-        customer_order_id,
-        product_id,
-        product_name,
-        shop_id,
-        quantity,
-        unit_price,
-        line_total
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      orderId,
-      item.product_id,
-      item.product_name,
-      item.shop_id,
-      item.quantity,
-      item.unit_price,
-      item.line_total
-    ).run();
-  }
-
-  await env.DB.prepare(`
-    DELETE FROM customer_cart_items_v2
-    WHERE session_token = ?
-  `).bind(sessionToken).run();
-
-  const order = await getCustomerOrder(env, orderId, sessionToken);
-  return customerApiJson({ ok: true, order }, 201);
-}
-
-function parseCustomerOrderStatusHistoryJson(statusHistoryJson) {
-  if (!statusHistoryJson) return [];
-
-  try {
-    return JSON.parse(statusHistoryJson).filter((item) => item && item.id !== null);
-  } catch (_) {
-    return [];
-  }
-}
-
-async function getCustomerOrderStatusHistory(env, orderId) {
-  const rows = await env.DB.prepare(`
-    SELECT
-      id,
-      order_id,
-      previous_status,
-      new_status,
-      changed_by_admin_username,
-      note,
-      created_at
-    FROM customer_order_status_history_v2
-    WHERE order_id = ?
-    ORDER BY created_at DESC, id DESC
-    LIMIT 50
-  `).bind(orderId).all();
-
-  return rows.results || [];
-}
-
-async function getCustomerOrder(env, orderId, sessionToken) {
-  const order = await env.DB.prepare(`
-    SELECT *
-    FROM customer_orders_v2
-    WHERE id = ? AND session_token = ?
-  `).bind(orderId, sessionToken).first();
-
-  if (!order) {
-    return null;
-  }
-
-  const items = await env.DB.prepare(`
-    SELECT *
-    FROM customer_order_items_v2
-    WHERE customer_order_id = ?
-    ORDER BY id ASC
-  `).bind(orderId).all();
-
-  const history = await getCustomerOrderStatusHistory(env, orderId);
-
-  return {
-    ...order,
-    items: items.results || [],
-    status_history: history
-  };
-}
-
-async function handleCustomerOrdersApi(request, env) {
-  const url = new URL(request.url);
-  const sessionToken = getCustomerSessionToken(request, url);
-
-  const orders = await env.DB.prepare(`
-    SELECT
-      id,
-      public_order_code,
-      status,
-      total_amount,
-      currency,
-      customer_name,
-      phone,
-      delivery_address,
-      payment_method_code,
-      notes,
-      created_at,
-      updated_at
-    FROM customer_orders_v2
-    WHERE session_token = ?
-    ORDER BY created_at DESC, id DESC
-  `).bind(sessionToken).all();
-
-  return customerApiJson({
-    ok: true,
-    orders: (orders.results || []).map((order) => ({
-      ...order,
-      status_history: parseCustomerOrderStatusHistoryJson(order.status_history_json)
-    }))
-  });
-}
-
-async function handleCustomerOrderDetailApi(request, env, url) {
-  const sessionToken = getCustomerSessionToken(request, url);
-  const orderId = Number(url.pathname.split("/").pop() || 0);
-
-  if (!orderId) {
-    return customerApiJson({ ok: false, error: "order_id_required" }, 400);
-  }
-
-  const order = await getCustomerOrder(env, orderId, sessionToken);
-
-  if (!order) {
-    return customerApiJson({ ok: false, error: "order_not_found" }, 404);
-  }
-
-  return customerApiJson({ ok: true, order });
-}
-
