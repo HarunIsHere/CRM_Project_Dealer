@@ -12221,12 +12221,16 @@ function normalizeCustomerAppLanguage(language) {
 }
 
 function mapCustomerSessionProfile(customer) {
+  const preferredLanguage = normalizeCustomerAppLanguage(
+    customer?.preferred_language || customer?.language || "en"
+  );
+
   return {
     id: Number(customer.id),
     full_name: customer.full_name || "",
     username: customer.username || "",
-    language: customer.language || "unknown",
-    preferred_language: customer.preferred_language || customer.language || "en",
+    language: preferredLanguage,
+    preferred_language: preferredLanguage,
     conversation_state: customer.conversation_state || null,
     created_at: customer.created_at || "",
     last_seen_at: customer.last_seen_at || ""
@@ -12276,13 +12280,14 @@ async function createAppCustomer(env, body) {
       `UPDATE customers
        SET username = ?,
            full_name = ?,
-           language = 'app',
+           language = ?,
            preferred_language = ?,
            last_seen_at = CURRENT_TIMESTAMP
        WHERE id = ?`
     ).bind(
       username || existing.username || null,
       fullName || existing.full_name || null,
+      preferredLanguage,
       preferredLanguage,
       existing.id
     ).run();
@@ -12294,7 +12299,7 @@ async function createAppCustomer(env, body) {
 
   const result = await env.DB.prepare(
     "INSERT INTO customers (telegram_user_id, username, full_name, language, preferred_language) VALUES (?, ?, ?, ?, ?)"
-  ).bind(mobileIdentity, username, fullName, "app", preferredLanguage).run();
+  ).bind(mobileIdentity, username, fullName, preferredLanguage, preferredLanguage).run();
 
   return env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(result.meta.last_row_id).first();
 }
@@ -12479,10 +12484,10 @@ async function handleApiCustomerMe(request, env) {
      SET full_name = ?,
          username = ?,
          preferred_language = ?,
-         language = 'app',
+         language = ?,
          last_seen_at = CURRENT_TIMESTAMP
      WHERE id = ?`
-  ).bind(fullName, username, preferredLanguage, session.customer.id).run();
+  ).bind(fullName, username, preferredLanguage, preferredLanguage, session.customer.id).run();
 
   const updatedCustomer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?")
     .bind(session.customer.id)
@@ -13422,9 +13427,7 @@ async function submitV2Checkout(env, session, body, fulfillmentType) {
   await moveV2CartItemsToOrderGroup(env, sessionToken, order.id, group, itemStatus, addedPhase, requiresApproval);
   await updateV2OrderConfirmedTotal(env, order.id);
 
-  const updatedOrder = await env.DB.prepare("SELECT * FROM customer_orders_v2 WHERE id = ?")
-    .bind(order.id)
-    .first();
+  const updatedOrder = await getV2OrderByIdForApi(env, order.id);
 
   return {
     order: await mapV2OrderForApi(env, updatedOrder),
@@ -13479,14 +13482,39 @@ async function handleApiCustomerCheckoutPickup(request, env) {
   return apiOk(result, 201);
 }
 
+async function getV2OrderByIdForApi(env, orderId) {
+  return await env.DB.prepare(`
+    SELECT
+      o.*,
+      c.id AS customer_id,
+      c.full_name AS customer_full_name,
+      c.username AS customer_username,
+      c.telegram_user_id AS customer_telegram_user_id,
+      c.language AS customer_language,
+      c.preferred_language AS customer_preferred_language
+    FROM customer_orders_v2 o
+    LEFT JOIN customers c ON o.session_token = ('app_customer_' || c.id)
+    WHERE o.id = ?
+    LIMIT 1
+  `).bind(orderId).first();
+}
+
 async function getV2CustomerOrders(env, sessionToken, orderId = null) {
-  const whereOrder = orderId ? "AND id = ?" : "";
+  const whereOrder = orderId ? "AND o.id = ?" : "";
   const stmt = env.DB.prepare(`
-    SELECT *
-    FROM customer_orders_v2
-    WHERE session_token = ?
+    SELECT
+      o.*,
+      c.id AS customer_id,
+      c.full_name AS customer_full_name,
+      c.username AS customer_username,
+      c.telegram_user_id AS customer_telegram_user_id,
+      c.language AS customer_language,
+      c.preferred_language AS customer_preferred_language
+    FROM customer_orders_v2 o
+    LEFT JOIN customers c ON o.session_token = ('app_customer_' || c.id)
+    WHERE o.session_token = ?
       ${whereOrder}
-    ORDER BY datetime(updated_at) DESC, id DESC
+    ORDER BY datetime(o.updated_at) DESC, o.id DESC
   `);
 
   const result = orderId
