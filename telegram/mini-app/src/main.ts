@@ -3,6 +3,7 @@ import {
   addCustomerCartItem,
   checkoutCustomerCart,
   checkoutCustomerPickup,
+  createCustomerLocation,
   getCustomerCart,
   getCustomerLocations,
   getCustomerOrderDetail,
@@ -229,6 +230,8 @@ function renderCart(): string {
             Save as preferred delivery location
           </label>
 
+          <button id="save-location-button" type="button" ${newLocationDisabled}>Save location</button>
+
           <p class="muted">Delivery requires a saved location, Google Maps link, or latitude and longitude. Plain text address alone is not enough.</p>
         </div>
 
@@ -358,6 +361,8 @@ function bindEvents() {
     render();
   });
 
+  app.querySelector<HTMLButtonElement>("#save-location-button")?.addEventListener("click", saveDeliveryLocation);
+
   app.querySelector<HTMLButtonElement>("#checkout-button")?.addEventListener("click", async () => {
     await checkout();
   });
@@ -461,6 +466,39 @@ async function syncProfile() {
     message = "Profile synced";
   } catch (error) {
     message = `Profile sync failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+
+  render();
+}
+
+async function saveDeliveryLocation() {
+  try {
+    const token = await ensureSession();
+    const label = app?.querySelector<HTMLInputElement>("#delivery-label-input")?.value || "";
+    const address = app?.querySelector<HTMLInputElement>("#delivery-address-input")?.value || "";
+    const googleMapsLink = app?.querySelector<HTMLInputElement>("#delivery-maps-input")?.value || "";
+    const latitude = app?.querySelector<HTMLInputElement>("#delivery-latitude-input")?.value || "";
+    const longitude = app?.querySelector<HTMLInputElement>("#delivery-longitude-input")?.value || "";
+    const saveAsPreferred = Boolean(app?.querySelector<HTMLInputElement>("#save-preferred-input")?.checked);
+
+    const response = await createCustomerLocation(token, {
+      label,
+      address,
+      googleMapsLink,
+      latitude,
+      longitude,
+      saveAsPreferred
+    });
+
+    customerLocations = response.locations ?? [
+      response.location,
+      ...customerLocations.filter((location) => Number(location.id) !== Number(response.location.id))
+    ];
+
+    selectedDeliveryLocationId = String(response.location.id);
+    message = `Location saved: ${response.location.label || response.location.address || response.location.id}`;
+  } catch (error) {
+    message = `Save location failed: ${error instanceof Error ? error.message : String(error)}`;
   }
 
   render();
