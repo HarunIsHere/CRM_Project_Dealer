@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
@@ -57,6 +58,39 @@ object CustomerApiClient {
             )
         }.body()
 
+    suspend fun verifyCustomerSession(accessToken: String): CustomerSessionVerifyResponse =
+        httpClient.post("$customerApiBaseUrl/customer/session/verify") {
+            header("Authorization", bearer(accessToken))
+        }.body()
+
+    suspend fun logoutCustomerSession(accessToken: String): CustomerLogoutResponse =
+        httpClient.post("$customerApiBaseUrl/customer/session/logout") {
+            header("Authorization", bearer(accessToken))
+        }.body()
+
+    suspend fun getCustomerProfile(accessToken: String): CustomerProfileResponse =
+        httpClient.get("$customerApiBaseUrl/customer/me") {
+            header("Authorization", bearer(accessToken))
+        }.body()
+
+    suspend fun updateCustomerProfile(
+        accessToken: String,
+        fullName: String,
+        username: String = "",
+        preferredLanguage: String = "en"
+    ): CustomerProfileResponse =
+        httpClient.patch("$customerApiBaseUrl/customer/me") {
+            header("Authorization", bearer(accessToken))
+            contentType(ContentType.Application.Json)
+            setBody(
+                CustomerProfileUpdateRequest(
+                    fullName = fullName,
+                    username = username,
+                    preferredLanguage = preferredLanguage
+                )
+            )
+        }.body()
+
     suspend fun getCustomerCart(accessToken: String): CustomerCartResponse =
         httpClient.get("$customerApiBaseUrl/customer/cart") {
             header("Authorization", bearer(accessToken))
@@ -76,10 +110,19 @@ object CustomerApiClient {
             setBody(UpdateCartItemRequest(quantity = quantity))
         }.body()
 
+    suspend fun removeCustomerCartItem(accessToken: String, itemId: Int): CustomerCartResponse =
+        httpClient.delete("$customerApiBaseUrl/customer/cart/items/$itemId") {
+            header("Authorization", bearer(accessToken))
+        }.body()
+
     suspend fun checkoutCustomerCart(
         accessToken: String,
         deliveryAddress: String,
-        notes: String
+        notes: String,
+        googleMapsLink: String = "",
+        latitude: String = "",
+        longitude: String = "",
+        saveAsPreferred: Boolean = false
     ): CustomerOrderResponse =
         httpClient.post("$customerApiBaseUrl/customer/checkout/address") {
             header("Authorization", bearer(accessToken))
@@ -88,13 +131,38 @@ object CustomerApiClient {
                 CheckoutRequest(
                     address = deliveryAddress,
                     locationLabel = deliveryAddress,
-                    deliveryNote = notes
+                    googleMapsLink = googleMapsLink,
+                    latitude = latitude,
+                    longitude = longitude,
+                    deliveryNote = notes,
+                    saveAsPreferred = saveAsPreferred
+                )
+            )
+        }.body()
+
+    suspend fun checkoutCustomerPickup(
+        accessToken: String,
+        notes: String = "",
+        paymentMethodCode: String = ""
+    ): CustomerOrderResponse =
+        httpClient.post("$customerApiBaseUrl/customer/checkout/pickup") {
+            header("Authorization", bearer(accessToken))
+            contentType(ContentType.Application.Json)
+            setBody(
+                CheckoutPickupRequest(
+                    notes = notes,
+                    paymentMethodCode = paymentMethodCode
                 )
             )
         }.body()
 
     suspend fun getCustomerOrders(accessToken: String): CustomerOrdersResponse =
         httpClient.get("$customerApiBaseUrl/customer/orders") {
+            header("Authorization", bearer(accessToken))
+        }.body()
+
+    suspend fun getCustomerOrderDetail(accessToken: String, orderId: Int): CustomerOrderResponse =
+        httpClient.get("$customerApiBaseUrl/customer/orders/$orderId") {
             header("Authorization", bearer(accessToken))
         }.body()
 }

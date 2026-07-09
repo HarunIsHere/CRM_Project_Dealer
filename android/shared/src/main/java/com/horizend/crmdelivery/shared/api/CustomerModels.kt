@@ -19,15 +19,68 @@ data class CustomerSessionStartRequest(
 @Serializable
 data class CustomerSessionStartResponse(
     val ok: Boolean,
-    val session: CustomerSession
+    val session: CustomerSession,
+    val customer: CustomerProfile? = null
 )
 
 @Serializable
 data class CustomerSession(
     @SerialName("access_token")
     val accessToken: String,
+    @SerialName("token_type")
+    val tokenType: String = "Bearer",
     @SerialName("expires_at")
     val expiresAt: String? = null
+)
+
+@Serializable
+data class CustomerProfile(
+    val id: Int,
+    @SerialName("full_name")
+    val fullName: String = "",
+    val username: String = "",
+    val language: String = "unknown",
+    @SerialName("preferred_language")
+    val preferredLanguage: String = "en",
+    @SerialName("conversation_state")
+    val conversationState: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null,
+    @SerialName("last_seen_at")
+    val lastSeenAt: String? = null
+)
+
+@Serializable
+data class CustomerSessionVerifyResponse(
+    val ok: Boolean,
+    val valid: Boolean,
+    @SerialName("expires_at")
+    val expiresAt: String? = null,
+    val customer: CustomerProfile? = null
+)
+
+@Serializable
+data class CustomerLogoutResponse(
+    val ok: Boolean,
+    @SerialName("logged_out")
+    val loggedOut: Boolean = false,
+    @SerialName("revoked_count")
+    val revokedCount: Int = 0
+)
+
+@Serializable
+data class CustomerProfileResponse(
+    val ok: Boolean,
+    val customer: CustomerProfile
+)
+
+@Serializable
+data class CustomerProfileUpdateRequest(
+    @SerialName("full_name")
+    val fullName: String,
+    val username: String = "",
+    @SerialName("preferred_language")
+    val preferredLanguage: String = "en"
 )
 
 @Serializable
@@ -108,8 +161,21 @@ data class CheckoutRequest(
     val address: String,
     @SerialName("location_label")
     val locationLabel: String,
+    @SerialName("google_maps_link")
+    val googleMapsLink: String = "",
+    val latitude: String = "",
+    val longitude: String = "",
     @SerialName("delivery_note")
-    val deliveryNote: String
+    val deliveryNote: String,
+    @SerialName("save_as_preferred")
+    val saveAsPreferred: Boolean = false
+)
+
+@Serializable
+data class CheckoutPickupRequest(
+    val notes: String = "",
+    @SerialName("payment_method_code")
+    val paymentMethodCode: String = ""
 )
 
 @Serializable
