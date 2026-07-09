@@ -79,6 +79,36 @@ export type CustomerProfile = {
   last_seen_at?: string | null;
 };
 
+export type CustomerLocation = {
+  id: number;
+  customer_id?: number | null;
+  session_token?: string;
+  request_type?: string;
+  label: string;
+  address?: string;
+  description?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  google_maps_link?: string;
+  source?: string;
+  is_preferred?: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type CustomerLocationsResponse = {
+  ok: boolean;
+  locations: CustomerLocation[];
+  count?: number;
+};
+
+export type CustomerLocationResponse = {
+  ok: boolean;
+  location: CustomerLocation;
+  locations?: CustomerLocation[];
+  count?: number;
+};
+
 export type CustomerSession = {
   access_token: string;
   token_type?: string;
@@ -194,7 +224,21 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    let message = `Request failed: ${response.status}`;
+
+    try {
+      const data = await response.json() as {
+        error?: {
+          code?: string;
+          message?: string;
+        };
+      };
+      message = data.error?.message || data.error?.code || message;
+    } catch {
+      // Keep fallback HTTP error.
+    }
+
+    throw new Error(message);
   }
 
   return response.json() as Promise<T>;
@@ -284,6 +328,37 @@ export function updateCustomerProfile(
   });
 }
 
+export function getCustomerLocations(accessToken: string): Promise<CustomerLocationsResponse> {
+  return fetchJson<CustomerLocationsResponse>(`${API_BASE_URL}/customer/locations`, {
+    headers: authHeaders(accessToken)
+  });
+}
+
+export function createCustomerLocation(
+  accessToken: string,
+  input: {
+    label?: string;
+    address?: string;
+    googleMapsLink?: string;
+    latitude?: string;
+    longitude?: string;
+    saveAsPreferred?: boolean;
+  }
+): Promise<CustomerLocationResponse> {
+  return fetchJson<CustomerLocationResponse>(`${API_BASE_URL}/customer/locations`, {
+    method: "POST",
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({
+      label: input.label ?? input.address ?? "",
+      address: input.address ?? input.label ?? "",
+      google_maps_link: input.googleMapsLink ?? "",
+      latitude: input.latitude ?? "",
+      longitude: input.longitude ?? "",
+      save_as_preferred: input.saveAsPreferred ?? false
+    })
+  });
+}
+
 export function getCustomerCart(accessToken: string): Promise<CustomerCartResponse> {
   return fetchJson<CustomerCartResponse>(`${API_BASE_URL}/customer/cart`, {
     headers: authHeaders(accessToken)
@@ -319,6 +394,8 @@ export function removeCustomerCartItem(accessToken: string, itemId: number): Pro
 export function checkoutCustomerCart(
   accessToken: string,
   input: {
+    savedLocationId?: number;
+    usePreferredLocation?: boolean;
     address?: string;
     locationLabel?: string;
     googleMapsLink?: string;
@@ -328,14 +405,14 @@ export function checkoutCustomerCart(
     saveAsPreferred?: boolean;
   } = {}
 ): Promise<CustomerOrderResponse> {
-  const address = input.address ?? "Berlin";
-
   return fetchJson<CustomerOrderResponse>(`${API_BASE_URL}/customer/checkout/address`, {
     method: "POST",
     headers: authHeaders(accessToken),
     body: JSON.stringify({
-      address,
-      location_label: input.locationLabel ?? address,
+      saved_location_id: input.savedLocationId || undefined,
+      use_preferred_location: input.usePreferredLocation ?? false,
+      address: input.address ?? "",
+      location_label: input.locationLabel ?? input.address ?? "",
       google_maps_link: input.googleMapsLink ?? "",
       latitude: input.latitude ?? "",
       longitude: input.longitude ?? "",

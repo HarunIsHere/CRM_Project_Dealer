@@ -10403,6 +10403,7 @@ function getApiCapabilities() {
       session_logout: "/api/v1/customer/session/logout",
       me: "/api/v1/customer/me",
       update_profile: "/api/v1/customer/me",
+      locations: "/api/v1/customer/locations",
       cart: "/api/v1/customer/cart",
       cart_items: "/api/v1/customer/cart/items",
       checkout_address: "/api/v1/customer/checkout/address",
@@ -12500,6 +12501,96 @@ async function handleApiCustomerMe(request, env) {
 
 
 
+async function getApiCustomerLocations(env, customerId, sessionToken) {
+  const result = await env.DB.prepare(`
+    SELECT *
+    FROM customer_locations_v2
+    WHERE customer_id = ?
+       OR session_token = ?
+    ORDER BY is_preferred DESC, datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+    LIMIT 20
+  `).bind(customerId, sessionToken).all();
+
+  return (result.results || []).map(mapCustomerLocationForApi);
+}
+
+async function handleApiCustomerLocations(request, env) {
+  const session = await requireApiCustomerSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid customer bearer token is required.", 401);
+  }
+
+  const customerId = Number(session.customer.id);
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+
+  if (request.method === "GET") {
+    const locations = await getApiCustomerLocations(env, customerId, sessionToken);
+
+    return apiOk({
+      locations,
+      count: locations.length
+    });
+  }
+
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const body = await readJsonBody(request);
+
+  if (!body) {
+    return apiError("invalid_json", "Request body must be valid JSON.", 400);
+  }
+
+  const label = String(body.label || body.location_label || body.address || "").trim();
+  const address = String(body.address || body.location_label || body.label || "").trim();
+  const googleMapsLink = String(body.google_maps_link || "").trim();
+  const latitude = body.latitude !== undefined && body.latitude !== null ? String(body.latitude).trim() : "";
+  const longitude = body.longitude !== undefined && body.longitude !== null ? String(body.longitude).trim() : "";
+  const hasCoordinates = Boolean(latitude && longitude);
+
+  if (!label && !address && !googleMapsLink) {
+    return apiError("delivery_location_required", "Location label, address, Google Maps link, or coordinates are required.", 400);
+  }
+
+  if (!googleMapsLink && !hasCoordinates) {
+    return apiError(
+      "delivery_location_needs_confirmation",
+      "Please add a Google Maps link or latitude and longitude before saving this delivery location.",
+      400,
+      { address: address || label }
+    );
+  }
+
+  const created = await createCustomerLocationV2(env, customerId, sessionToken, {
+    label,
+    address,
+    google_maps_link: googleMapsLink,
+    latitude,
+    longitude,
+    is_preferred: body.is_preferred || body.save_as_preferred || false,
+    source: "customer_app_saved"
+  });
+
+  if (body.is_preferred || body.save_as_preferred) {
+    await setPreferredCustomerLocation(env, customerId, created.id);
+  }
+
+  const updated = await env.DB.prepare("SELECT * FROM customer_locations_v2 WHERE id = ?")
+    .bind(created.id)
+    .first();
+
+  const locations = await getApiCustomerLocations(env, customerId, sessionToken);
+
+  return apiOk({
+    location: mapCustomerLocationForApi(updated || created),
+    locations,
+    count: locations.length
+  }, 201);
+}
+
+
 function getCustomerOrderSessionToken(customerId) {
   return `app_customer_${customerId}`;
 }
@@ -13760,6 +13851,10 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/customer/me") {
     return handleApiCustomerMe(request, env);
+  }
+
+  if (url.pathname === "/api/v1/customer/locations") {
+    return handleApiCustomerLocations(request, env);
   }
 
   if (url.pathname === "/api/v1/customer/cart") {

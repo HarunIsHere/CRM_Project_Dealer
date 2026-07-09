@@ -106,3 +106,27 @@ button:disabled {
   display: block;
   margin: 8px 0;
 }
+
+.checkout-box select {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  margin: 6px 0;
+  padding: 10px;
+  background: white;
+}
+
+.delivery-fields {
+  border: 1px solid #edf0f5;
+  border-radius: 14px;
+  margin: 12px 0;
+  padding: 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+

@@ -4,6 +4,7 @@ import {
   checkoutCustomerCart,
   checkoutCustomerPickup,
   getCustomerCart,
+  getCustomerLocations,
   getCustomerOrderDetail,
   getCustomerOrders,
   getCustomerProfile,
@@ -18,6 +19,7 @@ import {
   updateCustomerProfile,
   verifyCustomerSession,
   type CustomerCart,
+  type CustomerLocation,
   type CustomerOrderSummary,
   type CustomerProfile,
   type MeetingPoint,
@@ -60,6 +62,8 @@ let products: Product[] = [];
 let shops: Shop[] = [];
 let paymentMethods: PaymentMethod[] = [];
 let meetingPoints: MeetingPoint[] = [];
+let customerLocations: CustomerLocation[] = [];
+let selectedDeliveryLocationId = "";
 let cart: CustomerCart | null = null;
 let orders: CustomerOrderSummary[] = [];
 let selectedOrder: CustomerOrderSummary | null = null;
@@ -115,6 +119,21 @@ function firstActivePaymentMethod(): PaymentMethod | null {
   return paymentMethods.find((method) => method.is_active !== false) || paymentMethods[0] || null;
 }
 
+function selectedDeliveryLocation(): CustomerLocation | null {
+  const id = Number(selectedDeliveryLocationId || 0);
+  if (!id) return null;
+  return customerLocations.find((location) => Number(location.id) === id) || null;
+}
+
+function renderDeliveryLocationOption(location: CustomerLocation): string {
+  const label = [
+    location.is_preferred ? "Preferred" : "",
+    location.label || location.address || `Location #${location.id}`
+  ].filter(Boolean).join(" · ");
+
+  return `<option value="${location.id}" ${String(location.id) === selectedDeliveryLocationId ? "selected" : ""}>${escapeHtml(label)}</option>`;
+}
+
 function renderOrderStatus(order: CustomerOrderSummary): string {
   const latest = order.status_history?.[0];
   const note = latest?.note ? ` · ${escapeHtml(latest.note)}` : "";
@@ -146,6 +165,10 @@ function renderProfile(): string {
 function renderCart(): string {
   const cartItems = cart?.items ?? [];
   const currency = cart?.currency ?? "EUR";
+  const savedLocation = selectedDeliveryLocation();
+  const isPickup = checkoutMode === "pickup";
+  const useSavedLocation = Boolean(savedLocation && !isPickup);
+  const newLocationDisabled = isPickup || useSavedLocation ? "disabled" : "";
 
   return `
     <section class="card">
@@ -176,19 +199,40 @@ function renderCart(): string {
         <h3>Checkout</h3>
         <label>
           <input type="radio" name="checkout-mode" value="address" ${checkoutMode === "address" ? "checked" : ""}>
-          Delivery address
+          Delivery
         </label>
         <label>
           <input type="radio" name="checkout-mode" value="pickup" ${checkoutMode === "pickup" ? "checked" : ""}>
           Pickup
         </label>
 
-        <input id="delivery-address-input" placeholder="Delivery address" value="${escapeHtml(cart?.delivery_location_label || "Berlin")}" ${checkoutMode === "pickup" ? "disabled" : ""}>
+        <div class="delivery-fields">
+          <label>
+            Saved delivery location
+            <select id="delivery-location-select" ${isPickup ? "disabled" : ""}>
+              <option value="" ${selectedDeliveryLocationId ? "" : "selected"}>New confirmed location</option>
+              ${customerLocations.map(renderDeliveryLocationOption).join("")}
+            </select>
+          </label>
+
+          <input id="delivery-label-input" placeholder="Location label, e.g. Home" value="${escapeHtml(savedLocation?.label || "")}" ${newLocationDisabled}>
+          <input id="delivery-address-input" placeholder="Address or area label" value="${escapeHtml(savedLocation?.address || cart?.delivery_location_label || "")}" ${newLocationDisabled}>
+          <input id="delivery-maps-input" placeholder="Google Maps link" value="${escapeHtml(savedLocation?.google_maps_link || cart?.delivery_google_maps_link || "")}" ${newLocationDisabled}>
+
+          <div class="grid-2">
+            <input id="delivery-latitude-input" placeholder="Latitude" value="${escapeHtml(savedLocation?.latitude ?? "")}" ${newLocationDisabled}>
+            <input id="delivery-longitude-input" placeholder="Longitude" value="${escapeHtml(savedLocation?.longitude ?? "")}" ${newLocationDisabled}>
+          </div>
+
+          <label class="muted">
+            <input id="save-preferred-input" type="checkbox" ${newLocationDisabled}>
+            Save as preferred delivery location
+          </label>
+
+          <p class="muted">Delivery requires a saved location, Google Maps link, or latitude and longitude. Plain text address alone is not enough.</p>
+        </div>
+
         <input id="delivery-note-input" placeholder="Note" value="${escapeHtml(cart?.delivery_note || "")}">
-        <label class="muted">
-          <input id="save-preferred-input" type="checkbox" ${checkoutMode === "pickup" ? "disabled" : ""}>
-          Save as preferred delivery location
-        </label>
 
         <p class="muted">Pickup point: ${escapeHtml(firstActiveMeetingPoint()?.name || "Default pickup point")}</p>
         <p class="muted">Payment: ${escapeHtml(firstActivePaymentMethod()?.name || "Default payment")}</p>
@@ -309,6 +353,11 @@ function bindEvents() {
     });
   });
 
+  app.querySelector<HTMLSelectElement>("#delivery-location-select")?.addEventListener("change", (event) => {
+    selectedDeliveryLocationId = (event.currentTarget as HTMLSelectElement).value;
+    render();
+  });
+
   app.querySelector<HTMLButtonElement>("#checkout-button")?.addEventListener("click", async () => {
     await checkout();
   });
@@ -417,6 +466,19 @@ async function syncProfile() {
   render();
 }
 
+async function loadLocations() {
+  try {
+    const token = await ensureSession();
+    const locationsResponse = await getCustomerLocations(token);
+    customerLocations = locationsResponse.locations;
+    message = "Delivery locations loaded";
+  } catch (error) {
+    message = `Delivery locations loading failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+
+  render();
+}
+
 async function loadOrders() {
   try {
     const token = await ensureSession();
@@ -447,14 +509,15 @@ async function load() {
   try {
     const token = await ensureSession();
 
-    const [catalogResponse, shopsResponse, paymentMethodsResponse, meetingPointsResponse, profileResponse, cartResponse, ordersResponse] = await Promise.all([
+    const [catalogResponse, shopsResponse, paymentMethodsResponse, meetingPointsResponse, profileResponse, cartResponse, ordersResponse, locationsResponse] = await Promise.all([
       getPublicCatalog(),
       getPublicShops(),
       getPublicPaymentMethods(),
       getPublicMeetingPoints(),
       getCustomerProfile(token),
       getCustomerCart(token),
-      getCustomerOrders(token)
+      getCustomerOrders(token),
+      getCustomerLocations(token)
     ]);
 
     products = catalogResponse.catalog.products;
@@ -464,6 +527,7 @@ async function load() {
     profile = profileResponse.customer;
     cart = cartResponse.cart;
     orders = ordersResponse.orders;
+    customerLocations = locationsResponse.locations;
 
     message = "Mini App loaded";
   } catch (error) {
@@ -534,20 +598,33 @@ async function checkout() {
         notes: note || "Telegram mini app pickup",
         paymentMethodCode: paymentMethod?.code || ""
       })
-      : await checkoutCustomerCart(token, {
-        address: app?.querySelector<HTMLInputElement>("#delivery-address-input")?.value || "Berlin",
-        deliveryNote: note || "Telegram mini app delivery",
-        saveAsPreferred: Boolean(app?.querySelector<HTMLInputElement>("#save-preferred-input")?.checked)
-      });
+      : selectedDeliveryLocationId
+        ? await checkoutCustomerCart(token, {
+          savedLocationId: Number(selectedDeliveryLocationId),
+          deliveryNote: note || "Telegram mini app delivery"
+        })
+        : await checkoutCustomerCart(token, {
+          locationLabel: app?.querySelector<HTMLInputElement>("#delivery-label-input")?.value || "",
+          address: app?.querySelector<HTMLInputElement>("#delivery-address-input")?.value || "",
+          googleMapsLink: app?.querySelector<HTMLInputElement>("#delivery-maps-input")?.value || "",
+          latitude: app?.querySelector<HTMLInputElement>("#delivery-latitude-input")?.value || "",
+          longitude: app?.querySelector<HTMLInputElement>("#delivery-longitude-input")?.value || "",
+          deliveryNote: note || "Telegram mini app delivery",
+          saveAsPreferred: Boolean(app?.querySelector<HTMLInputElement>("#save-preferred-input")?.checked)
+        });
 
     message = response.order ? `Order created: ${displayOrderCode(response.order)}` : "Checkout completed";
     selectedOrder = response.order;
 
-    const cartResponse = await getCustomerCart(token);
-    cart = cartResponse.cart;
+    const [cartResponse, ordersResponse, locationsResponse] = await Promise.all([
+      getCustomerCart(token),
+      getCustomerOrders(token),
+      getCustomerLocations(token)
+    ]);
 
-    const ordersResponse = await getCustomerOrders(token);
+    cart = cartResponse.cart;
     orders = ordersResponse.orders;
+    customerLocations = locationsResponse.locations;
   } catch (error) {
     message = `Checkout failed: ${error instanceof Error ? error.message : String(error)}`;
   }
@@ -570,6 +647,8 @@ async function logout() {
   cart = null;
   orders = [];
   selectedOrder = null;
+  customerLocations = [];
+  selectedDeliveryLocationId = "";
   message = "Logged out locally";
 
   render();
