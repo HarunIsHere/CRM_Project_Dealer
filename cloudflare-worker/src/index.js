@@ -7353,16 +7353,43 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
     if (order.fulfillment_type !== "pickup") return order;
 
     await env.DB.prepare(`
+      UPDATE order_addition_groups_v2
+      SET group_status = 'confirmed',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE customer_order_id = ?
+        AND group_status = 'waiting_ready_to_pickup'
+    `).bind(orderId).run();
+
+    await env.DB.prepare(`
+      UPDATE customer_order_items_v2
+      SET item_status = 'confirmed',
+          decided_at = CURRENT_TIMESTAMP
+      WHERE customer_order_id = ?
+        AND item_status = 'waiting_ready_to_pickup'
+    `).bind(orderId).run();
+
+    await env.DB.prepare(`
       UPDATE customer_orders_v2
       SET pickup_status = 'ready_to_pickup',
+          order_status = CASE
+            WHEN order_status = 'draft' THEN 'submitted'
+            ELSE order_status
+          END,
+          status = CASE
+            WHEN status = 'draft' THEN 'submitted'
+            ELSE status
+          END,
           admin_status_note = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(note || null, orderId).run();
 
+    await updateV2OrderConfirmedTotal(env, orderId);
     await addV2OrderHistory(env, orderId, order.pickup_status || previousStatus, "pickup:ready_to_pickup", { username: "admin_web" }, note || "Marked ready to pick up from admin web");
 
-    return await getV2RawOrder(env, orderId);
+    const updated = await getV2RawOrder(env, orderId);
+    await notifyCustomerForV2Order(env, updated, getV2PickupReadyText(), "order_status");
+    return updated;
   }
 
   if (status === "not_delivered") {
