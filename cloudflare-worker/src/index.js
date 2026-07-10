@@ -11647,6 +11647,12 @@ async function handleApiAdminProductCategoryDetail(request, env, categoryId) {
     return apiError("not_found", "Product category not found.", 404);
   }
 
+  if (request.method === "GET") {
+    return apiOk({
+      category: mapProductCategoryForApi(category)
+    });
+  }
+
   if (request.method === "PUT" || request.method === "PATCH") {
     const body = await readJsonBody(request);
 
