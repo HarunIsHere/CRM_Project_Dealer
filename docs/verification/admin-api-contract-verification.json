@@ -1,0 +1,808 @@
+{
+  "generated_at": "2026-07-12 14:18:08 +0700",
+  "base": "https://crm.ayartuerk.me/api/v1",
+  "mode": "read_only_admin_api_contract_retest",
+  "summary": {
+    "total_checked": 17,
+    "passed": 17,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "admin login",
+      "method": "POST",
+      "path": "/admin/login",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 1053,
+      "top_level_keys": [
+        "ok",
+        "token_type",
+        "access_token",
+        "expires_in",
+        "admin"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "token_type": "string",
+        "access_token": "string",
+        "expires_in": "integer",
+        "admin": {
+          "username": "string",
+          "role": "string",
+          "is_superadmin": "boolean"
+        }
+      }
+    },
+    {
+      "name": "admin me",
+      "method": "GET",
+      "path": "/admin/me",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 206,
+      "top_level_keys": [
+        "ok",
+        "admin"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "admin": {
+          "username": "string",
+          "role": "string",
+          "is_superadmin": "boolean"
+        }
+      }
+    },
+    {
+      "name": "admin dashboard",
+      "method": "GET",
+      "path": "/admin/dashboard",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 274,
+      "top_level_keys": [
+        "ok",
+        "summary",
+        "latest_orders",
+        "latest_requests"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "summary": {
+          "open_orders_count": "integer",
+          "closed_orders_count": "integer",
+          "open_requests_count": "integer",
+          "active_customers_count": "integer",
+          "active_products_count": "integer",
+          "active_meeting_points_count": "integer"
+        },
+        "latest_orders": [
+          {
+            "id": "integer",
+            "customer_id": "integer",
+            "status": "string",
+            "order_status": "string",
+            "order_status_label": "string",
+            "delivery_location_label": "string",
+            "delivery_google_maps_link": "string",
+            "delivery_note": "string",
+            "delivered_at": "null",
+            "closed_at": "null",
+            "admin_status_note": "string",
+            "created_at": "string",
+            "updated_at": "string",
+            "customer": {
+              "full_name": "string",
+              "username": "string",
+              "telegram_user_id": "string",
+              "preferred_language": "string"
+            },
+            "item_count": "integer",
+            "total_amount": "integer",
+            "total_amount_formatted": "string",
+            "items": [
+              {
+                "id": "...",
+                "name": "...",
+                "quantity": "...",
+                "price_snapshot": "...",
+                "line_total": "..."
+              }
+            ]
+          }
+        ],
+        "latest_requests": [
+          {
+            "customer_id": "integer",
+            "request_type": "string",
+            "request_type_label": "string",
+            "item_name": "string",
+            "quantity": "integer",
+            "request_count": "integer",
+            "status": "string",
+            "latest_text": "string",
+            "latest_created_at": "string",
+            "google_maps_link": "string",
+            "customer": {
+              "id": "integer",
+              "full_name": "string",
+              "username": "string",
+              "telegram_user_id": "string",
+              "language": "string",
+              "preferred_language": "string",
+              "last_seen_at": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "legacy active orders",
+      "method": "GET",
+      "path": "/admin/orders",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 217,
+      "top_level_keys": [
+        "ok",
+        "orders",
+        "count",
+        "closed"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "orders": [
+          {
+            "id": "integer",
+            "customer_id": "integer",
+            "status": "string",
+            "order_status": "string",
+            "order_status_label": "string",
+            "delivery_location_label": "string",
+            "delivery_google_maps_link": "string",
+            "delivery_note": "string",
+            "delivered_at": "null",
+            "closed_at": "null",
+            "admin_status_note": "string",
+            "created_at": "string",
+            "updated_at": "string",
+            "customer": {
+              "full_name": "string",
+              "username": "string",
+              "telegram_user_id": "string",
+              "preferred_language": "string"
+            },
+            "item_count": "integer",
+            "total_amount": "integer",
+            "total_amount_formatted": "string",
+            "items": [
+              {
+                "id": "...",
+                "name": "...",
+                "quantity": "...",
+                "price_snapshot": "...",
+                "line_total": "..."
+              }
+            ]
+          }
+        ],
+        "count": "integer",
+        "closed": "boolean"
+      }
+    },
+    {
+      "name": "legacy closed orders",
+      "method": "GET",
+      "path": "/admin/closed-orders",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 213,
+      "top_level_keys": [
+        "ok",
+        "orders",
+        "count",
+        "closed"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "orders": [
+          {
+            "id": "integer",
+            "customer_id": "integer",
+            "status": "string",
+            "order_status": "string",
+            "order_status_label": "string",
+            "delivery_location_label": "string",
+            "delivery_google_maps_link": "string",
+            "delivery_note": "string",
+            "delivered_at": "null",
+            "closed_at": "string",
+            "admin_status_note": "string",
+            "created_at": "string",
+            "updated_at": "string",
+            "customer": {
+              "full_name": "string",
+              "username": "string",
+              "telegram_user_id": "string",
+              "preferred_language": "string"
+            },
+            "item_count": "integer",
+            "total_amount": "integer",
+            "total_amount_formatted": "string",
+            "items": [
+              {
+                "id": "...",
+                "name": "...",
+                "quantity": "...",
+                "price_snapshot": "...",
+                "line_total": "..."
+              }
+            ]
+          }
+        ],
+        "count": "integer",
+        "closed": "boolean"
+      }
+    },
+    {
+      "name": "v2 customer app orders",
+      "method": "GET",
+      "path": "/admin/customer-app-orders",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 1220,
+      "top_level_keys": [
+        "ok",
+        "orders",
+        "count"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "orders": [
+          {
+            "id": "integer",
+            "public_order_code": "string",
+            "session_token": "string",
+            "customer": {
+              "id": "integer",
+              "full_name": "string",
+              "username": "string",
+              "telegram_user_id": "string",
+              "preferred_language": "string"
+            },
+            "status": "string",
+            "order_status": "string",
+            "order_status_label": "string",
+            "fulfillment_type": "string",
+            "delivery_status": "string",
+            "delivery_status_label": "string",
+            "pickup_status": "string",
+            "pickup_status_label": "string",
+            "delivery_location_id": "integer",
+            "delivery_location_label": "string",
+            "delivery_google_maps_link": "string",
+            "delivery_address": "string",
+            "scheduled_for_next_online_order": "boolean",
+            "next_online_order_at": "string",
+            "active_shop_id": "null",
+            "admin_status_note": "string",
+            "cancelled_at": "string",
+            "cancel_reason": "string",
+            "currency": "string",
+            "total_amount": "integer",
+            "total_formatted": "string",
+            "section_totals": {
+              "confirmed": {
+                "item_count": "...",
+                "total_amount": "...",
+                "total_formatted": "..."
+              },
+              "pending_admin_approval": {
+                "item_count": "...",
+                "total_amount": "...",
+                "total_formatted": "..."
+              },
+              "waiting_ready_to_pickup": {
+                "item_count": "...",
+                "total_amount": "...",
+                "total_formatted": "..."
+              },
+              "rejected": {
+                "item_count": "...",
+                "total_amount": "...",
+                "total_formatted": "..."
+              },
+              "scheduled_for_next_online_order": {
+                "item_count": "...",
+                "total_amount": "...",
+                "total_formatted": "..."
+              },
+              "cancelled": {
+                "item_count": "...",
+                "total_amount": "...",
+                "total_formatted": "..."
+              }
+            },
+            "groups": [
+              {
+                "id": "...",
+                "customer_order_id": "...",
+                "group_type": "...",
+                "group_status": "...",
+                "group_status_label": "...",
+                "fulfillment_type": "...",
+                "requires_admin_approval": "...",
+                "scheduled_for_next_online_order": "...",
+                "next_online_order_at": "...",
+                "admin_decision": "...",
+                "admin_decision_note": "...",
+                "decided_at": "...",
+                "total_amount": "...",
+                "total_formatted": "...",
+                "item_count": "...",
+                "items": "...",
+                "created_at": "...",
+                "updated_at": "..."
+              }
+            ],
+            "items": [
+              {
+                "id": "...",
+                "customer_order_id": "...",
+                "group_id": "...",
+                "product_id": "...",
+                "name": "...",
+                "product_name": "...",
+                "quantity": "...",
+                "unit_price": "...",
+                "line_total": "...",
+                "item_status": "...",
+                "added_phase": "...",
+                "requires_admin_approval": "...",
+                "admin_decision": "...",
+                "admin_decision_note": "...",
+                "decided_at": "...",
+                "created_at": "..."
+              }
+            ],
+            "created_at": "string",
+            "updated_at": "string"
+          }
+        ],
+        "count": "integer"
+      }
+    },
+    {
+      "name": "open requests",
+      "method": "GET",
+      "path": "/admin/open-requests",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 253,
+      "top_level_keys": [
+        "ok",
+        "open_requests",
+        "count"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "open_requests": [
+          {
+            "customer_id": "integer",
+            "request_type": "string",
+            "request_type_label": "string",
+            "item_name": "string",
+            "quantity": "integer",
+            "request_count": "integer",
+            "status": "string",
+            "latest_text": "string",
+            "latest_created_at": "string",
+            "google_maps_link": "string",
+            "customer": {
+              "id": "integer",
+              "full_name": "string",
+              "username": "string",
+              "telegram_user_id": "string",
+              "language": "string",
+              "preferred_language": "string",
+              "last_seen_at": "string"
+            }
+          }
+        ],
+        "count": "integer"
+      }
+    },
+    {
+      "name": "products",
+      "method": "GET",
+      "path": "/admin/products",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 270,
+      "top_level_keys": [
+        "ok",
+        "products",
+        "categories",
+        "count"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "products": [
+          {
+            "id": "integer",
+            "name": "string",
+            "price": "integer",
+            "price_formatted": "string",
+            "is_active": "boolean",
+            "category_id": "integer",
+            "category_name": "string",
+            "aliases": [
+              "string"
+            ]
+          }
+        ],
+        "categories": [
+          {
+            "id": "integer",
+            "name": "string",
+            "is_active": "boolean"
+          }
+        ],
+        "count": "integer"
+      }
+    },
+    {
+      "name": "product categories",
+      "method": "GET",
+      "path": "/admin/product-categories",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 236,
+      "top_level_keys": [
+        "ok",
+        "categories",
+        "count"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "categories": [
+          {
+            "id": "integer",
+            "name": "string",
+            "is_active": "boolean"
+          }
+        ],
+        "count": "integer"
+      }
+    },
+    {
+      "name": "meeting points",
+      "method": "GET",
+      "path": "/admin/meeting-points",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 234,
+      "top_level_keys": [
+        "ok",
+        "meeting_points",
+        "count"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "meeting_points": [
+          {
+            "id": "integer",
+            "name": "string",
+            "address": "string",
+            "google_maps_link": "string",
+            "is_default": "boolean",
+            "is_active": "boolean"
+          }
+        ],
+        "count": "integer"
+      }
+    },
+    {
+      "name": "customers",
+      "method": "GET",
+      "path": "/admin/customers",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 233,
+      "top_level_keys": [
+        "ok",
+        "customers",
+        "count"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "customers": [
+          {
+            "id": "integer",
+            "telegram_user_id": "string",
+            "username": "string",
+            "full_name": "string",
+            "language": "string",
+            "preferred_language": "string",
+            "is_blocked": "boolean",
+            "last_seen_at": "string",
+            "created_at": "string"
+          }
+        ],
+        "count": "integer"
+      }
+    },
+    {
+      "name": "settings",
+      "method": "GET",
+      "path": "/admin/settings",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 775,
+      "top_level_keys": [
+        "ok",
+        "settings"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "settings": {
+          "admin_telegram_chat_id": "string",
+          "working_hours_enabled": "string",
+          "working_hours_timezone": "string",
+          "working_hours_start": "string",
+          "working_hours_end": "string",
+          "working_hours_closed_message": "string",
+          "working_hours_message_mode": "string",
+          "admin_view_language": "string",
+          "allow_preferred_customer_location": "string",
+          "allow_new_customer_location": "string",
+          "allow_customer_pickup": "string",
+          "allowed_delivery_cities": [
+            "string"
+          ],
+          "ai_response_mode": "string",
+          "ai_custom_instructions": "string"
+        }
+      }
+    },
+    {
+      "name": "v2 customer app order detail",
+      "method": "GET",
+      "path": "/admin/customer-app-orders/16",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 235,
+      "top_level_keys": [
+        "ok",
+        "order"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "order": {
+          "id": "integer",
+          "public_order_code": "string",
+          "session_token": "string",
+          "customer": {
+            "id": "integer",
+            "full_name": "string",
+            "username": "string",
+            "telegram_user_id": "string",
+            "preferred_language": "string"
+          },
+          "status": "string",
+          "order_status": "string",
+          "order_status_label": "string",
+          "fulfillment_type": "string",
+          "delivery_status": "string",
+          "delivery_status_label": "string",
+          "pickup_status": "string",
+          "pickup_status_label": "string",
+          "delivery_location_id": "integer",
+          "delivery_location_label": "string",
+          "delivery_google_maps_link": "string",
+          "delivery_address": "string",
+          "scheduled_for_next_online_order": "boolean",
+          "next_online_order_at": "string",
+          "active_shop_id": "null",
+          "admin_status_note": "string",
+          "cancelled_at": "string",
+          "cancel_reason": "string",
+          "currency": "string",
+          "total_amount": "integer",
+          "total_formatted": "string",
+          "section_totals": {
+            "confirmed": {
+              "item_count": "integer",
+              "total_amount": "integer",
+              "total_formatted": "string"
+            },
+            "pending_admin_approval": {
+              "item_count": "integer",
+              "total_amount": "integer",
+              "total_formatted": "string"
+            },
+            "waiting_ready_to_pickup": {
+              "item_count": "integer",
+              "total_amount": "integer",
+              "total_formatted": "string"
+            },
+            "rejected": {
+              "item_count": "integer",
+              "total_amount": "integer",
+              "total_formatted": "string"
+            },
+            "scheduled_for_next_online_order": {
+              "item_count": "integer",
+              "total_amount": "integer",
+              "total_formatted": "string"
+            },
+            "cancelled": {
+              "item_count": "integer",
+              "total_amount": "integer",
+              "total_formatted": "string"
+            }
+          },
+          "groups": [
+            {
+              "id": "integer",
+              "customer_order_id": "integer",
+              "group_type": "string",
+              "group_status": "string",
+              "group_status_label": "string",
+              "fulfillment_type": "string",
+              "requires_admin_approval": "boolean",
+              "scheduled_for_next_online_order": "boolean",
+              "next_online_order_at": "string",
+              "admin_decision": "string",
+              "admin_decision_note": "string",
+              "decided_at": "string",
+              "total_amount": "integer",
+              "total_formatted": "string",
+              "item_count": "integer",
+              "items": [
+                "..."
+              ],
+              "created_at": "string",
+              "updated_at": "string"
+            }
+          ],
+          "items": [
+            {
+              "id": "integer",
+              "customer_order_id": "integer",
+              "group_id": "integer",
+              "product_id": "integer",
+              "name": "string",
+              "product_name": "string",
+              "quantity": "integer",
+              "unit_price": "integer",
+              "line_total": "integer",
+              "item_status": "string",
+              "added_phase": "string",
+              "requires_admin_approval": "boolean",
+              "admin_decision": "string",
+              "admin_decision_note": "string",
+              "decided_at": "string",
+              "created_at": "string"
+            }
+          ],
+          "created_at": "string",
+          "updated_at": "string"
+        }
+      }
+    },
+    {
+      "name": "product detail",
+      "method": "GET",
+      "path": "/admin/products/3",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 231,
+      "top_level_keys": [
+        "ok",
+        "product"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "product": {
+          "id": "integer",
+          "name": "string",
+          "price": "integer",
+          "price_formatted": "string",
+          "is_active": "boolean",
+          "category_id": "integer",
+          "category_name": "string",
+          "aliases": [
+            "string"
+          ]
+        }
+      }
+    },
+    {
+      "name": "product category detail",
+      "method": "GET",
+      "path": "/admin/product-categories/2",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 210,
+      "top_level_keys": [
+        "ok",
+        "category"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "category": {
+          "id": "integer",
+          "name": "string",
+          "is_active": "boolean"
+        }
+      }
+    },
+    {
+      "name": "meeting point detail",
+      "method": "GET",
+      "path": "/admin/meeting-points/1",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 195,
+      "top_level_keys": [
+        "ok",
+        "meeting_point"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "meeting_point": {
+          "id": "integer",
+          "name": "string",
+          "address": "string",
+          "google_maps_link": "string",
+          "is_default": "boolean",
+          "is_active": "boolean"
+        }
+      }
+    },
+    {
+      "name": "customer detail",
+      "method": "GET",
+      "path": "/admin/customers/39",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 282,
+      "top_level_keys": [
+        "ok",
+        "customer",
+        "messages",
+        "requests",
+        "locations"
+      ],
+      "shape": {
+        "ok": "boolean",
+        "customer": {
+          "id": "integer",
+          "telegram_user_id": "string",
+          "username": "string",
+          "full_name": "string",
+          "language": "string",
+          "preferred_language": "string",
+          "is_blocked": "boolean",
+          "last_seen_at": "string",
+          "created_at": "string"
+        },
+        "messages": [
+          {
+            "id": "integer",
+            "direction": "string",
+            "message_type": "string",
+            "source_label": "string",
+            "content": "string",
+            "language": "string",
+            "created_at": "string"
+          }
+        ],
+        "requests": [],
+        "locations": []
+      }
+    }
+  ]
+}
