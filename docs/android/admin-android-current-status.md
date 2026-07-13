@@ -1,29 +1,68 @@
 # Admin Android Current Status
 
-## Backend/API
+## Build status
 
-Status: ready for Android implementation planning and first app build.
+Status: compiling and assembling locally.
 
-Verified:
+Latest local checks:
 
-- login/session
-- dashboard
-- V2 customer-app orders
-- products/categories
-- meeting points
-- customers
-- customer reply
-- settings read/limited update
-- open requests
-- open request status/group done
+- ./gradlew :app:compileDebugKotlin --no-daemon
+- ./gradlew :app:assembleDebug --no-daemon
 
-Latest backend/API commit:
+## App path
 
-    9cb0032 Document Admin Android API implementation contract
+    apps/admin-android
 
-Latest deployed worker version after open-request API patch:
+## Backend
 
-    cf7369e9-ade0-4de3-939f-a8c16fcc1604
+Base URL:
+
+    https://crm.ayartuerk.me/api/v1
+
+Backend contract:
+
+    docs/verification/admin-android-api-implementation-contract.md
+
+## Implemented Android screens
+
+- Login
+- Dashboard
+- V2 Orders
+- Order Detail
+- Products/Categories
+- Customers
+- Customer Detail
+- Customer Reply
+- Open Requests
+- Open Request status actions
+- Open Request group-done action
+- Meeting Points
+- Settings
+- Safe ai_response_mode update
+
+## Implemented Android infrastructure
+
+- Kotlin Android app
+- Jetpack Compose
+- Retrofit
+- kotlinx.serialization
+- DataStore token storage
+- Gradle wrapper
+- AndroidX enabled
+- Java/Kotlin JVM target 17
+- production API base URL through BuildConfig
+
+## Latest Android app commits
+
+    c9cd4d4 Add Admin Android settings screen
+    6f4ec73 Add Admin Android meeting points screen
+    c4fb24a Add Admin Android open requests screen
+    3735790 Add Admin Android customers and reply screens
+    504e333 Add Admin Android products and categories screens
+    1b54d59 Add Admin Android navigation and orders screens
+    50ff379 Complete Admin Android Gradle wrapper
+    d8f85a6 Fix Admin Android compile setup
+    330b4aa Add Admin Android app skeleton
 
 ## Local-only files intentionally uncommitted
 
@@ -32,28 +71,14 @@ Latest deployed worker version after open-request API patch:
 - verification/android/
 - verification/ios/
 
-## Current next step
+## Next step
 
-Start Admin Android app implementation.
+Run the app on Android emulator or physical device and test:
 
-Recommended first app stack:
-
-- Kotlin
-- Jetpack Compose
-- Retrofit or Ktor client
-- kotlinx.serialization
-- DataStore for auth token
-- simple MVVM screen structure
-
-## Build order
-
-1. Android project skeleton
-2. Auth/login
-3. API client
-4. Dashboard
-5. Orders
-6. Products/categories
-7. Customers/reply
-8. Open requests
-9. Meeting points
-10. Settings
+1. login
+2. dashboard loading
+3. each tab loading
+4. order detail loading
+5. controlled customer reply
+6. open request status action only on controlled/test request
+7. settings ai_response_mode restore-safe cycle
