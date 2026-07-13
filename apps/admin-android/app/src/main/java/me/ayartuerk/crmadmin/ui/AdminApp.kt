@@ -52,18 +52,21 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onCustomers = viewModel::showCustomers,
                     onOpenRequests = viewModel::showOpenRequests,
                     onMeetingPoints = viewModel::showMeetingPoints,
+                    onSettings = viewModel::showSettings,
                     onRefreshDashboard = viewModel::loadDashboard,
                     onRefreshOrders = viewModel::loadOrders,
                     onRefreshProducts = viewModel::loadProducts,
                     onRefreshCustomers = viewModel::loadCustomers,
                     onRefreshOpenRequests = viewModel::loadOpenRequests,
                     onRefreshMeetingPoints = viewModel::loadMeetingPoints,
+                    onRefreshSettings = viewModel::loadSettings,
                     onOrderClick = viewModel::showOrderDetail,
                     onCustomerClick = viewModel::showCustomerDetail,
                     onReplyChange = viewModel::updateReplyMessage,
                     onSendReply = viewModel::sendCustomerReply,
                     onOpenRequestStatus = viewModel::updateOpenRequestStatus,
                     onOpenRequestGroupDone = viewModel::markOpenRequestGroupDone,
+                    onAiResponseMode = viewModel::updateAiResponseMode,
                     onLogout = viewModel::logout
                 )
                 else -> LoginScreen(
@@ -153,18 +156,21 @@ private fun AdminShell(
     onCustomers: () -> Unit,
     onOpenRequests: () -> Unit,
     onMeetingPoints: () -> Unit,
+    onSettings: () -> Unit,
     onRefreshDashboard: () -> Unit,
     onRefreshOrders: () -> Unit,
     onRefreshProducts: () -> Unit,
     onRefreshCustomers: () -> Unit,
     onRefreshOpenRequests: () -> Unit,
     onRefreshMeetingPoints: () -> Unit,
+    onRefreshSettings: () -> Unit,
     onOrderClick: (Long) -> Unit,
     onCustomerClick: (Long) -> Unit,
     onReplyChange: (String) -> Unit,
     onSendReply: () -> Unit,
     onOpenRequestStatus: (Long, String) -> Unit,
     onOpenRequestGroupDone: (Long) -> Unit,
+    onAiResponseMode: (String) -> Unit,
     onLogout: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -176,6 +182,7 @@ private fun AdminShell(
             onCustomers = onCustomers,
             onOpenRequests = onOpenRequests,
             onMeetingPoints = onMeetingPoints,
+            onSettings = onSettings,
             onLogout = onLogout
         )
 
@@ -232,6 +239,12 @@ private fun AdminShell(
                 state = state,
                 onRefresh = onRefreshMeetingPoints
             )
+
+            AdminScreen.SETTINGS -> SettingsScreen(
+                state = state,
+                onRefresh = onRefreshSettings,
+                onAiResponseMode = onAiResponseMode
+            )
         }
     }
 }
@@ -245,6 +258,7 @@ private fun TopNav(
     onCustomers: () -> Unit,
     onOpenRequests: () -> Unit,
     onMeetingPoints: () -> Unit,
+    onSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
     Row(
@@ -293,6 +307,13 @@ private fun TopNav(
             onClick = onMeetingPoints
         ) {
             Text("Meet")
+        }
+
+        Button(
+            enabled = selected != AdminScreen.SETTINGS,
+            onClick = onSettings
+        ) {
+            Text("Settings")
         }
 
         OutlinedButton(onClick = onLogout) {
@@ -971,6 +992,93 @@ private fun MeetingPointCard(point: MeetingPoint) {
             Text("Default: ${point.isDefault ?: "-"}")
             Text("Sort: ${point.sortOrder ?: "-"}")
             Text("Created: ${point.createdAt ?: "-"}")
+        }
+    }
+}
+
+
+@Composable
+private fun SettingsScreen(
+    state: AdminUiState,
+    onRefresh: () -> Unit,
+    onAiResponseMode: (String) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Settings", style = MaterialTheme.typography.headlineSmall)
+                OutlinedButton(onClick = onRefresh) {
+                    Text("Refresh")
+                }
+            }
+        }
+
+        commonStateItems(state)
+
+        if (!state.lastSettingsAction.isNullOrBlank()) {
+            item {
+                Text(state.lastSettingsAction)
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dpCompat)) {
+                    Text("Safe write: AI response mode", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dpCompat))
+                    Text("Current: ${state.settings["ai_response_mode"] ?: "-"}")
+                    Spacer(modifier = Modifier.height(8.dpCompat))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dpCompat)) {
+                        Button(
+                            enabled = !state.loading,
+                            onClick = { onAiResponseMode("ai_fallback") }
+                        ) {
+                            Text("AI fallback")
+                        }
+
+                        OutlinedButton(
+                            enabled = !state.loading,
+                            onClick = { onAiResponseMode("rule_base") }
+                        ) {
+                            Text("Rule base")
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Text("All settings (${state.settings.size})", style = MaterialTheme.typography.titleMedium)
+        }
+
+        if (state.settings.isEmpty() && !state.loading) {
+            item {
+                Text("No settings loaded.")
+            }
+        }
+
+        items(state.settings.entries.toList()) { entry ->
+            SettingsCard(name = entry.key, value = entry.value)
+        }
+    }
+}
+
+@Composable
+private fun SettingsCard(
+    name: String,
+    value: String
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text(name, style = MaterialTheme.typography.titleSmall)
+            Text(value.ifBlank { "-" })
         }
     }
 }

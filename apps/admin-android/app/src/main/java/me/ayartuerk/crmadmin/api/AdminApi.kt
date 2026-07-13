@@ -2,6 +2,7 @@ package me.ayartuerk.crmadmin.api
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PATCH
@@ -71,6 +72,15 @@ interface AdminApi {
 
     @GET("admin/meeting-points")
     suspend fun meetingPoints(@Header("Authorization") authorization: String): MeetingPointsResponse
+
+    @GET("admin/settings")
+    suspend fun settings(@Header("Authorization") authorization: String): SettingsResponse
+
+    @PATCH("admin/settings")
+    suspend fun updateSettings(
+        @Header("Authorization") authorization: String,
+        @Body body: JsonObject
+    ): SettingsResponse
 }
 
 @Serializable
@@ -169,6 +179,13 @@ data class CustomerDetailResponse(
 @Serializable
 data class CustomerReplyRequest(
     val message: String
+)
+
+@Serializable
+data class SettingsResponse(
+    val ok: Boolean = false,
+    val settings: JsonObject? = null,
+    val error: ApiErrorEnvelope? = null
 )
 
 @Serializable

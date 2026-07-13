@@ -1,5 +1,17 @@
 package me.ayartuerk.crmadmin.data
 
+import kotlinx.serialization.json.put
+
+import kotlinx.serialization.json.jsonPrimitive
+
+import kotlinx.serialization.json.buildJsonObject
+
+import kotlinx.serialization.json.JsonPrimitive
+
+import kotlinx.serialization.json.JsonObject
+
+import kotlinx.serialization.json.JsonArray
+
 import me.ayartuerk.crmadmin.api.AdminApi
 import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
@@ -152,6 +164,41 @@ class AdminRepository(
             throw IllegalStateException(message)
         }
         return response.meetingPoints
+    }
+
+    suspend fun settings(token: String): Map<String, String> {
+        val response = api.settings(bearer(token))
+        if (!response.ok || response.settings == null) {
+            val message = response.error?.message ?: "Settings load failed"
+            throw IllegalStateException(message)
+        }
+        return response.settings.toDisplayMap()
+    }
+
+    suspend fun updateAiResponseMode(token: String, mode: String): Map<String, String> {
+        val body = buildJsonObject {
+            put("ai_response_mode", mode)
+        }
+
+        val response = api.updateSettings(bearer(token), body)
+        if (!response.ok || response.settings == null) {
+            val message = response.error?.message ?: "Settings update failed"
+            throw IllegalStateException(message)
+        }
+        return response.settings.toDisplayMap()
+    }
+
+    private fun JsonObject.toDisplayMap(): Map<String, String> {
+        return entries.associate { entry ->
+            val value = when (val element = entry.value) {
+                is JsonPrimitive -> element.content
+                is JsonArray -> element.joinToString(", ") { item ->
+                    runCatching { item.jsonPrimitive.content }.getOrDefault(item.toString())
+                }
+                else -> element.toString()
+            }
+            entry.key to value
+        }
     }
 
     suspend fun logout(token: String) {

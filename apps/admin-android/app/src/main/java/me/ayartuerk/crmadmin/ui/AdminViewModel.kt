@@ -28,7 +28,8 @@ enum class AdminScreen {
     CUSTOMERS,
     CUSTOMER_DETAIL,
     OPEN_REQUESTS,
-    MEETING_POINTS
+    MEETING_POINTS,
+    SETTINGS
 }
 
 data class AdminUiState(
@@ -51,6 +52,8 @@ data class AdminUiState(
     val openRequests: List<OpenRequest> = emptyList(),
     val lastOpenRequestAction: String? = null,
     val meetingPoints: List<MeetingPoint> = emptyList(),
+    val settings: Map<String, String> = emptyMap(),
+    val lastSettingsAction: String? = null,
     val error: String? = null
 )
 
@@ -363,6 +366,51 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 _state.value = _state.value.copy(loading = false, meetingPoints = meetingPoints)
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting points failed")
+            }
+        }
+    }
+
+    fun showSettings() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.SETTINGS,
+            selectedOrder = null,
+            selectedCustomer = null
+        )
+        loadSettings()
+    }
+
+    fun loadSettings() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastSettingsAction = null)
+
+            runCatching {
+                repository.settings(token)
+            }.onSuccess { settings ->
+                _state.value = _state.value.copy(loading = false, settings = settings)
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Settings failed")
+            }
+        }
+    }
+
+    fun updateAiResponseMode(mode: String) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastSettingsAction = null)
+
+            runCatching {
+                repository.updateAiResponseMode(token, mode)
+            }.onSuccess { settings ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    settings = settings,
+                    lastSettingsAction = "ai_response_mode updated to $mode"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Settings update failed")
             }
         }
     }
