@@ -1,0 +1,60 @@
+{
+  "phase": "Admin Android Phase 5 customer reply verification",
+  "passed": true,
+  "controlled_customer_id": 10,
+  "controlled_customer_name": "Harun",
+  "telegram_user_id": "8874326241",
+  "message": "Admin Android API controlled reply test 20260713-160949",
+  "results": [
+    {
+      "name": "admin login",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 301,
+      "top_level_keys": [
+        "ok",
+        "token_type",
+        "access_token",
+        "expires_in",
+        "admin"
+      ]
+    },
+    {
+      "name": "get controlled customer detail before reply",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 266,
+      "top_level_keys": [
+        "ok",
+        "customer",
+        "messages",
+        "requests",
+        "locations"
+      ]
+    },
+    {
+      "name": "send controlled customer reply",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 988,
+      "top_level_keys": [
+        "ok",
+        "customer_id",
+        "sent"
+      ]
+    },
+    {
+      "name": "get controlled customer detail after reply",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 256,
+      "top_level_keys": [
+        "ok",
+        "customer",
+        "messages",
+        "requests",
+        "locations"
+      ]
+    }
+  ]
+}
