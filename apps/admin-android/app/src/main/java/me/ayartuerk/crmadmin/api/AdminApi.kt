@@ -6,6 +6,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface AdminApi {
     @POST("admin/login")
@@ -19,6 +20,15 @@ interface AdminApi {
 
     @POST("admin/logout")
     suspend fun logout(@Header("Authorization") authorization: String): BasicResponse
+
+    @GET("admin/customer-app-orders")
+    suspend fun customerAppOrders(@Header("Authorization") authorization: String): CustomerAppOrdersResponse
+
+    @GET("admin/customer-app-orders/{orderId}")
+    suspend fun customerAppOrderDetail(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long
+    ): CustomerAppOrderDetailResponse
 }
 
 @Serializable
@@ -65,6 +75,21 @@ data class BasicResponse(
 )
 
 @Serializable
+data class CustomerAppOrdersResponse(
+    val ok: Boolean = false,
+    val orders: List<CustomerAppOrder> = emptyList(),
+    val count: Int? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class CustomerAppOrderDetailResponse(
+    val ok: Boolean = false,
+    val order: CustomerAppOrder? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
 data class ApiErrorEnvelope(
     val code: String? = null,
     val message: String? = null
@@ -86,7 +111,6 @@ data class DashboardSummary(
     val closedOrders: Int? = null,
     @SerialName("open_requests")
     val openRequests: Int? = null,
-    @SerialName("customers")
     val customers: Int? = null
 )
 
@@ -113,4 +137,46 @@ data class AdminRequestPreview(
     val customerName: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null
+)
+
+@Serializable
+data class CustomerAppOrder(
+    val id: Long? = null,
+    val status: String? = null,
+    @SerialName("order_status")
+    val orderStatus: String? = null,
+    @SerialName("delivery_status")
+    val deliveryStatus: String? = null,
+    @SerialName("pickup_status")
+    val pickupStatus: String? = null,
+    @SerialName("fulfillment_type")
+    val fulfillmentType: String? = null,
+    @SerialName("customer_id")
+    val customerId: Long? = null,
+    @SerialName("customer_name")
+    val customerName: String? = null,
+    @SerialName("customer_phone")
+    val customerPhone: String? = null,
+    @SerialName("delivery_address")
+    val deliveryAddress: String? = null,
+    @SerialName("delivery_maps_url")
+    val deliveryMapsUrl: String? = null,
+    val total: Double? = null,
+    @SerialName("confirmed_total")
+    val confirmedTotal: Double? = null,
+    val items: List<CustomerAppOrderItem> = emptyList(),
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
+data class CustomerAppOrderItem(
+    val id: Long? = null,
+    @SerialName("product_name")
+    val productName: String? = null,
+    val quantity: Int? = null,
+    @SerialName("unit_price")
+    val unitPrice: Double? = null,
+    val total: Double? = null,
+    val status: String? = null
 )

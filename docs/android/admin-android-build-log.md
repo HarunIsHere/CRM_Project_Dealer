@@ -37,3 +37,15 @@ Result:
 - Set Java targetCompatibility to 17
 - Set Kotlin jvmTarget to 17
 - compileDebugKotlin passed locally
+
+## Phase 2 - Navigation and V2 orders
+
+Result:
+
+- Added simple in-app navigation state
+- Added Dashboard and Orders tabs
+- Added V2 orders API endpoint
+- Added V2 order detail API endpoint
+- Added orders list screen
+- Added order detail screen
+- compileDebugKotlin passed locally

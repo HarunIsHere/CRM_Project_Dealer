@@ -1,6 +1,7 @@
 package me.ayartuerk.crmadmin.data
 
 import me.ayartuerk.crmadmin.api.AdminApi
+import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.api.LoginRequest
 import me.ayartuerk.crmadmin.api.bearer
@@ -29,6 +30,24 @@ class AdminRepository(
             throw IllegalStateException(message)
         }
         return response
+    }
+
+    suspend fun customerAppOrders(token: String): List<CustomerAppOrder> {
+        val response = api.customerAppOrders(bearer(token))
+        if (!response.ok) {
+            val message = response.error?.message ?: "Orders load failed"
+            throw IllegalStateException(message)
+        }
+        return response.orders
+    }
+
+    suspend fun customerAppOrderDetail(token: String, orderId: Long): CustomerAppOrder {
+        val response = api.customerAppOrderDetail(bearer(token), orderId)
+        if (!response.ok || response.order == null) {
+            val message = response.error?.message ?: "Order detail load failed"
+            throw IllegalStateException(message)
+        }
+        return response.order
     }
 
     suspend fun logout(token: String) {

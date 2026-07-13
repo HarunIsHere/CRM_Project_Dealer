@@ -8,15 +8,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.ayartuerk.crmadmin.api.ApiClient
+import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.data.AdminRepository
 import me.ayartuerk.crmadmin.data.TokenStore
+
+enum class AdminScreen {
+    DASHBOARD,
+    ORDERS,
+    ORDER_DETAIL
+}
 
 data class AdminUiState(
     val loading: Boolean = true,
     val loggedIn: Boolean = false,
     val token: String? = null,
+    val screen: AdminScreen = AdminScreen.DASHBOARD,
     val dashboard: DashboardResponse? = null,
+    val orders: List<CustomerAppOrder> = emptyList(),
+    val selectedOrder: CustomerAppOrder? = null,
     val error: String? = null
 )
 
@@ -71,6 +81,11 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun showDashboard() {
+        _state.value = _state.value.copy(screen = AdminScreen.DASHBOARD, selectedOrder = null)
+        loadDashboard()
+    }
+
     fun loadDashboard() {
         val token = _state.value.token ?: return
 
@@ -83,6 +98,48 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 _state.value = _state.value.copy(loading = false, dashboard = dashboard)
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Dashboard failed")
+            }
+        }
+    }
+
+    fun showOrders() {
+        _state.value = _state.value.copy(screen = AdminScreen.ORDERS, selectedOrder = null)
+        loadOrders()
+    }
+
+    fun loadOrders() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+
+            runCatching {
+                repository.customerAppOrders(token)
+            }.onSuccess { orders ->
+                _state.value = _state.value.copy(loading = false, orders = orders)
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Orders failed")
+            }
+        }
+    }
+
+    fun showOrderDetail(orderId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                screen = AdminScreen.ORDER_DETAIL,
+                selectedOrder = _state.value.orders.firstOrNull { it.id == orderId }
+            )
+
+            runCatching {
+                repository.customerAppOrderDetail(token, orderId)
+            }.onSuccess { order ->
+                _state.value = _state.value.copy(loading = false, selectedOrder = order)
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Order detail failed")
             }
         }
     }
