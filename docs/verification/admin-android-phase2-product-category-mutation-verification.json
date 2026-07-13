@@ -1,0 +1,159 @@
+{
+  "phase": "Admin Android mutation API Phase 2 product/category",
+  "passed": true,
+  "created_category_name": "TEST_ANDROID_API_CATEGORY_1783931858",
+  "updated_category_name": "TEST_ANDROID_API_CATEGORY_UPDATED_1783931858",
+  "created_product_name": "TEST_ANDROID_API_PRODUCT_1783931858",
+  "updated_product_name": "TEST_ANDROID_API_PRODUCT_UPDATED_1783931858",
+  "results": [
+    {
+      "name": "admin login",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 1986,
+      "top_level_keys": [
+        "ok",
+        "token_type",
+        "access_token",
+        "expires_in",
+        "admin"
+      ]
+    },
+    {
+      "name": "create test product category",
+      "status": 201,
+      "ok": true,
+      "elapsed_ms": 277,
+      "top_level_keys": [
+        "ok",
+        "name"
+      ]
+    },
+    {
+      "name": "list product categories for lookup",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 249,
+      "top_level_keys": [
+        "ok",
+        "categories",
+        "count"
+      ]
+    },
+    {
+      "name": "get test product category detail",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 388,
+      "top_level_keys": [
+        "ok",
+        "category"
+      ]
+    },
+    {
+      "name": "update test product category",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 494,
+      "top_level_keys": [
+        "ok",
+        "category_id"
+      ]
+    },
+    {
+      "name": "get updated test product category detail",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 247,
+      "top_level_keys": [
+        "ok",
+        "category"
+      ]
+    },
+    {
+      "name": "create test product",
+      "status": 201,
+      "ok": true,
+      "elapsed_ms": 329,
+      "top_level_keys": [
+        "ok",
+        "product_id"
+      ]
+    },
+    {
+      "name": "get test product detail",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 280,
+      "top_level_keys": [
+        "ok",
+        "product"
+      ]
+    },
+    {
+      "name": "update test product",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 353,
+      "top_level_keys": [
+        "ok",
+        "product_id"
+      ]
+    },
+    {
+      "name": "get updated test product detail",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 249,
+      "top_level_keys": [
+        "ok",
+        "product"
+      ]
+    },
+    {
+      "name": "delete test product",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 332,
+      "top_level_keys": [
+        "ok",
+        "product_id",
+        "deleted"
+      ]
+    },
+    {
+      "name": "delete test product category",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 339,
+      "top_level_keys": [
+        "ok",
+        "category_id",
+        "deleted"
+      ]
+    },
+    {
+      "name": "final products cleanup check",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 283,
+      "top_level_keys": [
+        "ok",
+        "products",
+        "categories",
+        "count"
+      ]
+    },
+    {
+      "name": "final categories cleanup check",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 225,
+      "top_level_keys": [
+        "ok",
+        "categories",
+        "count"
+      ]
+    }
+  ]
+}
