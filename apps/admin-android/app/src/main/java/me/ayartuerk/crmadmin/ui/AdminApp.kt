@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
+import me.ayartuerk.crmadmin.api.Product
+import me.ayartuerk.crmadmin.api.ProductCategory
 
 @Composable
 fun AdminApp(viewModel: AdminViewModel = viewModel()) {
@@ -41,8 +43,10 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     state = state,
                     onDashboard = viewModel::showDashboard,
                     onOrders = viewModel::showOrders,
+                    onProducts = viewModel::showProducts,
                     onRefreshDashboard = viewModel::loadDashboard,
                     onRefreshOrders = viewModel::loadOrders,
+                    onRefreshProducts = viewModel::loadProducts,
                     onOrderClick = viewModel::showOrderDetail,
                     onLogout = viewModel::logout
                 )
@@ -129,8 +133,10 @@ private fun AdminShell(
     state: AdminUiState,
     onDashboard: () -> Unit,
     onOrders: () -> Unit,
+    onProducts: () -> Unit,
     onRefreshDashboard: () -> Unit,
     onRefreshOrders: () -> Unit,
+    onRefreshProducts: () -> Unit,
     onOrderClick: (Long) -> Unit,
     onLogout: () -> Unit
 ) {
@@ -139,6 +145,7 @@ private fun AdminShell(
             selected = state.screen,
             onDashboard = onDashboard,
             onOrders = onOrders,
+            onProducts = onProducts,
             onLogout = onLogout
         )
 
@@ -162,6 +169,11 @@ private fun AdminShell(
                     state.selectedOrder?.id?.let(onOrderClick)
                 }
             )
+
+            AdminScreen.PRODUCTS -> ProductsScreen(
+                state = state,
+                onRefresh = onRefreshProducts
+            )
         }
     }
 }
@@ -171,6 +183,7 @@ private fun TopNav(
     selected: AdminScreen,
     onDashboard: () -> Unit,
     onOrders: () -> Unit,
+    onProducts: () -> Unit,
     onLogout: () -> Unit
 ) {
     Row(
@@ -191,6 +204,13 @@ private fun TopNav(
             onClick = onOrders
         ) {
             Text("Orders")
+        }
+
+        Button(
+            enabled = selected != AdminScreen.PRODUCTS,
+            onClick = onProducts
+        ) {
+            Text("Products")
         }
 
         OutlinedButton(onClick = onLogout) {
@@ -421,6 +441,93 @@ private fun OrderDetailScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+private fun ProductsScreen(
+    state: AdminUiState,
+    onRefresh: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Products", style = MaterialTheme.typography.headlineSmall)
+                OutlinedButton(onClick = onRefresh) {
+                    Text("Refresh")
+                }
+            }
+        }
+
+        commonStateItems(state)
+
+        item {
+            Text("Categories (${state.categories.size})", style = MaterialTheme.typography.titleMedium)
+        }
+
+        if (state.categories.isEmpty() && !state.loading) {
+            item {
+                Text("No categories loaded.")
+            }
+        }
+
+        items(state.categories) { category ->
+            CategoryCard(category = category)
+        }
+
+        item {
+            Text("Products (${state.products.size})", style = MaterialTheme.typography.titleMedium)
+        }
+
+        if (state.products.isEmpty() && !state.loading) {
+            item {
+                Text("No products loaded.")
+            }
+        }
+
+        items(state.products) { product ->
+            ProductCard(product = product)
+        }
+    }
+}
+
+@Composable
+private fun CategoryCard(category: ProductCategory) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text(category.name ?: "Category", style = MaterialTheme.typography.titleSmall)
+            Text("ID: ${category.id ?: "-"}")
+            Text("Description: ${category.description ?: "-"}")
+            Text("Status: ${category.status ?: "-"}")
+            Text("Active: ${category.isActive ?: "-"}")
+            Text("Sort: ${category.sortOrder ?: "-"}")
+            Text("Created: ${category.createdAt ?: "-"}")
+        }
+    }
+}
+
+@Composable
+private fun ProductCard(product: Product) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text(product.name ?: "Product", style = MaterialTheme.typography.titleSmall)
+            Text("ID: ${product.id ?: "-"}")
+            Text("Category: ${product.categoryName ?: product.categoryId ?: "-"}")
+            Text("Price: ${product.price ?: "-"} ${product.currency ?: ""}")
+            Text("Unit: ${product.unit ?: "-"}")
+            Text("Status: ${product.status ?: "-"}")
+            Text("Active: ${product.isActive ?: "-"}")
+            Text("Description: ${product.description ?: "-"}")
+            Text("Created: ${product.createdAt ?: "-"}")
         }
     }
 }

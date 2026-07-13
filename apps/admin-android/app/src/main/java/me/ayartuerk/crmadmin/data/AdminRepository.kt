@@ -4,6 +4,8 @@ import me.ayartuerk.crmadmin.api.AdminApi
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.api.LoginRequest
+import me.ayartuerk.crmadmin.api.Product
+import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.api.bearer
 
 class AdminRepository(
@@ -48,6 +50,24 @@ class AdminRepository(
             throw IllegalStateException(message)
         }
         return response.order
+    }
+
+    suspend fun products(token: String): List<Product> {
+        val response = api.products(bearer(token))
+        if (!response.ok) {
+            val message = response.error?.message ?: "Products load failed"
+            throw IllegalStateException(message)
+        }
+        return response.products
+    }
+
+    suspend fun productCategories(token: String): List<ProductCategory> {
+        val response = api.productCategories(bearer(token))
+        if (!response.ok) {
+            val message = response.error?.message ?: "Categories load failed"
+            throw IllegalStateException(message)
+        }
+        return response.categories
     }
 
     suspend fun logout(token: String) {

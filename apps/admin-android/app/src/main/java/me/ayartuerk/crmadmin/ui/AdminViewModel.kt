@@ -10,13 +10,16 @@ import kotlinx.coroutines.launch
 import me.ayartuerk.crmadmin.api.ApiClient
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.DashboardResponse
+import me.ayartuerk.crmadmin.api.Product
+import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.data.AdminRepository
 import me.ayartuerk.crmadmin.data.TokenStore
 
 enum class AdminScreen {
     DASHBOARD,
     ORDERS,
-    ORDER_DETAIL
+    ORDER_DETAIL,
+    PRODUCTS
 }
 
 data class AdminUiState(
@@ -27,6 +30,8 @@ data class AdminUiState(
     val dashboard: DashboardResponse? = null,
     val orders: List<CustomerAppOrder> = emptyList(),
     val selectedOrder: CustomerAppOrder? = null,
+    val products: List<Product> = emptyList(),
+    val categories: List<ProductCategory> = emptyList(),
     val error: String? = null
 )
 
@@ -140,6 +145,33 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 _state.value = _state.value.copy(loading = false, selectedOrder = order)
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Order detail failed")
+            }
+        }
+    }
+
+    fun showProducts() {
+        _state.value = _state.value.copy(screen = AdminScreen.PRODUCTS, selectedOrder = null)
+        loadProducts()
+    }
+
+    fun loadProducts() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+
+            runCatching {
+                val categories = repository.productCategories(token)
+                val products = repository.products(token)
+                categories to products
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    categories = result.first,
+                    products = result.second
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Products failed")
             }
         }
     }

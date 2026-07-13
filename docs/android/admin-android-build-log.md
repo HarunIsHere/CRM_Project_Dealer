@@ -49,3 +49,15 @@ Result:
 - Added orders list screen
 - Added order detail screen
 - compileDebugKotlin passed locally
+
+## Phase 3 - Products and categories
+
+Result:
+
+- Added products API endpoint
+- Added product categories API endpoint
+- Added repository methods
+- Added Products tab
+- Added category cards
+- Added product cards
+- compileDebugKotlin passed locally

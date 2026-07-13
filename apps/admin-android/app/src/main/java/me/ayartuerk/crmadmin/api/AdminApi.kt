@@ -29,6 +29,12 @@ interface AdminApi {
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Long
     ): CustomerAppOrderDetailResponse
+
+    @GET("admin/products")
+    suspend fun products(@Header("Authorization") authorization: String): ProductsResponse
+
+    @GET("admin/product-categories")
+    suspend fun productCategories(@Header("Authorization") authorization: String): ProductCategoriesResponse
 }
 
 @Serializable
@@ -86,6 +92,23 @@ data class CustomerAppOrdersResponse(
 data class CustomerAppOrderDetailResponse(
     val ok: Boolean = false,
     val order: CustomerAppOrder? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class ProductsResponse(
+    val ok: Boolean = false,
+    val products: List<Product> = emptyList(),
+    val categories: List<ProductCategory> = emptyList(),
+    val count: Int? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class ProductCategoriesResponse(
+    val ok: Boolean = false,
+    val categories: List<ProductCategory> = emptyList(),
+    val count: Int? = null,
     val error: ApiErrorEnvelope? = null
 )
 
@@ -179,4 +202,41 @@ data class CustomerAppOrderItem(
     val unitPrice: Double? = null,
     val total: Double? = null,
     val status: String? = null
+)
+
+@Serializable
+data class Product(
+    val id: Long? = null,
+    val name: String? = null,
+    val description: String? = null,
+    val price: Double? = null,
+    val currency: String? = null,
+    val unit: String? = null,
+    val status: String? = null,
+    @SerialName("is_active")
+    val isActive: Boolean? = null,
+    @SerialName("category_id")
+    val categoryId: Long? = null,
+    @SerialName("category_name")
+    val categoryName: String? = null,
+    @SerialName("image_url")
+    val imageUrl: String? = null,
+    @SerialName("sort_order")
+    val sortOrder: Int? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
+data class ProductCategory(
+    val id: Long? = null,
+    val name: String? = null,
+    val description: String? = null,
+    val status: String? = null,
+    @SerialName("is_active")
+    val isActive: Boolean? = null,
+    @SerialName("sort_order")
+    val sortOrder: Int? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
 )
