@@ -11422,6 +11422,90 @@ async function handleApiAdminOpenRequests(request, env) {
   });
 }
 
+async function handleApiAdminOpenRequestStatus(request, env, requestId) {
+  if (request.method !== "PATCH" && request.method !== "PUT") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const body = await readJsonBody(request) || {};
+  const status = String(body.status || "").trim();
+
+  if (!["new", "in_progress", "done"].includes(status)) {
+    return apiError("invalid_status", "Status must be new, in_progress, or done.", 400);
+  }
+
+  const existing = await env.DB.prepare("SELECT * FROM customer_requests WHERE id = ?")
+    .bind(requestId)
+    .first();
+
+  if (!existing) {
+    return apiError("not_found", "Open request not found.", 404);
+  }
+
+  await env.DB.prepare("UPDATE customer_requests SET status = ? WHERE id = ?")
+    .bind(status, requestId)
+    .run();
+
+  const updated = await env.DB.prepare("SELECT * FROM customer_requests WHERE id = ?")
+    .bind(requestId)
+    .first();
+
+  const customer = updated?.customer_id
+    ? await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(updated.customer_id).first()
+    : null;
+
+  return apiOk({
+    request: mapOpenRequestForApi(updated, customer ? new Map([[Number(customer.id), customer]]) : new Map())
+  });
+}
+
+async function handleApiAdminOpenRequestGroupDone(request, env) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const body = await readJsonBody(request) || {};
+  const customerId = Number(body.customer_id);
+  const requestType = String(body.request_type || "").trim();
+  const hasItemName = Object.prototype.hasOwnProperty.call(body, "item_name") && body.item_name !== null && String(body.item_name).trim() !== "";
+  const itemName = hasItemName ? String(body.item_name).trim() : "";
+
+  if (!customerId || !requestType) {
+    return apiError("invalid_request", "customer_id and request_type are required.", 400);
+  }
+
+  let result;
+
+  if (hasItemName) {
+    result = await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE customer_id = ? AND request_type = ? AND status != 'done' AND item_name = ?")
+      .bind(customerId, requestType, itemName)
+      .run();
+  } else {
+    result = await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE customer_id = ? AND request_type = ? AND status != 'done' AND item_name IS NULL")
+      .bind(customerId, requestType)
+      .run();
+  }
+
+  return apiOk({
+    updated: result?.meta?.changes || 0,
+    customer_id: customerId,
+    request_type: requestType,
+    item_name: hasItemName ? itemName : null
+  });
+}
+
 
 
 function mapProductForApi(product, aliasMap = {}) {
@@ -13807,6 +13891,15 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/admin/open-requests") {
     return handleApiAdminOpenRequests(request, env);
+  }
+
+  const adminOpenRequestStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/open-requests\/(\d+)\/status$/);
+  if (adminOpenRequestStatusMatch) {
+    return handleApiAdminOpenRequestStatus(request, env, Number(adminOpenRequestStatusMatch[1]));
+  }
+
+  if (url.pathname === "/api/v1/admin/open-requests/group/done") {
+    return handleApiAdminOpenRequestGroupDone(request, env);
   }
 
   if (url.pathname === "/api/v1/admin/products") {
