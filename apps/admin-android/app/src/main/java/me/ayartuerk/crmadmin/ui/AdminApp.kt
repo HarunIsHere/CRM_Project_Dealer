@@ -32,6 +32,7 @@ import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.CustomerLocation
 import me.ayartuerk.crmadmin.api.CustomerMessage
 import me.ayartuerk.crmadmin.api.CustomerRequest
+import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
 @Composable
@@ -48,14 +49,18 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onOrders = viewModel::showOrders,
                     onProducts = viewModel::showProducts,
                     onCustomers = viewModel::showCustomers,
+                    onOpenRequests = viewModel::showOpenRequests,
                     onRefreshDashboard = viewModel::loadDashboard,
                     onRefreshOrders = viewModel::loadOrders,
                     onRefreshProducts = viewModel::loadProducts,
                     onRefreshCustomers = viewModel::loadCustomers,
+                    onRefreshOpenRequests = viewModel::loadOpenRequests,
                     onOrderClick = viewModel::showOrderDetail,
                     onCustomerClick = viewModel::showCustomerDetail,
                     onReplyChange = viewModel::updateReplyMessage,
                     onSendReply = viewModel::sendCustomerReply,
+                    onOpenRequestStatus = viewModel::updateOpenRequestStatus,
+                    onOpenRequestGroupDone = viewModel::markOpenRequestGroupDone,
                     onLogout = viewModel::logout
                 )
                 else -> LoginScreen(
@@ -143,14 +148,18 @@ private fun AdminShell(
     onOrders: () -> Unit,
     onProducts: () -> Unit,
     onCustomers: () -> Unit,
+    onOpenRequests: () -> Unit,
     onRefreshDashboard: () -> Unit,
     onRefreshOrders: () -> Unit,
     onRefreshProducts: () -> Unit,
     onRefreshCustomers: () -> Unit,
+    onRefreshOpenRequests: () -> Unit,
     onOrderClick: (Long) -> Unit,
     onCustomerClick: (Long) -> Unit,
     onReplyChange: (String) -> Unit,
     onSendReply: () -> Unit,
+    onOpenRequestStatus: (Long, String) -> Unit,
+    onOpenRequestGroupDone: (Long) -> Unit,
     onLogout: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -160,6 +169,7 @@ private fun AdminShell(
             onOrders = onOrders,
             onProducts = onProducts,
             onCustomers = onCustomers,
+            onOpenRequests = onOpenRequests,
             onLogout = onLogout
         )
 
@@ -204,6 +214,13 @@ private fun AdminShell(
                 onReplyChange = onReplyChange,
                 onSendReply = onSendReply
             )
+
+            AdminScreen.OPEN_REQUESTS -> OpenRequestsScreen(
+                state = state,
+                onRefresh = onRefreshOpenRequests,
+                onStatus = onOpenRequestStatus,
+                onGroupDone = onOpenRequestGroupDone
+            )
         }
     }
 }
@@ -215,6 +232,7 @@ private fun TopNav(
     onOrders: () -> Unit,
     onProducts: () -> Unit,
     onCustomers: () -> Unit,
+    onOpenRequests: () -> Unit,
     onLogout: () -> Unit
 ) {
     Row(
@@ -249,6 +267,13 @@ private fun TopNav(
             onClick = onCustomers
         ) {
             Text("Customers")
+        }
+
+        Button(
+            enabled = selected != AdminScreen.OPEN_REQUESTS,
+            onClick = onOpenRequests
+        ) {
+            Text("Requests")
         }
 
         OutlinedButton(onClick = onLogout) {
@@ -775,6 +800,102 @@ private fun CustomerLocationCard(location: CustomerLocation) {
             Text("Address: ${location.address ?: "-"}")
             Text("Map: ${location.mapsUrl ?: location.googleMapsUrl ?: "-"}")
             Text("Created: ${location.createdAt ?: "-"}")
+        }
+    }
+}
+
+
+@Composable
+private fun OpenRequestsScreen(
+    state: AdminUiState,
+    onRefresh: () -> Unit,
+    onStatus: (Long, String) -> Unit,
+    onGroupDone: (Long) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Open Requests (${state.openRequests.size})", style = MaterialTheme.typography.headlineSmall)
+                OutlinedButton(onClick = onRefresh) {
+                    Text("Refresh")
+                }
+            }
+        }
+
+        commonStateItems(state)
+
+        if (!state.lastOpenRequestAction.isNullOrBlank()) {
+            item {
+                Text(state.lastOpenRequestAction)
+            }
+        }
+
+        if (state.openRequests.isEmpty() && !state.loading) {
+            item {
+                Text("No open requests loaded.")
+            }
+        }
+
+        items(state.openRequests) { request ->
+            OpenRequestCard(
+                request = request,
+                onStatus = onStatus,
+                onGroupDone = onGroupDone
+            )
+        }
+    }
+}
+
+@Composable
+private fun OpenRequestCard(
+    request: OpenRequest,
+    onStatus: (Long, String) -> Unit,
+    onGroupDone: (Long) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text("Request #${request.id ?: "-"}", style = MaterialTheme.typography.titleSmall)
+            Text("Customer: ${request.customerName ?: request.customerUsername ?: request.customerId ?: "-"}")
+            Text("Type: ${request.requestType ?: "-"}")
+            Text("Item: ${request.itemName ?: "-"}")
+            Text("Status: ${request.status ?: "-"}")
+            Text("Message: ${request.message ?: request.notes ?: "-"}")
+            Text("Created: ${request.createdAt ?: "-"}")
+
+            if (request.id != null) {
+                Spacer(modifier = Modifier.height(8.dpCompat))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dpCompat)) {
+                    OutlinedButton(
+                        enabled = request.status != "in_progress",
+                        onClick = { onStatus(request.id, "in_progress") }
+                    ) {
+                        Text("In progress")
+                    }
+
+                    Button(
+                        enabled = request.status != "done",
+                        onClick = { onStatus(request.id, "done") }
+                    ) {
+                        Text("Done")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dpCompat))
+
+                OutlinedButton(
+                    enabled = request.customerId != null && !request.requestType.isNullOrBlank(),
+                    onClick = { onGroupDone(request.id) }
+                ) {
+                    Text("Group done")
+                }
+            }
         }
     }
 }

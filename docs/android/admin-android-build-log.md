@@ -68,3 +68,16 @@ Result:
 
 - Fixed missing customer API model declarations/imports
 - compileDebugKotlin passed locally
+
+## Phase 5 - Open requests
+
+Result:
+
+- Added open requests API endpoint
+- Added single request status mutation endpoint
+- Added group-done mutation endpoint
+- Added repository methods
+- Added Requests tab
+- Added open request cards
+- Added in-progress, done, and group-done actions
+- compileDebugKotlin passed locally

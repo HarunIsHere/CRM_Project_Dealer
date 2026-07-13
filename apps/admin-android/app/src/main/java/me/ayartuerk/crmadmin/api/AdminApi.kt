@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -51,6 +52,22 @@ interface AdminApi {
         @Path("customerId") customerId: Long,
         @Body body: CustomerReplyRequest
     ): BasicResponse
+
+    @GET("admin/open-requests")
+    suspend fun openRequests(@Header("Authorization") authorization: String): OpenRequestsResponse
+
+    @PATCH("admin/open-requests/{requestId}/status")
+    suspend fun updateOpenRequestStatus(
+        @Header("Authorization") authorization: String,
+        @Path("requestId") requestId: Long,
+        @Body body: OpenRequestStatusRequest
+    ): OpenRequestDetailResponse
+
+    @POST("admin/open-requests/group/done")
+    suspend fun markOpenRequestGroupDone(
+        @Header("Authorization") authorization: String,
+        @Body body: OpenRequestGroupDoneRequest
+    ): OpenRequestGroupDoneResponse
 }
 
 @Serializable
@@ -149,6 +166,50 @@ data class CustomerDetailResponse(
 @Serializable
 data class CustomerReplyRequest(
     val message: String
+)
+
+@Serializable
+data class OpenRequestsResponse(
+    val ok: Boolean = false,
+    @SerialName("open_requests")
+    val openRequests: List<OpenRequest> = emptyList(),
+    val count: Int? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class OpenRequestDetailResponse(
+    val ok: Boolean = false,
+    val request: OpenRequest? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class OpenRequestStatusRequest(
+    val status: String
+)
+
+@Serializable
+data class OpenRequestGroupDoneRequest(
+    @SerialName("customer_id")
+    val customerId: Long,
+    @SerialName("request_type")
+    val requestType: String,
+    @SerialName("item_name")
+    val itemName: String? = null
+)
+
+@Serializable
+data class OpenRequestGroupDoneResponse(
+    val ok: Boolean = false,
+    val updated: Int? = null,
+    @SerialName("customer_id")
+    val customerId: Long? = null,
+    @SerialName("request_type")
+    val requestType: String? = null,
+    @SerialName("item_name")
+    val itemName: String? = null,
+    val error: ApiErrorEnvelope? = null
 )
 
 @Serializable
@@ -338,3 +399,24 @@ data class CustomerLocation(
     @SerialName("created_at")
     val createdAt: String? = null
 )
+
+@Serializable
+data class OpenRequest(
+    val id: Long? = null,
+    @SerialName("customer_id")
+    val customerId: Long? = null,
+    @SerialName("customer_name")
+    val customerName: String? = null,
+    @SerialName("customer_username")
+    val customerUsername: String? = null,
+    @SerialName("request_type")
+    val requestType: String? = null,
+    @SerialName("item_name")
+    val itemName: String? = null,
+    val status: String? = null,
+    val message: String? = null,
+    val notes: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+

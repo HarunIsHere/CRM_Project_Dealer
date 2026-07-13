@@ -14,6 +14,7 @@ import me.ayartuerk.crmadmin.api.CustomerLocation
 import me.ayartuerk.crmadmin.api.CustomerMessage
 import me.ayartuerk.crmadmin.api.CustomerRequest
 import me.ayartuerk.crmadmin.api.DashboardResponse
+import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.data.AdminRepository
@@ -24,7 +25,8 @@ enum class AdminScreen {
     ORDER_DETAIL,
     PRODUCTS,
     CUSTOMERS,
-    CUSTOMER_DETAIL
+    CUSTOMER_DETAIL,
+    OPEN_REQUESTS
 }
 
 data class AdminUiState(
@@ -44,6 +46,8 @@ data class AdminUiState(
     val customerLocations: List<CustomerLocation> = emptyList(),
     val replyMessage: String = "",
     val lastReplySent: String? = null,
+    val openRequests: List<OpenRequest> = emptyList(),
+    val lastOpenRequestAction: String? = null,
     val error: String? = null
 )
 
@@ -265,6 +269,72 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 showCustomerDetail(customerId)
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Reply failed")
+            }
+        }
+    }
+
+    fun showOpenRequests() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.OPEN_REQUESTS,
+            selectedOrder = null,
+            selectedCustomer = null
+        )
+        loadOpenRequests()
+    }
+
+    fun loadOpenRequests() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastOpenRequestAction = null)
+
+            runCatching {
+                repository.openRequests(token)
+            }.onSuccess { openRequests ->
+                _state.value = _state.value.copy(loading = false, openRequests = openRequests)
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Open requests failed")
+            }
+        }
+    }
+
+    fun updateOpenRequestStatus(requestId: Long, status: String) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastOpenRequestAction = null)
+
+            runCatching {
+                repository.updateOpenRequestStatus(token, requestId, status)
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    lastOpenRequestAction = "Request #$requestId updated to $status"
+                )
+                loadOpenRequests()
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Open request update failed")
+            }
+        }
+    }
+
+    fun markOpenRequestGroupDone(requestId: Long) {
+        val token = _state.value.token ?: return
+        val request = _state.value.openRequests.firstOrNull { it.id == requestId } ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastOpenRequestAction = null)
+
+            runCatching {
+                repository.markOpenRequestGroupDone(token, request)
+            }.onSuccess { updated ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    lastOpenRequestAction = "Group done updated $updated request(s)"
+                )
+                loadOpenRequests()
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Group done failed")
             }
         }
     }

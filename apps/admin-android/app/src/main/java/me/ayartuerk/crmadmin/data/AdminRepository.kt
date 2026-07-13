@@ -7,6 +7,9 @@ import me.ayartuerk.crmadmin.api.CustomerDetailResponse
 import me.ayartuerk.crmadmin.api.CustomerReplyRequest
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.api.LoginRequest
+import me.ayartuerk.crmadmin.api.OpenRequestStatusRequest
+import me.ayartuerk.crmadmin.api.OpenRequestGroupDoneRequest
+import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.api.bearer
@@ -96,6 +99,49 @@ class AdminRepository(
             val errorMessage = response.error?.message ?: "Reply failed"
             throw IllegalStateException(errorMessage)
         }
+    }
+
+    suspend fun openRequests(token: String): List<OpenRequest> {
+        val response = api.openRequests(bearer(token))
+        if (!response.ok) {
+            val message = response.error?.message ?: "Open requests load failed"
+            throw IllegalStateException(message)
+        }
+        return response.openRequests
+    }
+
+    suspend fun updateOpenRequestStatus(token: String, requestId: Long, status: String): OpenRequest {
+        val response = api.updateOpenRequestStatus(
+            bearer(token),
+            requestId,
+            OpenRequestStatusRequest(status = status)
+        )
+        if (!response.ok || response.request == null) {
+            val message = response.error?.message ?: "Open request status update failed"
+            throw IllegalStateException(message)
+        }
+        return response.request
+    }
+
+    suspend fun markOpenRequestGroupDone(token: String, request: OpenRequest): Int {
+        val customerId = request.customerId ?: throw IllegalStateException("Missing customer_id")
+        val requestType = request.requestType ?: throw IllegalStateException("Missing request_type")
+
+        val response = api.markOpenRequestGroupDone(
+            bearer(token),
+            OpenRequestGroupDoneRequest(
+                customerId = customerId,
+                requestType = requestType,
+                itemName = request.itemName
+            )
+        )
+
+        if (!response.ok) {
+            val message = response.error?.message ?: "Group done failed"
+            throw IllegalStateException(message)
+        }
+
+        return response.updated ?: 0
     }
 
     suspend fun logout(token: String) {
