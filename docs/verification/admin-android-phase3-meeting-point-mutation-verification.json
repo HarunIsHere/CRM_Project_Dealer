@@ -1,0 +1,85 @@
+{
+  "phase": "Admin Android mutation API Phase 3 meeting points",
+  "passed": true,
+  "created_meeting_point_name": "TEST_ANDROID_API_MEETING_POINT_1783932232",
+  "updated_meeting_point_name": "TEST_ANDROID_API_MEETING_POINT_UPDATED_1783932232",
+  "test_records_cleaned_up": true,
+  "preferred_default_not_tested": true,
+  "results": [
+    {
+      "name": "admin login",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 957,
+      "top_level_keys": [
+        "ok",
+        "token_type",
+        "access_token",
+        "expires_in",
+        "admin"
+      ]
+    },
+    {
+      "name": "create test meeting point",
+      "status": 201,
+      "ok": true,
+      "elapsed_ms": 311,
+      "top_level_keys": [
+        "ok",
+        "meeting_point_id"
+      ]
+    },
+    {
+      "name": "get test meeting point detail",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 225,
+      "top_level_keys": [
+        "ok",
+        "meeting_point"
+      ]
+    },
+    {
+      "name": "update test meeting point",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 317,
+      "top_level_keys": [
+        "ok",
+        "meeting_point_id"
+      ]
+    },
+    {
+      "name": "get updated test meeting point detail",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 229,
+      "top_level_keys": [
+        "ok",
+        "meeting_point"
+      ]
+    },
+    {
+      "name": "delete test meeting point",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 323,
+      "top_level_keys": [
+        "ok",
+        "meeting_point_id",
+        "deleted"
+      ]
+    },
+    {
+      "name": "final meeting points cleanup check",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 250,
+      "top_level_keys": [
+        "ok",
+        "meeting_points",
+        "count"
+      ]
+    }
+  ]
+}
