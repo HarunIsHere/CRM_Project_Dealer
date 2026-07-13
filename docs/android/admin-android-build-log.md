@@ -112,3 +112,14 @@ Result:
 - assembleDebug checked locally
 - debug APK output verified locally
 - Android current status document updated
+
+## Phase 9 - Emulator usability fix
+
+Result:
+
+- Password input now hides typed characters.
+- Main navigation moved from top to bottom to avoid camera/status-bar overlap.
+- Navigation row is horizontally scrollable for small emulator screens.
+- compileDebugKotlin passed locally.
+- assembleDebug passed locally.
+- APK reinstalled on emulator.

@@ -1,6 +1,10 @@
 package me.ayartuerk.crmadmin.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -127,7 +131,8 @@ private fun LoginScreen(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            singleLine = true
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(modifier = Modifier.height(16.dpCompat))
@@ -174,7 +179,70 @@ private fun AdminShell(
     onLogout: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        TopNav(
+        Column(modifier = Modifier.weight(1f)) {
+            when (state.screen) {
+                AdminScreen.DASHBOARD -> DashboardScreen(
+                    state = state,
+                    onRefresh = onRefreshDashboard,
+                    onOrderClick = onOrderClick
+                )
+
+                AdminScreen.ORDERS -> OrdersScreen(
+                    state = state,
+                    onRefresh = onRefreshOrders,
+                    onOrderClick = onOrderClick
+                )
+
+                AdminScreen.ORDER_DETAIL -> OrderDetailScreen(
+                    state = state,
+                    onBack = onOrders,
+                    onRefresh = {
+                        state.selectedOrder?.id?.let(onOrderClick)
+                    }
+                )
+
+                AdminScreen.PRODUCTS -> ProductsScreen(
+                    state = state,
+                    onRefresh = onRefreshProducts
+                )
+
+                AdminScreen.CUSTOMERS -> CustomersScreen(
+                    state = state,
+                    onRefresh = onRefreshCustomers,
+                    onCustomerClick = onCustomerClick
+                )
+
+                AdminScreen.CUSTOMER_DETAIL -> CustomerDetailScreen(
+                    state = state,
+                    onBack = onCustomers,
+                    onRefresh = {
+                        state.selectedCustomer?.id?.let(onCustomerClick)
+                    },
+                    onReplyChange = onReplyChange,
+                    onSendReply = onSendReply
+                )
+
+                AdminScreen.OPEN_REQUESTS -> OpenRequestsScreen(
+                    state = state,
+                    onRefresh = onRefreshOpenRequests,
+                    onStatus = onOpenRequestStatus,
+                    onGroupDone = onOpenRequestGroupDone
+                )
+
+                AdminScreen.MEETING_POINTS -> MeetingPointsScreen(
+                    state = state,
+                    onRefresh = onRefreshMeetingPoints
+                )
+
+                AdminScreen.SETTINGS -> SettingsScreen(
+                    state = state,
+                    onRefresh = onRefreshSettings,
+                    onAiResponseMode = onAiResponseMode
+                )
+            }
+        }
+
+        BottomNav(
             selected = state.screen,
             onDashboard = onDashboard,
             onOrders = onOrders,
@@ -185,72 +253,11 @@ private fun AdminShell(
             onSettings = onSettings,
             onLogout = onLogout
         )
-
-        when (state.screen) {
-            AdminScreen.DASHBOARD -> DashboardScreen(
-                state = state,
-                onRefresh = onRefreshDashboard,
-                onOrderClick = onOrderClick
-            )
-
-            AdminScreen.ORDERS -> OrdersScreen(
-                state = state,
-                onRefresh = onRefreshOrders,
-                onOrderClick = onOrderClick
-            )
-
-            AdminScreen.ORDER_DETAIL -> OrderDetailScreen(
-                state = state,
-                onBack = onOrders,
-                onRefresh = {
-                    state.selectedOrder?.id?.let(onOrderClick)
-                }
-            )
-
-            AdminScreen.PRODUCTS -> ProductsScreen(
-                state = state,
-                onRefresh = onRefreshProducts
-            )
-
-            AdminScreen.CUSTOMERS -> CustomersScreen(
-                state = state,
-                onRefresh = onRefreshCustomers,
-                onCustomerClick = onCustomerClick
-            )
-
-            AdminScreen.CUSTOMER_DETAIL -> CustomerDetailScreen(
-                state = state,
-                onBack = onCustomers,
-                onRefresh = {
-                    state.selectedCustomer?.id?.let(onCustomerClick)
-                },
-                onReplyChange = onReplyChange,
-                onSendReply = onSendReply
-            )
-
-            AdminScreen.OPEN_REQUESTS -> OpenRequestsScreen(
-                state = state,
-                onRefresh = onRefreshOpenRequests,
-                onStatus = onOpenRequestStatus,
-                onGroupDone = onOpenRequestGroupDone
-            )
-
-            AdminScreen.MEETING_POINTS -> MeetingPointsScreen(
-                state = state,
-                onRefresh = onRefreshMeetingPoints
-            )
-
-            AdminScreen.SETTINGS -> SettingsScreen(
-                state = state,
-                onRefresh = onRefreshSettings,
-                onAiResponseMode = onAiResponseMode
-            )
-        }
     }
 }
 
 @Composable
-private fun TopNav(
+private fun BottomNav(
     selected: AdminScreen,
     onDashboard: () -> Unit,
     onOrders: () -> Unit,
@@ -264,7 +271,9 @@ private fun TopNav(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dpCompat),
+            .horizontalScroll(rememberScrollState())
+            .navigationBarsPadding()
+            .padding(horizontal = 12.dpCompat, vertical = 8.dpCompat),
         horizontalArrangement = Arrangement.spacedBy(8.dpCompat)
     ) {
         Button(
