@@ -28,3 +28,12 @@ Next:
 - Sync Gradle
 - Run app
 - Test login against production backend
+
+## Phase 1.3 - JVM target build fix
+
+Result:
+
+- Set Java sourceCompatibility to 17
+- Set Java targetCompatibility to 17
+- Set Kotlin jvmTarget to 17
+- compileDebugKotlin passed locally

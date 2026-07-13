@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
@@ -32,7 +33,7 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
 
     MaterialTheme {
-        Surface(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize()) {
             when {
                 state.loading && !state.loggedIn -> LoadingScreen()
                 state.loggedIn -> DashboardScreen(
@@ -53,13 +54,13 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
 @Composable
 private fun LoadingScreen() {
     Column(
-        modifier = androidx.compose.ui.Modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(24.dpCompat),
         verticalArrangement = Arrangement.Center
     ) {
         CircularProgressIndicator()
-        Spacer(modifier = androidx.compose.ui.Modifier.height(16.dpCompat))
+        Spacer(modifier = Modifier.height(16.dpCompat))
         Text("Loading CRM Admin...")
     }
 }
@@ -74,45 +75,45 @@ private fun LoginScreen(
     var password by remember { mutableStateOf("") }
 
     Column(
-        modifier = androidx.compose.ui.Modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(24.dpCompat),
         verticalArrangement = Arrangement.Center
     ) {
         Text("CRM Admin", style = MaterialTheme.typography.headlineMedium)
 
-        Spacer(modifier = androidx.compose.ui.Modifier.height(24.dpCompat))
+        Spacer(modifier = Modifier.height(24.dpCompat))
 
         OutlinedTextField(
-            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             value = username,
             onValueChange = { username = it },
             label = { Text("Username") },
             singleLine = true
         )
 
-        Spacer(modifier = androidx.compose.ui.Modifier.height(12.dpCompat))
+        Spacer(modifier = Modifier.height(12.dpCompat))
 
         OutlinedTextField(
-            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
             singleLine = true
         )
 
-        Spacer(modifier = androidx.compose.ui.Modifier.height(16.dpCompat))
+        Spacer(modifier = Modifier.height(16.dpCompat))
 
         Button(
             enabled = !loading,
             onClick = { onLogin(username.trim(), password) },
-            modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (loading) "Logging in..." else "Login")
         }
 
         if (!error.isNullOrBlank()) {
-            Spacer(modifier = androidx.compose.ui.Modifier.height(16.dpCompat))
+            Spacer(modifier = Modifier.height(16.dpCompat))
             Text(error, color = MaterialTheme.colorScheme.error)
         }
     }
@@ -127,13 +128,13 @@ private fun DashboardScreen(
     val dashboard = state.dashboard
 
     LazyColumn(
-        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dpCompat),
         verticalArrangement = Arrangement.spacedBy(12.dpCompat)
     ) {
         item {
             Row(
-                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Dashboard", style = MaterialTheme.typography.headlineSmall)
@@ -162,10 +163,10 @@ private fun DashboardScreen(
         }
 
         item {
-            Card(modifier = androidx.compose.ui.Modifier.fillMaxWidth()) {
-                Column(modifier = androidx.compose.ui.Modifier.padding(16.dpCompat)) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dpCompat)) {
                     Text("Summary", style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = androidx.compose.ui.Modifier.height(8.dpCompat))
+                    Spacer(modifier = Modifier.height(8.dpCompat))
                     Text("Open orders: ${dashboard?.summary?.openOrders ?: "-"}")
                     Text("Closed orders: ${dashboard?.summary?.closedOrders ?: "-"}")
                     Text("Open requests: ${dashboard?.summary?.openRequests ?: "-"}")
@@ -179,8 +180,8 @@ private fun DashboardScreen(
         }
 
         items(dashboard?.latestOrders ?: emptyList()) { order ->
-            Card(modifier = androidx.compose.ui.Modifier.fillMaxWidth()) {
-                Column(modifier = androidx.compose.ui.Modifier.padding(16.dpCompat)) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dpCompat)) {
                     Text("Order #${order.id ?: "-"}", style = MaterialTheme.typography.titleSmall)
                     Text("Customer: ${order.customerName ?: "-"}")
                     Text("Status: ${order.orderStatus ?: order.status ?: "-"}")
@@ -195,8 +196,8 @@ private fun DashboardScreen(
         }
 
         items(dashboard?.latestRequests ?: emptyList()) { request ->
-            Card(modifier = androidx.compose.ui.Modifier.fillMaxWidth()) {
-                Column(modifier = androidx.compose.ui.Modifier.padding(16.dpCompat)) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dpCompat)) {
                     Text("Request #${request.id ?: "-"}", style = MaterialTheme.typography.titleSmall)
                     Text("Customer: ${request.customerName ?: "-"}")
                     Text("Type: ${request.requestType ?: "-"}")

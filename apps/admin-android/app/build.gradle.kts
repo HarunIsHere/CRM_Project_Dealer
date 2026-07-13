@@ -9,6 +9,15 @@ android {
     namespace = "me.ayartuerk.crmadmin"
     compileSdk = 35
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     defaultConfig {
         applicationId = "me.ayartuerk.crmadmin"
         minSdk = 26
