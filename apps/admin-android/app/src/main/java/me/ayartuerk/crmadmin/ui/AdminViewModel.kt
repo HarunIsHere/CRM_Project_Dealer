@@ -8,18 +8,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.ayartuerk.crmadmin.api.ApiClient
+import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
+import me.ayartuerk.crmadmin.api.CustomerLocation
+import me.ayartuerk.crmadmin.api.CustomerMessage
+import me.ayartuerk.crmadmin.api.CustomerRequest
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.data.AdminRepository
 import me.ayartuerk.crmadmin.data.TokenStore
-
 enum class AdminScreen {
     DASHBOARD,
     ORDERS,
     ORDER_DETAIL,
-    PRODUCTS
+    PRODUCTS,
+    CUSTOMERS,
+    CUSTOMER_DETAIL
 }
 
 data class AdminUiState(
@@ -32,6 +37,13 @@ data class AdminUiState(
     val selectedOrder: CustomerAppOrder? = null,
     val products: List<Product> = emptyList(),
     val categories: List<ProductCategory> = emptyList(),
+    val customers: List<Customer> = emptyList(),
+    val selectedCustomer: Customer? = null,
+    val customerMessages: List<CustomerMessage> = emptyList(),
+    val customerRequests: List<CustomerRequest> = emptyList(),
+    val customerLocations: List<CustomerLocation> = emptyList(),
+    val replyMessage: String = "",
+    val lastReplySent: String? = null,
     val error: String? = null
 )
 
@@ -172,6 +184,87 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Products failed")
+            }
+        }
+    }
+
+    fun showCustomers() {
+        _state.value = _state.value.copy(screen = AdminScreen.CUSTOMERS, selectedOrder = null, selectedCustomer = null)
+        loadCustomers()
+    }
+
+    fun loadCustomers() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+
+            runCatching {
+                repository.customers(token)
+            }.onSuccess { customers ->
+                _state.value = _state.value.copy(loading = false, customers = customers)
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Customers failed")
+            }
+        }
+    }
+
+    fun showCustomerDetail(customerId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                lastReplySent = null,
+                screen = AdminScreen.CUSTOMER_DETAIL,
+                selectedCustomer = _state.value.customers.firstOrNull { it.id == customerId }
+            )
+
+            runCatching {
+                repository.customerDetail(token, customerId)
+            }.onSuccess { response ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    selectedCustomer = response.customer,
+                    customerMessages = response.messages,
+                    customerRequests = response.requests,
+                    customerLocations = response.locations
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Customer detail failed")
+            }
+        }
+    }
+
+    fun updateReplyMessage(message: String) {
+        _state.value = _state.value.copy(replyMessage = message)
+    }
+
+    fun sendCustomerReply() {
+        val token = _state.value.token ?: return
+        val customerId = _state.value.selectedCustomer?.id ?: return
+        val message = _state.value.replyMessage.trim()
+
+        if (message.isBlank()) {
+            _state.value = _state.value.copy(error = "Reply message is empty")
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastReplySent = null)
+
+            runCatching {
+                repository.replyToCustomer(token, customerId, message)
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    replyMessage = "",
+                    lastReplySent = "Reply sent"
+                )
+                showCustomerDetail(customerId)
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Reply failed")
             }
         }
     }

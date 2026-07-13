@@ -27,10 +27,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
+import me.ayartuerk.crmadmin.api.CustomerLocation
+import me.ayartuerk.crmadmin.api.CustomerMessage
+import me.ayartuerk.crmadmin.api.CustomerRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
-
 @Composable
 fun AdminApp(viewModel: AdminViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
@@ -44,10 +47,15 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onDashboard = viewModel::showDashboard,
                     onOrders = viewModel::showOrders,
                     onProducts = viewModel::showProducts,
+                    onCustomers = viewModel::showCustomers,
                     onRefreshDashboard = viewModel::loadDashboard,
                     onRefreshOrders = viewModel::loadOrders,
                     onRefreshProducts = viewModel::loadProducts,
+                    onRefreshCustomers = viewModel::loadCustomers,
                     onOrderClick = viewModel::showOrderDetail,
+                    onCustomerClick = viewModel::showCustomerDetail,
+                    onReplyChange = viewModel::updateReplyMessage,
+                    onSendReply = viewModel::sendCustomerReply,
                     onLogout = viewModel::logout
                 )
                 else -> LoginScreen(
@@ -134,10 +142,15 @@ private fun AdminShell(
     onDashboard: () -> Unit,
     onOrders: () -> Unit,
     onProducts: () -> Unit,
+    onCustomers: () -> Unit,
     onRefreshDashboard: () -> Unit,
     onRefreshOrders: () -> Unit,
     onRefreshProducts: () -> Unit,
+    onRefreshCustomers: () -> Unit,
     onOrderClick: (Long) -> Unit,
+    onCustomerClick: (Long) -> Unit,
+    onReplyChange: (String) -> Unit,
+    onSendReply: () -> Unit,
     onLogout: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -146,6 +159,7 @@ private fun AdminShell(
             onDashboard = onDashboard,
             onOrders = onOrders,
             onProducts = onProducts,
+            onCustomers = onCustomers,
             onLogout = onLogout
         )
 
@@ -174,6 +188,22 @@ private fun AdminShell(
                 state = state,
                 onRefresh = onRefreshProducts
             )
+
+            AdminScreen.CUSTOMERS -> CustomersScreen(
+                state = state,
+                onRefresh = onRefreshCustomers,
+                onCustomerClick = onCustomerClick
+            )
+
+            AdminScreen.CUSTOMER_DETAIL -> CustomerDetailScreen(
+                state = state,
+                onBack = onCustomers,
+                onRefresh = {
+                    state.selectedCustomer?.id?.let(onCustomerClick)
+                },
+                onReplyChange = onReplyChange,
+                onSendReply = onSendReply
+            )
         }
     }
 }
@@ -184,6 +214,7 @@ private fun TopNav(
     onDashboard: () -> Unit,
     onOrders: () -> Unit,
     onProducts: () -> Unit,
+    onCustomers: () -> Unit,
     onLogout: () -> Unit
 ) {
     Row(
@@ -211,6 +242,13 @@ private fun TopNav(
             onClick = onProducts
         ) {
             Text("Products")
+        }
+
+        Button(
+            enabled = selected != AdminScreen.CUSTOMERS,
+            onClick = onCustomers
+        ) {
+            Text("Customers")
         }
 
         OutlinedButton(onClick = onLogout) {
@@ -528,6 +566,215 @@ private fun ProductCard(product: Product) {
             Text("Active: ${product.isActive ?: "-"}")
             Text("Description: ${product.description ?: "-"}")
             Text("Created: ${product.createdAt ?: "-"}")
+        }
+    }
+}
+
+
+@Composable
+private fun CustomersScreen(
+    state: AdminUiState,
+    onRefresh: () -> Unit,
+    onCustomerClick: (Long) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Customers (${state.customers.size})", style = MaterialTheme.typography.headlineSmall)
+                OutlinedButton(onClick = onRefresh) {
+                    Text("Refresh")
+                }
+            }
+        }
+
+        commonStateItems(state)
+
+        if (state.customers.isEmpty() && !state.loading) {
+            item {
+                Text("No customers loaded.")
+            }
+        }
+
+        items(state.customers) { customer ->
+            CustomerCard(customer = customer, onCustomerClick = onCustomerClick)
+        }
+    }
+}
+
+@Composable
+private fun CustomerCard(
+    customer: Customer,
+    onCustomerClick: (Long) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text(customer.fullName ?: customer.name ?: "Customer", style = MaterialTheme.typography.titleSmall)
+            Text("ID: ${customer.id ?: "-"}")
+            Text("Username: ${customer.username ?: "-"}")
+            Text("Telegram: ${customer.telegramUserId ?: "-"}")
+            Text("Language: ${customer.preferredLanguage ?: customer.language ?: "-"}")
+            Text("Blocked: ${customer.isBlocked ?: "-"}")
+            Text("Last seen: ${customer.lastSeenAt ?: "-"}")
+
+            if (customer.id != null) {
+                Spacer(modifier = Modifier.height(8.dpCompat))
+                Button(onClick = { onCustomerClick(customer.id) }) {
+                    Text("Open detail")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomerDetailScreen(
+    state: AdminUiState,
+    onBack: () -> Unit,
+    onRefresh: () -> Unit,
+    onReplyChange: (String) -> Unit,
+    onSendReply: () -> Unit
+) {
+    val customer = state.selectedCustomer
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dpCompat)
+            ) {
+                OutlinedButton(onClick = onBack) {
+                    Text("Back")
+                }
+                OutlinedButton(onClick = onRefresh) {
+                    Text("Refresh")
+                }
+            }
+        }
+
+        commonStateItems(state)
+
+        if (!state.lastReplySent.isNullOrBlank()) {
+            item {
+                Text(state.lastReplySent)
+            }
+        }
+
+        if (customer == null && !state.loading) {
+            item {
+                Text("Customer not loaded.")
+            }
+        }
+
+        if (customer != null) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dpCompat)) {
+                        Text(customer.fullName ?: customer.name ?: "Customer", style = MaterialTheme.typography.headlineSmall)
+                        Text("ID: ${customer.id ?: "-"}")
+                        Text("Username: ${customer.username ?: "-"}")
+                        Text("Telegram: ${customer.telegramUserId ?: "-"}")
+                        Text("Language: ${customer.preferredLanguage ?: customer.language ?: "-"}")
+                        Text("Blocked: ${customer.isBlocked ?: "-"}")
+                        Text("Last seen: ${customer.lastSeenAt ?: "-"}")
+                        Text("Created: ${customer.createdAt ?: "-"}")
+                    }
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dpCompat)) {
+                        Text("Reply", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dpCompat))
+                        OutlinedTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = state.replyMessage,
+                            onValueChange = onReplyChange,
+                            label = { Text("Message") },
+                            minLines = 3
+                        )
+                        Spacer(modifier = Modifier.height(8.dpCompat))
+                        Button(
+                            enabled = !state.loading && state.replyMessage.isNotBlank(),
+                            onClick = onSendReply
+                        ) {
+                            Text("Send reply")
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text("Messages (${state.customerMessages.size})", style = MaterialTheme.typography.titleMedium)
+            }
+
+            items(state.customerMessages) { message ->
+                CustomerMessageCard(message = message)
+            }
+
+            item {
+                Text("Requests (${state.customerRequests.size})", style = MaterialTheme.typography.titleMedium)
+            }
+
+            items(state.customerRequests) { request ->
+                CustomerRequestCard(request = request)
+            }
+
+            item {
+                Text("Locations (${state.customerLocations.size})", style = MaterialTheme.typography.titleMedium)
+            }
+
+            items(state.customerLocations) { location ->
+                CustomerLocationCard(location = location)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomerMessageCard(message: CustomerMessage) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text("${message.direction ?: "-"} / ${message.messageType ?: "-"}", style = MaterialTheme.typography.titleSmall)
+            Text(message.message ?: message.text ?: message.body ?: "-")
+            Text("Language: ${message.language ?: "-"}")
+            Text("Created: ${message.createdAt ?: "-"}")
+        }
+    }
+}
+
+@Composable
+private fun CustomerRequestCard(request: CustomerRequest) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text("Request #${request.id ?: "-"}", style = MaterialTheme.typography.titleSmall)
+            Text("Type: ${request.requestType ?: "-"}")
+            Text("Item: ${request.itemName ?: "-"}")
+            Text("Status: ${request.status ?: "-"}")
+            Text("Created: ${request.createdAt ?: "-"}")
+        }
+    }
+}
+
+@Composable
+private fun CustomerLocationCard(location: CustomerLocation) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text(location.label ?: "Location", style = MaterialTheme.typography.titleSmall)
+            Text("Address: ${location.address ?: "-"}")
+            Text("Map: ${location.mapsUrl ?: location.googleMapsUrl ?: "-"}")
+            Text("Created: ${location.createdAt ?: "-"}")
         }
     }
 }

@@ -35,6 +35,22 @@ interface AdminApi {
 
     @GET("admin/product-categories")
     suspend fun productCategories(@Header("Authorization") authorization: String): ProductCategoriesResponse
+
+    @GET("admin/customers")
+    suspend fun customers(@Header("Authorization") authorization: String): CustomersResponse
+
+    @GET("admin/customers/{customerId}")
+    suspend fun customerDetail(
+        @Header("Authorization") authorization: String,
+        @Path("customerId") customerId: Long
+    ): CustomerDetailResponse
+
+    @POST("admin/customers/{customerId}/reply")
+    suspend fun replyToCustomer(
+        @Header("Authorization") authorization: String,
+        @Path("customerId") customerId: Long,
+        @Body body: CustomerReplyRequest
+    ): BasicResponse
 }
 
 @Serializable
@@ -110,6 +126,29 @@ data class ProductCategoriesResponse(
     val categories: List<ProductCategory> = emptyList(),
     val count: Int? = null,
     val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class CustomersResponse(
+    val ok: Boolean = false,
+    val customers: List<Customer> = emptyList(),
+    val count: Int? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class CustomerDetailResponse(
+    val ok: Boolean = false,
+    val customer: Customer? = null,
+    val messages: List<CustomerMessage> = emptyList(),
+    val requests: List<CustomerRequest> = emptyList(),
+    val locations: List<CustomerLocation> = emptyList(),
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class CustomerReplyRequest(
+    val message: String
 )
 
 @Serializable
@@ -237,6 +276,65 @@ data class ProductCategory(
     val isActive: Boolean? = null,
     @SerialName("sort_order")
     val sortOrder: Int? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
+data class Customer(
+    val id: Long? = null,
+    @SerialName("telegram_user_id")
+    val telegramUserId: String? = null,
+    val username: String? = null,
+    @SerialName("full_name")
+    val fullName: String? = null,
+    val name: String? = null,
+    val language: String? = null,
+    @SerialName("preferred_language")
+    val preferredLanguage: String? = null,
+    @SerialName("is_blocked")
+    val isBlocked: Boolean? = null,
+    @SerialName("last_seen_at")
+    val lastSeenAt: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
+data class CustomerMessage(
+    val id: Long? = null,
+    val direction: String? = null,
+    val message: String? = null,
+    val text: String? = null,
+    val body: String? = null,
+    val language: String? = null,
+    @SerialName("message_type")
+    val messageType: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
+data class CustomerRequest(
+    val id: Long? = null,
+    val status: String? = null,
+    @SerialName("request_type")
+    val requestType: String? = null,
+    @SerialName("item_name")
+    val itemName: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
+data class CustomerLocation(
+    val id: Long? = null,
+    val label: String? = null,
+    val address: String? = null,
+    @SerialName("maps_url")
+    val mapsUrl: String? = null,
+    @SerialName("google_maps_url")
+    val googleMapsUrl: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null
 )

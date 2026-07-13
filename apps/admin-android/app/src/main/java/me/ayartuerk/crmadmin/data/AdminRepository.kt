@@ -1,13 +1,15 @@
 package me.ayartuerk.crmadmin.data
 
 import me.ayartuerk.crmadmin.api.AdminApi
+import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
+import me.ayartuerk.crmadmin.api.CustomerDetailResponse
+import me.ayartuerk.crmadmin.api.CustomerReplyRequest
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.api.LoginRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.api.bearer
-
 class AdminRepository(
     private val api: AdminApi
 ) {
@@ -68,6 +70,32 @@ class AdminRepository(
             throw IllegalStateException(message)
         }
         return response.categories
+    }
+
+    suspend fun customers(token: String): List<Customer> {
+        val response = api.customers(bearer(token))
+        if (!response.ok) {
+            val message = response.error?.message ?: "Customers load failed"
+            throw IllegalStateException(message)
+        }
+        return response.customers
+    }
+
+    suspend fun customerDetail(token: String, customerId: Long): CustomerDetailResponse {
+        val response = api.customerDetail(bearer(token), customerId)
+        if (!response.ok || response.customer == null) {
+            val message = response.error?.message ?: "Customer detail load failed"
+            throw IllegalStateException(message)
+        }
+        return response
+    }
+
+    suspend fun replyToCustomer(token: String, customerId: Long, message: String) {
+        val response = api.replyToCustomer(bearer(token), customerId, CustomerReplyRequest(message = message))
+        if (!response.ok) {
+            val errorMessage = response.error?.message ?: "Reply failed"
+            throw IllegalStateException(errorMessage)
+        }
     }
 
     suspend fun logout(token: String) {
