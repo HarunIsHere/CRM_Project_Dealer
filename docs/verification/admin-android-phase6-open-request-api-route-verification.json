@@ -1,0 +1,237 @@
+{
+  "phase": "Admin Android Phase 6 open request API route verification",
+  "passed": true,
+  "controlled_customer_id": 10,
+  "verified": [
+    "GET /api/v1/admin/open-requests",
+    "PATCH /api/v1/admin/open-requests/{id}/status route exists and returns not_found for nonexistent request",
+    "POST /api/v1/admin/open-requests/group/done route exists and safely updates 0 rows for no-match test body"
+  ],
+  "no_real_open_requests_mutated": true,
+  "checks": [
+    {
+      "name": "GET open requests",
+      "status": 200,
+      "ok": true,
+      "payload": {
+        "ok": true,
+        "open_requests": [
+          {
+            "customer_id": 1,
+            "request_type": "delivery_location",
+            "request_type_label": "Delivery location",
+            "item_name": "typed_address",
+            "quantity": 0,
+            "request_count": 3,
+            "status": "cancelled",
+            "latest_text": "63, Karl-Marx-Straße, Donaukiez, Neukölln, Berlin, 12043, Deutschland",
+            "latest_created_at": "2026-07-08 08:28:42",
+            "google_maps_link": "https://www.google.com/maps?q=52.4827402,13.4326210",
+            "customer": {
+              "id": 1,
+              "full_name": "Aron",
+              "username": "",
+              "telegram_user_id": "8180717054",
+              "language": "en",
+              "preferred_language": "en",
+              "last_seen_at": "2026-07-09 09:34:51"
+            }
+          },
+          {
+            "customer_id": 1,
+            "request_type": "delivery_location",
+            "request_type_label": "Delivery location",
+            "item_name": "telegram_location",
+            "quantity": 0,
+            "request_count": 2,
+            "status": "cancelled",
+            "latest_text": "Telegram shared location: 9.706963, 99.996199",
+            "latest_created_at": "2026-07-08 04:01:40",
+            "google_maps_link": "https://www.google.com/maps/search/?api=1&query=9.706963,99.996199",
+            "customer": {
+              "id": 1,
+              "full_name": "Aron",
+              "username": "",
+              "telegram_user_id": "8180717054",
+              "language": "en",
+              "preferred_language": "en",
+              "last_seen_at": "2026-07-09 09:34:51"
+            }
+          },
+          {
+            "customer_id": 19,
+            "request_type": "delivery_location",
+            "request_type_label": "Delivery location",
+            "item_name": "customer_app_checkout",
+            "quantity": 0,
+            "request_count": 5,
+            "status": "new",
+            "latest_text": "Berlin",
+            "latest_created_at": "2026-07-01 10:13:28",
+            "google_maps_link": "",
+            "customer": {
+              "id": 19,
+              "full_name": "Aron",
+              "username": "",
+              "telegram_user_id": "app:82d22def-78d7-4bda-883e-7580b5fa0fe2",
+              "language": "app",
+              "preferred_language": "en",
+              "last_seen_at": "2026-07-08 08:31:24"
+            }
+          },
+          {
+            "customer_id": 23,
+            "request_type": "delivery_location",
+            "request_type_label": "Delivery location",
+            "item_name": "customer_app_checkout",
+            "quantity": 0,
+            "request_count": 2,
+            "status": "new",
+            "latest_text": "Berlin",
+            "latest_created_at": "2026-06-29 15:37:49",
+            "google_maps_link": "",
+            "customer": {
+              "id": 23,
+              "full_name": "iOS Demo Customer",
+              "username": "ios_customer",
+              "telegram_user_id": "app:93338d1d-f28c-499a-8339-955ccfdcd448",
+              "language": "app",
+              "preferred_language": "en",
+              "last_seen_at": "2026-06-29 15:37:51"
+            }
+          },
+          {
+            "customer_id": 20,
+            "request_type": "delivery_location",
+            "request_type_label": "Delivery location",
+            "item_name": "customer_app_checkout",
+            "quantity": 0,
+            "request_count": 2,
+            "status": "new",
+            "latest_text": "Berlin",
+            "latest_created_at": "2026-06-29 12:47:07",
+            "google_maps_link": "",
+            "customer": {
+              "id": 20,
+              "full_name": "Android Demo Customer",
+              "username": "android_customer",
+              "telegram_user_id": "app:819ff6b6-3b13-48f3-85f2-e76f387a8305",
+              "language": "app",
+              "preferred_language": "en",
+              "last_seen_at": "2026-06-29 12:47:07"
+            }
+          },
+          {
+            "customer_id": 15,
+            "request_type": "location",
+            "request_type_label": "Location",
+            "item_name": "63, Karl-Marx-Straße, Donaukiez, Neukölln, Berlin, 12043, Deutschland",
+            "quantity": 0,
+            "request_count": 1,
+            "status": "new",
+            "latest_text": "Customer app selected pickup at business location",
+            "latest_created_at": "2026-06-20 13:33:30",
+            "google_maps_link": "https://www.google.com/maps?q=52.4827402,13.4326210",
+            "customer": {
+              "id": 15,
+              "full_name": "Android Platform Test",
+              "username": "android_platform_test",
+              "telegram_user_id": "app:eea8be29-5e8d-4034-92b2-485153726ebd",
+              "language": "app",
+              "preferred_language": "en",
+              "last_seen_at": "2026-06-20 13:33:30"
+            }
+          },
+          {
+            "customer_id": 14,
+            "request_type": "location",
+            "request_type_label": "Location",
+            "item_name": "63, Karl-Marx-Straße, Donaukiez, Neukölln, Berlin, 12043, Deutschland",
+            "quantity": 0,
+            "request_count": 1,
+            "status": "new",
+            "latest_text": "Customer app selected pickup at business location",
+            "latest_created_at": "2026-06-20 13:29:02",
+            "google_maps_link": "https://www.google.com/maps?q=52.4827402,13.4326210",
+            "customer": {
+              "id": 14,
+              "full_name": "Android Admin Status Test",
+              "username": "android_admin_status_test",
+              "telegram_user_id": "app:ab22fb5d-cef6-44b8-8292-a840f2c40100",
+              "language": "app",
+              "preferred_language": "en",
+              "last_seen_at": "2026-06-20 13:29:02"
+            }
+          },
+          {
+            "customer_id": 13,
+            "request_type": "location",
+            "request_type_label": "Location",
+            "item_name": "63, Karl-Marx-Straße, Donaukiez, Neukölln, Berlin, 12043, Deutschland",
+            "quantity": 0,
+            "request_count": 1,
+            "status": "new",
+            "latest_text": "Customer app selected pickup at business location",
+            "latest_created_at": "2026-06-20 13:24:22",
+            "google_maps_link": "https://www.google.com/maps?q=52.4827402,13.4326210",
+            "customer": {
+              "id": 13,
+              "full_name": "Android Checkout Test",
+              "username": "android_checkout_test",
+              "telegram_user_id": "app:d41e1d50-c411-4382-a3d7-b01ace3bfc57",
+              "language": "app",
+              "preferred_language": "en",
+              "last_seen_at": "2026-06-20 13:24:23"
+            }
+          },
+          {
+            "customer_id": 1,
+            "request_type": "location",
+            "request_type_label": "Location",
+            "item_name": "63, Karl-Marx-Straße, Donaukiez, Neukölln, Berlin, 12043, Deutschland",
+            "quantity": 0,
+            "request_count": 2,
+            "status": "new",
+            "latest_text": "Customer approved delivery at our location",
+            "latest_created_at": "2026-06-16 15:49:09",
+            "google_maps_link": "https://www.google.com/maps?q=52.4827402,13.4326210",
+            "customer": {
+              "id": 1,
+              "full_name": "Aron",
+              "username": "",
+              "telegram_user_id": "8180717054",
+              "language": "en",
+              "preferred_language": "en",
+              "last_seen_at": "2026-07-09 09:34:51"
+            }
+          }
+        ],
+        "count": 9
+      }
+    },
+    {
+      "name": "PATCH nonexistent open request status returns not_found",
+      "status": 404,
+      "ok": true,
+      "payload": {
+        "ok": false,
+        "error": {
+          "code": "not_found",
+          "message": "Open request not found."
+        }
+      }
+    },
+    {
+      "name": "POST group done no-match is safe",
+      "status": 200,
+      "ok": true,
+      "payload": {
+        "ok": true,
+        "updated": 0,
+        "customer_id": 10,
+        "request_type": "TEST_ANDROID_API_NO_MATCH",
+        "item_name": "TEST_ANDROID_API_NO_MATCH"
+      }
+    }
+  ]
+}

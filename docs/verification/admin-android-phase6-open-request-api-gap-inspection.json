@@ -1,0 +1,41 @@
+{
+  "phase": "Admin Android Phase 6 open request API gap inspection",
+  "mode": "static_source_inspection",
+  "generated_at": "2026-07-13T16:15:33",
+  "latest_commit": "e39fbad Document Admin Android customer reply verification",
+  "api_open_requests": {
+    "handler": "handleApiAdminOpenRequests",
+    "exists": true,
+    "methods_seen": [
+      "GET"
+    ],
+    "reads_json_body": false,
+    "has_write_signal": false,
+    "line_count": 21
+  },
+  "web_open_request_mutations": {
+    "single_status_handler_exists": true,
+    "group_done_handler_exists": true,
+    "all_done_handler_exists": true,
+    "single_status_has_write_signal": true,
+    "group_done_has_write_signal": true,
+    "all_done_has_write_signal": true
+  },
+  "route_lines": [
+    "8098:         <form action=\"/admin/customer-requests/group/done\" method=\"post\">",
+    "8151:   <form action=\"/admin/customer-requests/all/done\" method=\"post\"><button type=\"submit\">${ui.all_done}</button></form>",
+    "8242:       <form action=\"/admin/customer-requests/${item.id}/status\" method=\"post\">",
+    "8466: async function handleUpdateCustomerRequestStatus(request, env, requestId) {",
+    "8476: async function handleMarkCustomerRequestGroupDone(request, env) {",
+    "8493: async function handleMarkAllDone(env) {",
+    "10416:       admin_open_requests: \"/api/v1/admin/open-requests\",",
+    "11405: async function handleApiAdminOpenRequests(request, env) {",
+    "13808:   if (url.pathname === \"/api/v1/admin/open-requests\") {",
+    "13809:     return handleApiAdminOpenRequests(request, env);",
+    "14094:   if (requestStatus && request.method === \"POST\") return handleUpdateCustomerRequestStatus(request, env, Number(requestStatus[1]));",
+    "14095:   if (url.pathname === \"/admin/customer-requests/group/done\" && request.method === \"POST\") return handleMarkCustomerRequestGroupDone(request, env);",
+    "14096:   if (url.pathname === \"/admin/customer-requests/all/done\" && request.method === \"POST\") return handleMarkAllDone(env);"
+  ],
+  "conclusion": "Admin open requests API is read-only. Web admin has mutation handlers for request done/group done/all done. Admin Android needs API mutation endpoints before open request write UI.",
+  "recommended_next_step": "Add safe API endpoints for single request done and grouped request done. Do not add all-done for Android v1 until filtered/test-safe behavior is defined."
+}
