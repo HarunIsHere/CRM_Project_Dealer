@@ -15,3 +15,7 @@ cloudflare-worker/node_modules/
 cloudflare-worker/.wrangler/
 cloudflare-worker/.dev.vars
 cloudflare-worker/.env
+
+# Android app source package named data must be tracked.
+!apps/admin-android/app/src/main/java/me/ayartuerk/crmadmin/data/
+!apps/admin-android/app/src/main/java/me/ayartuerk/crmadmin/data/**
