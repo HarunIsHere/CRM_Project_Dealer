@@ -32,6 +32,7 @@ import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.CustomerLocation
 import me.ayartuerk.crmadmin.api.CustomerMessage
 import me.ayartuerk.crmadmin.api.CustomerRequest
+import me.ayartuerk.crmadmin.api.MeetingPoint
 import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
@@ -50,11 +51,13 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onProducts = viewModel::showProducts,
                     onCustomers = viewModel::showCustomers,
                     onOpenRequests = viewModel::showOpenRequests,
+                    onMeetingPoints = viewModel::showMeetingPoints,
                     onRefreshDashboard = viewModel::loadDashboard,
                     onRefreshOrders = viewModel::loadOrders,
                     onRefreshProducts = viewModel::loadProducts,
                     onRefreshCustomers = viewModel::loadCustomers,
                     onRefreshOpenRequests = viewModel::loadOpenRequests,
+                    onRefreshMeetingPoints = viewModel::loadMeetingPoints,
                     onOrderClick = viewModel::showOrderDetail,
                     onCustomerClick = viewModel::showCustomerDetail,
                     onReplyChange = viewModel::updateReplyMessage,
@@ -149,11 +152,13 @@ private fun AdminShell(
     onProducts: () -> Unit,
     onCustomers: () -> Unit,
     onOpenRequests: () -> Unit,
+    onMeetingPoints: () -> Unit,
     onRefreshDashboard: () -> Unit,
     onRefreshOrders: () -> Unit,
     onRefreshProducts: () -> Unit,
     onRefreshCustomers: () -> Unit,
     onRefreshOpenRequests: () -> Unit,
+    onRefreshMeetingPoints: () -> Unit,
     onOrderClick: (Long) -> Unit,
     onCustomerClick: (Long) -> Unit,
     onReplyChange: (String) -> Unit,
@@ -170,6 +175,7 @@ private fun AdminShell(
             onProducts = onProducts,
             onCustomers = onCustomers,
             onOpenRequests = onOpenRequests,
+            onMeetingPoints = onMeetingPoints,
             onLogout = onLogout
         )
 
@@ -221,6 +227,11 @@ private fun AdminShell(
                 onStatus = onOpenRequestStatus,
                 onGroupDone = onOpenRequestGroupDone
             )
+
+            AdminScreen.MEETING_POINTS -> MeetingPointsScreen(
+                state = state,
+                onRefresh = onRefreshMeetingPoints
+            )
         }
     }
 }
@@ -233,6 +244,7 @@ private fun TopNav(
     onProducts: () -> Unit,
     onCustomers: () -> Unit,
     onOpenRequests: () -> Unit,
+    onMeetingPoints: () -> Unit,
     onLogout: () -> Unit
 ) {
     Row(
@@ -274,6 +286,13 @@ private fun TopNav(
             onClick = onOpenRequests
         ) {
             Text("Requests")
+        }
+
+        Button(
+            enabled = selected != AdminScreen.MEETING_POINTS,
+            onClick = onMeetingPoints
+        ) {
+            Text("Meet")
         }
 
         OutlinedButton(onClick = onLogout) {
@@ -896,6 +915,62 @@ private fun OpenRequestCard(
                     Text("Group done")
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+private fun MeetingPointsScreen(
+    state: AdminUiState,
+    onRefresh: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Meeting Points (${state.meetingPoints.size})", style = MaterialTheme.typography.headlineSmall)
+                OutlinedButton(onClick = onRefresh) {
+                    Text("Refresh")
+                }
+            }
+        }
+
+        commonStateItems(state)
+
+        if (state.meetingPoints.isEmpty() && !state.loading) {
+            item {
+                Text("No meeting points loaded.")
+            }
+        }
+
+        items(state.meetingPoints) { point ->
+            MeetingPointCard(point = point)
+        }
+    }
+}
+
+@Composable
+private fun MeetingPointCard(point: MeetingPoint) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dpCompat)) {
+            Text(point.name ?: point.title ?: "Meeting Point", style = MaterialTheme.typography.titleSmall)
+            Text("ID: ${point.id ?: "-"}")
+            Text("Address: ${point.address ?: "-"}")
+            Text("Description: ${point.description ?: "-"}")
+            Text("Map: ${point.mapsUrl ?: point.googleMapsUrl ?: "-"}")
+            Text("Latitude: ${point.latitude ?: "-"}")
+            Text("Longitude: ${point.longitude ?: "-"}")
+            Text("Active: ${point.isActive ?: "-"}")
+            Text("Default: ${point.isDefault ?: "-"}")
+            Text("Sort: ${point.sortOrder ?: "-"}")
+            Text("Created: ${point.createdAt ?: "-"}")
         }
     }
 }

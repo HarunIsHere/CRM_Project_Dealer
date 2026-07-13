@@ -14,6 +14,7 @@ import me.ayartuerk.crmadmin.api.CustomerLocation
 import me.ayartuerk.crmadmin.api.CustomerMessage
 import me.ayartuerk.crmadmin.api.CustomerRequest
 import me.ayartuerk.crmadmin.api.DashboardResponse
+import me.ayartuerk.crmadmin.api.MeetingPoint
 import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
@@ -26,7 +27,8 @@ enum class AdminScreen {
     PRODUCTS,
     CUSTOMERS,
     CUSTOMER_DETAIL,
-    OPEN_REQUESTS
+    OPEN_REQUESTS,
+    MEETING_POINTS
 }
 
 data class AdminUiState(
@@ -48,6 +50,7 @@ data class AdminUiState(
     val lastReplySent: String? = null,
     val openRequests: List<OpenRequest> = emptyList(),
     val lastOpenRequestAction: String? = null,
+    val meetingPoints: List<MeetingPoint> = emptyList(),
     val error: String? = null
 )
 
@@ -335,6 +338,31 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 loadOpenRequests()
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Group done failed")
+            }
+        }
+    }
+
+    fun showMeetingPoints() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.MEETING_POINTS,
+            selectedOrder = null,
+            selectedCustomer = null
+        )
+        loadMeetingPoints()
+    }
+
+    fun loadMeetingPoints() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+
+            runCatching {
+                repository.meetingPoints(token)
+            }.onSuccess { meetingPoints ->
+                _state.value = _state.value.copy(loading = false, meetingPoints = meetingPoints)
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting points failed")
             }
         }
     }

@@ -81,3 +81,13 @@ Result:
 - Added open request cards
 - Added in-progress, done, and group-done actions
 - compileDebugKotlin passed locally
+
+## Phase 6 - Meeting points
+
+Result:
+
+- Added meeting points API endpoint
+- Added repository method
+- Added Meet tab
+- Added meeting point cards
+- compileDebugKotlin passed locally

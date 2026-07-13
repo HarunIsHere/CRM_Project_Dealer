@@ -7,6 +7,7 @@ import me.ayartuerk.crmadmin.api.CustomerDetailResponse
 import me.ayartuerk.crmadmin.api.CustomerReplyRequest
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.api.LoginRequest
+import me.ayartuerk.crmadmin.api.MeetingPoint
 import me.ayartuerk.crmadmin.api.OpenRequestStatusRequest
 import me.ayartuerk.crmadmin.api.OpenRequestGroupDoneRequest
 import me.ayartuerk.crmadmin.api.OpenRequest
@@ -142,6 +143,15 @@ class AdminRepository(
         }
 
         return response.updated ?: 0
+    }
+
+    suspend fun meetingPoints(token: String): List<MeetingPoint> {
+        val response = api.meetingPoints(bearer(token))
+        if (!response.ok) {
+            val message = response.error?.message ?: "Meeting points load failed"
+            throw IllegalStateException(message)
+        }
+        return response.meetingPoints
     }
 
     suspend fun logout(token: String) {

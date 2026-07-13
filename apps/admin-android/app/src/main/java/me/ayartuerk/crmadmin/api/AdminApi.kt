@@ -68,6 +68,9 @@ interface AdminApi {
         @Header("Authorization") authorization: String,
         @Body body: OpenRequestGroupDoneRequest
     ): OpenRequestGroupDoneResponse
+
+    @GET("admin/meeting-points")
+    suspend fun meetingPoints(@Header("Authorization") authorization: String): MeetingPointsResponse
 }
 
 @Serializable
@@ -166,6 +169,15 @@ data class CustomerDetailResponse(
 @Serializable
 data class CustomerReplyRequest(
     val message: String
+)
+
+@Serializable
+data class MeetingPointsResponse(
+    val ok: Boolean = false,
+    @SerialName("meeting_points")
+    val meetingPoints: List<MeetingPoint> = emptyList(),
+    val count: Int? = null,
+    val error: ApiErrorEnvelope? = null
 )
 
 @Serializable
@@ -416,6 +428,29 @@ data class OpenRequest(
     val status: String? = null,
     val message: String? = null,
     val notes: String? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null
+)
+
+@Serializable
+data class MeetingPoint(
+    val id: Long? = null,
+    val name: String? = null,
+    val title: String? = null,
+    val description: String? = null,
+    val address: String? = null,
+    @SerialName("maps_url")
+    val mapsUrl: String? = null,
+    @SerialName("google_maps_url")
+    val googleMapsUrl: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    @SerialName("is_active")
+    val isActive: Boolean? = null,
+    @SerialName("is_default")
+    val isDefault: Boolean? = null,
+    @SerialName("sort_order")
+    val sortOrder: Int? = null,
     @SerialName("created_at")
     val createdAt: String? = null
 )
