@@ -818,3 +818,43 @@ Important implementation rule:
 
 - Telegram, Telegram Mini App, Android shared API, Apple shared API, admin API, and admin web must stay aligned on the same V2 backend lifecycle.
 - Admin web routes under /admin/orders and API routes under /api/v1/admin/customer-app-orders must remain behaviorally consistent.
+
+## Admin Android API status
+
+Admin Android API verification is now active on branch unified-order-v2.
+
+Verified areas:
+
+- admin login
+- admin session/me
+- admin dashboard
+- admin read-only API contract
+- V2 customer-app order list/detail
+- product/category read and mutation APIs
+- meeting point read and mutation APIs
+- customer list/detail
+- customer reply API
+- settings read and restore-safe update API
+- open requests read API
+- open request single status mutation API
+- open request group-done mutation API
+
+Latest verification result:
+
+- Read-only admin API contract: 17/17 passed
+- Product/category mutation verification: passed
+- Meeting point mutation verification: passed
+- Settings restore verification: passed
+- Customer reply verification: passed
+- Open request route verification: passed
+- No real open requests mutated during route verification
+
+Implementation contract:
+
+    docs/verification/admin-android-api-implementation-contract.md
+
+Important Android v1 rule:
+
+- Do not expose global all-done for open requests.
+- Use scoped single-status or group-done actions only.
+- Any future bulk-done must require explicit scope/filter/confirmation.

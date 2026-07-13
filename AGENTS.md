@@ -288,3 +288,52 @@ Latest live production verification result:
 Detailed verification note:
 
     docs/verification/v2-customer-order-location-admin-lifecycle.md
+
+## Admin Android API verified status
+
+Admin Android API verification is now active on branch unified-order-v2.
+
+Latest verified Admin Android API commits:
+
+    545dcda Document Admin Android open request API verification
+    fb50e9c Add admin open request mutation APIs
+    e39fbad Document Admin Android customer reply verification
+    ddb5cdb Document Admin Android settings restore verification
+    d4aea4f Document Admin Android meeting point mutation verification
+    acc762f Document Admin Android product mutation verification
+    178f6e1 Document Admin Android API contract verification
+    36bf5ce Add admin product category detail API
+
+Verified Admin Android API areas:
+
+- read-only admin API contract
+- admin login/me/dashboard
+- admin V2 customer-app orders
+- admin products
+- admin product categories
+- admin meeting points
+- admin customers
+- admin customer reply
+- admin settings restore
+- admin open requests read
+- admin open request single status mutation
+- admin open request group-done mutation
+
+Verification results:
+
+- Read-only admin API contract: 17/17 passed
+- Product/category mutation verification: passed
+- Meeting point mutation verification: passed
+- Settings restore verification: passed
+- Customer reply verification: passed
+- Open request mutation API route verification: passed
+
+Open request API note:
+
+- Android has safe single request status and group-done endpoints.
+- Global all-done is intentionally not exposed for Android v1 because the current web behavior marks every non-done request as done globally.
+- Any future Android bulk-done endpoint must require explicit scope/filter/confirmation.
+
+Detailed contract document:
+
+    docs/verification/admin-android-api-implementation-contract.md
