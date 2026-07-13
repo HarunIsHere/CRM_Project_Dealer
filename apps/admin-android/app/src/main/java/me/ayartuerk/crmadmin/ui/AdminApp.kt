@@ -1,10 +1,10 @@
 package me.ayartuerk.crmadmin.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -179,7 +179,11 @@ private fun AdminShell(
     onLogout: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .statusBarsPadding()
+        ) {
             when (state.screen) {
                 AdminScreen.DASHBOARD -> DashboardScreen(
                     state = state,
@@ -268,65 +272,59 @@ private fun BottomNav(
     onSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .navigationBarsPadding()
-            .padding(horizontal = 12.dpCompat, vertical = 8.dpCompat),
-        horizontalArrangement = Arrangement.spacedBy(8.dpCompat)
+            .padding(horizontal = 8.dpCompat, vertical = 6.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(6.dpCompat)
     ) {
-        Button(
-            enabled = selected != AdminScreen.DASHBOARD,
-            onClick = onDashboard
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dpCompat)
         ) {
-            Text("Dashboard")
+            NavButton("Dash", selected != AdminScreen.DASHBOARD, onDashboard, Modifier.weight(1f))
+            NavButton("Orders", selected != AdminScreen.ORDERS, onOrders, Modifier.weight(1f))
+            NavButton("Prod", selected != AdminScreen.PRODUCTS, onProducts, Modifier.weight(1f))
+            NavButton("Cust", selected != AdminScreen.CUSTOMERS, onCustomers, Modifier.weight(1f))
         }
 
-        Button(
-            enabled = selected != AdminScreen.ORDERS,
-            onClick = onOrders
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dpCompat)
         ) {
-            Text("Orders")
+            NavButton("Req", selected != AdminScreen.OPEN_REQUESTS, onOpenRequests, Modifier.weight(1f))
+            NavButton("Meet", selected != AdminScreen.MEETING_POINTS, onMeetingPoints, Modifier.weight(1f))
+            NavButton("Set", selected != AdminScreen.SETTINGS, onSettings, Modifier.weight(1f))
+            NavButton("Out", true, onLogout, Modifier.weight(1f), outlined = true)
         }
+    }
+}
 
-        Button(
-            enabled = selected != AdminScreen.PRODUCTS,
-            onClick = onProducts
+
+@Composable
+private fun NavButton(
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    outlined: Boolean = false
+) {
+    if (outlined) {
+        OutlinedButton(
+            modifier = modifier,
+            enabled = enabled,
+            onClick = onClick
         ) {
-            Text("Products")
+            Text(label)
         }
-
+    } else {
         Button(
-            enabled = selected != AdminScreen.CUSTOMERS,
-            onClick = onCustomers
+            modifier = modifier,
+            enabled = enabled,
+            onClick = onClick
         ) {
-            Text("Customers")
-        }
-
-        Button(
-            enabled = selected != AdminScreen.OPEN_REQUESTS,
-            onClick = onOpenRequests
-        ) {
-            Text("Requests")
-        }
-
-        Button(
-            enabled = selected != AdminScreen.MEETING_POINTS,
-            onClick = onMeetingPoints
-        ) {
-            Text("Meet")
-        }
-
-        Button(
-            enabled = selected != AdminScreen.SETTINGS,
-            onClick = onSettings
-        ) {
-            Text("Settings")
-        }
-
-        OutlinedButton(onClick = onLogout) {
-            Text("Logout")
+            Text(label)
         }
     }
 }
