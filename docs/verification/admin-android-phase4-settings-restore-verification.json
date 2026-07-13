@@ -1,0 +1,95 @@
+{
+  "phase": "Admin Android mutation API Phase 4 settings restore",
+  "passed": true,
+  "setting": "ai_response_mode",
+  "current_before_forced_restore": "rule_base",
+  "original_value": "ai_fallback",
+  "test_value": "rule_base",
+  "restored_value": "ai_fallback",
+  "restore_confirmed": true,
+  "results": [
+    {
+      "name": "admin login",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 840,
+      "top_level_keys": [
+        "ok",
+        "token_type",
+        "access_token",
+        "expires_in",
+        "admin"
+      ]
+    },
+    {
+      "name": "get admin settings before forced restore",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 656,
+      "top_level_keys": [
+        "ok",
+        "settings"
+      ]
+    },
+    {
+      "name": "force restore ai_response_mode to original value",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 623,
+      "top_level_keys": [
+        "ok",
+        "settings"
+      ]
+    },
+    {
+      "name": "verify forced restore before test",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 582,
+      "top_level_keys": [
+        "ok",
+        "settings"
+      ]
+    },
+    {
+      "name": "update ai_response_mode to test value",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 718,
+      "top_level_keys": [
+        "ok",
+        "settings"
+      ]
+    },
+    {
+      "name": "verify test value",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 590,
+      "top_level_keys": [
+        "ok",
+        "settings"
+      ]
+    },
+    {
+      "name": "restore ai_response_mode original value",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 603,
+      "top_level_keys": [
+        "ok",
+        "settings"
+      ]
+    },
+    {
+      "name": "verify final restore",
+      "status": 200,
+      "ok": true,
+      "elapsed_ms": 585,
+      "top_level_keys": [
+        "ok",
+        "settings"
+      ]
+    }
+  ]
+}

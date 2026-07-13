@@ -1,0 +1,63 @@
+{
+  "phase": "Admin Android Phase 4 settings shape inspection",
+  "mode": "read_only",
+  "passed": true,
+  "generated_at": "2026-07-13 15:53:36 +0700",
+  "settings_top_level_keys": [
+    "admin_telegram_chat_id",
+    "working_hours_enabled",
+    "working_hours_timezone",
+    "working_hours_start",
+    "working_hours_end",
+    "working_hours_closed_message",
+    "working_hours_message_mode",
+    "admin_view_language",
+    "allow_preferred_customer_location",
+    "allow_new_customer_location",
+    "allow_customer_pickup",
+    "allowed_delivery_cities",
+    "ai_response_mode",
+    "ai_custom_instructions"
+  ],
+  "settings_shape": {
+    "admin_telegram_chat_id": "string",
+    "working_hours_enabled": "string",
+    "working_hours_timezone": "string",
+    "working_hours_start": "string",
+    "working_hours_end": "string",
+    "working_hours_closed_message": "string",
+    "working_hours_message_mode": "string",
+    "admin_view_language": "string",
+    "allow_preferred_customer_location": "string",
+    "allow_new_customer_location": "string",
+    "allow_customer_pickup": "string",
+    "allowed_delivery_cities": [
+      "string"
+    ],
+    "ai_response_mode": "string",
+    "ai_custom_instructions": "string"
+  },
+  "candidate_restore_safe_keys": [
+    "ai_response_mode"
+  ],
+  "raw_settings": {
+    "admin_telegram_chat_id": "8180717054",
+    "working_hours_enabled": "off",
+    "working_hours_timezone": "Europe/Berlin",
+    "working_hours_start": "10:00",
+    "working_hours_end": "22:00",
+    "working_hours_closed_message": "",
+    "working_hours_message_mode": "custom",
+    "admin_view_language": "tr",
+    "allow_preferred_customer_location": "on",
+    "allow_new_customer_location": "on",
+    "allow_customer_pickup": "on",
+    "allowed_delivery_cities": [
+      "Berlin",
+      "Potsdam",
+      "Cottbus"
+    ],
+    "ai_response_mode": "ai_fallback",
+    "ai_custom_instructions": ""
+  }
+}
