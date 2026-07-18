@@ -29,7 +29,8 @@ enum class AdminScreen {
     CUSTOMER_DETAIL,
     OPEN_REQUESTS,
     MEETING_POINTS,
-    SETTINGS
+    SETTINGS,
+    MORE
 }
 
 data class AdminUiState(
@@ -368,6 +369,14 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting points failed")
             }
         }
+    }
+
+    fun showMore() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.MORE,
+            selectedOrder = null,
+            selectedCustomer = null
+        )
     }
 
     fun showSettings() {

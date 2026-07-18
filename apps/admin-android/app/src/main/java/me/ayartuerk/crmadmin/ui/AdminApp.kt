@@ -57,6 +57,7 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onOpenRequests = viewModel::showOpenRequests,
                     onMeetingPoints = viewModel::showMeetingPoints,
                     onSettings = viewModel::showSettings,
+                    onMore = viewModel::showMore,
                     onRefreshDashboard = viewModel::loadDashboard,
                     onRefreshOrders = viewModel::loadOrders,
                     onRefreshProducts = viewModel::loadProducts,
@@ -162,6 +163,7 @@ private fun AdminShell(
     onOpenRequests: () -> Unit,
     onMeetingPoints: () -> Unit,
     onSettings: () -> Unit,
+    onMore: () -> Unit,
     onRefreshDashboard: () -> Unit,
     onRefreshOrders: () -> Unit,
     onRefreshProducts: () -> Unit,
@@ -243,6 +245,13 @@ private fun AdminShell(
                     onRefresh = onRefreshSettings,
                     onAiResponseMode = onAiResponseMode
                 )
+
+                AdminScreen.MORE -> MoreScreen(
+                    onProducts = onProducts,
+                    onMeetingPoints = onMeetingPoints,
+                    onSettings = onSettings,
+                    onLogout = onLogout
+                )
             }
         }
 
@@ -250,12 +259,9 @@ private fun AdminShell(
             selected = state.screen,
             onDashboard = onDashboard,
             onOrders = onOrders,
-            onProducts = onProducts,
             onCustomers = onCustomers,
             onOpenRequests = onOpenRequests,
-            onMeetingPoints = onMeetingPoints,
-            onSettings = onSettings,
-            onLogout = onLogout
+            onMore = onMore
         )
     }
 }
@@ -265,42 +271,148 @@ private fun BottomNav(
     selected: AdminScreen,
     onDashboard: () -> Unit,
     onOrders: () -> Unit,
-    onProducts: () -> Unit,
     onCustomers: () -> Unit,
     onOpenRequests: () -> Unit,
+    onMore: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 6.dpCompat, vertical = 6.dpCompat),
+        horizontalArrangement = Arrangement.spacedBy(4.dpCompat)
+    ) {
+        NavButton(
+            label = "Dashboard",
+            enabled = selected != AdminScreen.DASHBOARD,
+            onClick = onDashboard,
+            modifier = Modifier.weight(1f)
+        )
+        NavButton(
+            label = "Orders",
+            enabled = selected != AdminScreen.ORDERS && selected != AdminScreen.ORDER_DETAIL,
+            onClick = onOrders,
+            modifier = Modifier.weight(1f)
+        )
+        NavButton(
+            label = "Requests",
+            enabled = selected != AdminScreen.OPEN_REQUESTS,
+            onClick = onOpenRequests,
+            modifier = Modifier.weight(1f)
+        )
+        NavButton(
+            label = "Customers",
+            enabled = selected != AdminScreen.CUSTOMERS && selected != AdminScreen.CUSTOMER_DETAIL,
+            onClick = onCustomers,
+            modifier = Modifier.weight(1f)
+        )
+        NavButton(
+            label = "More",
+            enabled = selected != AdminScreen.MORE,
+            onClick = onMore,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+
+@Composable
+private fun MoreScreen(
+    onProducts: () -> Unit,
     onMeetingPoints: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 8.dpCompat, vertical = 6.dpCompat),
-        verticalArrangement = Arrangement.spacedBy(6.dpCompat)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dpCompat)
-        ) {
-            NavButton("Dash", selected != AdminScreen.DASHBOARD, onDashboard, Modifier.weight(1f))
-            NavButton("Orders", selected != AdminScreen.ORDERS, onOrders, Modifier.weight(1f))
-            NavButton("Prod", selected != AdminScreen.PRODUCTS, onProducts, Modifier.weight(1f))
-            NavButton("Cust", selected != AdminScreen.CUSTOMERS, onCustomers, Modifier.weight(1f))
+        item {
+            Text(
+                "More",
+                style = MaterialTheme.typography.headlineSmall
+            )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dpCompat)
-        ) {
-            NavButton("Req", selected != AdminScreen.OPEN_REQUESTS, onOpenRequests, Modifier.weight(1f))
-            NavButton("Meet", selected != AdminScreen.MEETING_POINTS, onMeetingPoints, Modifier.weight(1f))
-            NavButton("Set", selected != AdminScreen.SETTINGS, onSettings, Modifier.weight(1f))
-            NavButton("Out", true, onLogout, Modifier.weight(1f), outlined = true)
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(8.dpCompat)
+                ) {
+                    Text(
+                        "Catalogue",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onProducts
+                    ) {
+                        Text("Products & Categories")
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(8.dpCompat)
+                ) {
+                    Text(
+                        "Operations",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onMeetingPoints
+                    ) {
+                        Text("Meeting Points")
+                    }
+
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onSettings
+                    ) {
+                        Text("General Settings")
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(8.dpCompat)
+                ) {
+                    Text(
+                        "Account",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onLogout
+                    ) {
+                        Text("Logout")
+                    }
+                }
+            }
+        }
+
+        item {
+            Text(
+                "Closed Orders, AI Information, Superadmin, and Change Password will be added here as their mobile parity work is completed.",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
-
 
 @Composable
 private fun NavButton(
