@@ -40,6 +40,20 @@ import me.ayartuerk.crmadmin.api.MeetingPoint
 import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.text.input.VisualTransformation
+import kotlinx.coroutines.launch
 @Composable
 fun AdminApp(viewModel: AdminViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
@@ -51,6 +65,7 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                 state.loggedIn -> AdminShell(
                     state = state,
                     onDashboard = viewModel::showDashboard,
+                    onGeneral = viewModel::showGeneral,
                     onOrders = viewModel::showOrders,
                     onProducts = viewModel::showProducts,
                     onCustomers = viewModel::showCustomers,
@@ -106,6 +121,7 @@ private fun LoginScreen(
 ) {
     var username by remember { mutableStateOf("admin") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -133,7 +149,27 @@ private fun LoginScreen(
             onValueChange = { password = it },
             label = { Text("Password") },
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = if (passwordVisible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = if (passwordVisible) {
+                            Icons.Filled.VisibilityOff
+                        } else {
+                            Icons.Filled.Visibility
+                        },
+                        contentDescription = if (passwordVisible) {
+                            "Hide password"
+                        } else {
+                            "Show password"
+                        }
+                    )
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(16.dpCompat))
@@ -157,6 +193,7 @@ private fun LoginScreen(
 private fun AdminShell(
     state: AdminUiState,
     onDashboard: () -> Unit,
+    onGeneral: () -> Unit,
     onOrders: () -> Unit,
     onProducts: () -> Unit,
     onCustomers: () -> Unit,
@@ -187,6 +224,12 @@ private fun AdminShell(
                 .statusBarsPadding()
         ) {
             when (state.screen) {
+                AdminScreen.GENERAL -> GeneralScreen(
+                    state = state,
+                    onRefresh = onRefreshSettings,
+                    onAiResponseMode = onAiResponseMode
+                )
+
                 AdminScreen.DASHBOARD -> DashboardScreen(
                     state = state,
                     onRefresh = onRefreshDashboard,
@@ -257,7 +300,7 @@ private fun AdminShell(
 
         BottomNav(
             selected = state.screen,
-            onDashboard = onDashboard,
+            onDashboard = onGeneral,
             onOrders = onOrders,
             onCustomers = onCustomers,
             onOpenRequests = onOpenRequests,
@@ -265,6 +308,100 @@ private fun AdminShell(
         )
     }
 }
+
+
+@Composable
+private fun AdminNavigationDrawerContent(
+    onGeneral: () -> Unit,
+    onOpenRequests: () -> Unit,
+    onOrders: () -> Unit,
+    onProducts: () -> Unit,
+    onMeetingPoints: () -> Unit,
+    onCustomers: () -> Unit,
+    onSettings: () -> Unit,
+    onLogout: () -> Unit
+) {
+    ModalDrawerSheet {
+        Text(
+            "CRM Delivery Admin",
+            modifier = Modifier.padding(16.dpCompat),
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        NavigationDrawerItem(
+            label = { Text("General") },
+            selected = false,
+            onClick = onGeneral
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Open Requests") },
+            selected = false,
+            onClick = onOpenRequests
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Orders") },
+            selected = false,
+            onClick = onOrders
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Closed Orders") },
+            selected = false,
+            onClick = { }
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Products") },
+            selected = false,
+            onClick = onProducts
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Meeting Points") },
+            selected = false,
+            onClick = onMeetingPoints
+        )
+
+        NavigationDrawerItem(
+            label = { Text("AI Info") },
+            selected = false,
+            onClick = { }
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Customers") },
+            selected = false,
+            onClick = onCustomers
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Superadmin") },
+            selected = false,
+            onClick = { }
+        )
+
+        NavigationDrawerItem(
+            label = { Text("General Settings") },
+            selected = false,
+            onClick = onSettings
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Change Password") },
+            selected = false,
+            onClick = { }
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Logout") },
+            selected = false,
+            onClick = onLogout
+        )
+    }
+}
+
 
 @Composable
 private fun BottomNav(
@@ -283,8 +420,8 @@ private fun BottomNav(
         horizontalArrangement = Arrangement.spacedBy(4.dpCompat)
     ) {
         NavButton(
-            label = "Dashboard",
-            enabled = selected != AdminScreen.DASHBOARD,
+            label = "General",
+            enabled = selected != AdminScreen.GENERAL,
             onClick = onDashboard,
             modifier = Modifier.weight(1f)
         )
@@ -440,6 +577,174 @@ private fun NavButton(
         }
     }
 }
+
+
+@Composable
+private fun GeneralScreen(
+    state: AdminUiState,
+    onRefresh: () -> Unit,
+    onAiResponseMode: (String) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 16.dpCompat,
+            end = 16.dpCompat,
+            top = 12.dpCompat,
+            bottom = 24.dpCompat
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dpCompat)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "General",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+
+                OutlinedButton(onClick = onRefresh) {
+                    Text("Refresh")
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+                ) {
+                    Text(
+                        "Admin Language",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text("View Language")
+
+                    Text(
+                        "English / Deutsch / Türkçe / العربية",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Text(
+                        "Supported admin languages: English, German, Turkish, Arabic",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+                ) {
+                    Text(
+                        "Notification Settings",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text("Admin Telegram Chat ID")
+
+                    Text(
+                        "Configure the notification receiver exactly as on the website.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+                ) {
+                    Text(
+                        "Working Hours",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text("Enable working-hours restrictions")
+                    Text("Timezone")
+                    Text("Start Time")
+                    Text("End Time")
+                    Text("Closed-hours message mode")
+                    Text("Custom Closed Message")
+
+                    Text(
+                        "Full editable controls will use the same backend fields as the website.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+                ) {
+                    Text(
+                        "Fulfillment / Location Options",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text("✓ Allow delivery to preferred customer location")
+                    Text("✓ Allow delivery to a new customer location")
+                    Text("✓ Allow customer pickup from our location")
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+                ) {
+                    Text(
+                        "Delivery Cities",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text("Berlin, Potsdam, Cottbus")
+                }
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dpCompat),
+                    verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+                ) {
+                    Text(
+                        "Bot Response Mode",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text("Rule base only")
+                    Text("AI fallback when rule base cannot answer")
+                    Text("AI Project Instructions")
+
+                    if (state.settings != null) {
+                        Text(
+                            "Current configuration loaded from backend.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 private fun DashboardScreen(

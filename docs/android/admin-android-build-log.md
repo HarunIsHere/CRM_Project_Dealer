@@ -123,3 +123,14 @@ Result:
 - compileDebugKotlin passed locally.
 - assembleDebug passed locally.
 - APK reinstalled on emulator.
+
+## General-first navigation repair
+
+Result:
+
+- General is the first authenticated destination.
+- Bottom navigation General action is wired correctly.
+- Previous unresolved onGeneral callback compile error fixed.
+- Admin languages remain English, German, Turkish, Arabic.
+- compileDebugKotlin passed.
+- assembleDebug passed.

@@ -21,6 +21,7 @@ import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.data.AdminRepository
 import me.ayartuerk.crmadmin.data.TokenStore
 enum class AdminScreen {
+    GENERAL,
     DASHBOARD,
     ORDERS,
     ORDER_DETAIL,
@@ -37,7 +38,7 @@ data class AdminUiState(
     val loading: Boolean = true,
     val loggedIn: Boolean = false,
     val token: String? = null,
-    val screen: AdminScreen = AdminScreen.DASHBOARD,
+    val screen: AdminScreen = AdminScreen.GENERAL,
     val dashboard: DashboardResponse? = null,
     val orders: List<CustomerAppOrder> = emptyList(),
     val selectedOrder: CustomerAppOrder? = null,
@@ -109,8 +110,18 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun showDashboard() {
-        _state.value = _state.value.copy(screen = AdminScreen.DASHBOARD, selectedOrder = null)
+    
+    fun showGeneral() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.GENERAL,
+            selectedOrder = null,
+            selectedCustomer = null
+        )
+        loadSettings()
+    }
+
+fun showDashboard() {
+        _state.value = _state.value.copy(screen = AdminScreen.GENERAL, selectedOrder = null)
         loadDashboard()
     }
 
