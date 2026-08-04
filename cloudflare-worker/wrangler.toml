@@ -1,5 +1,5 @@
 name = "crm-delivery-worker"
-main = "src/index.js"
+main = "src/worker-entry.js"
 compatibility_date = "2026-06-01"
 
 routes = [
@@ -10,8 +10,103 @@ routes = [
 [vars]
 APP_NAME = "CRM Delivery"
 ADMIN_WEB_URL = "https://crm.ayartuerk.me/admin"
+CRM_AUTH_ALLOWED_ORIGINS = "https://crm.ayartuerk.me"
+CRM_AUTH_PUBLIC_ORIGIN = "https://crm.ayartuerk.me"
+CRM_AUTH_SCHEMA_READY = "false"
+CRM_AUTH_CANONICAL_RESOLVER = "false"
+CRM_AUTH_CUSTOMER_BOUNDARY = "false"
+CRM_AUTH_TELEGRAM_VERIFICATION = "false"
+CRM_AUTH_STAFF_RECONCILED = "false"
+CRM_AUTH_STAFF_BOOTSTRAP_ENROLLMENT = "false"
+CRM_AUTH_STAFF_ENROLLMENT = "false"
+CRM_AUTH_CUSTOMER_PASSKEYS = "false"
+CRM_AUTH_STAFF_PASSKEYS = "false"
+CRM_AUTH_EMAIL_DELIVERY = "false"
+CRM_AUTH_EMAIL_PROVIDER = "cloudflare"
+CRM_AUTH_EMAIL_FROM = "security@auth.ayartuerk.me"
+CRM_AUTH_EMAIL_FROM_NAME = "CRM Delivery Security"
+CRM_AUTH_EMAIL_ALLOW_ARBITRARY_RECIPIENTS = "false"
+CRM_AUTH_EMAIL_OUTBOX_ACTIVE_KEY_VERSION = "1"
+CRM_AUTH_EMAIL_OUTBOX_DISPATCH_BATCH_SIZE = "10"
+CRM_AUTH_CHALLENGE_HMAC_ACTIVE_KEY_VERSION = "1"
+CRM_AUTH_CHALLENGE_HMAC_RETAINED_KEY_VERSIONS = ""
+CRM_AUTH_SESSION_HMAC_ACTIVE_KEY_VERSION = "1"
+CRM_AUTH_SESSION_HMAC_RETAINED_KEY_VERSIONS = ""
+CRM_AUTH_IDEMPOTENCY_HMAC_ACTIVE_KEY_VERSION = "1"
+CRM_AUTH_IDEMPOTENCY_RESPONSE_ACTIVE_KEY_VERSION = "1"
+CRM_AUTH_FINGERPRINT_ACTIVE_KEY_VERSION = "1"
+CRM_AUTH_RECOVERY_CODE_HMAC_ACTIVE_KEY_VERSION = "1"
+CRM_AUTH_RECOVERY_CODE_HMAC_RETAINED_KEY_VERSIONS = ""
+CRM_AUTH_BOOTSTRAP_SUPERADMIN_LOCALE = "en"
+CRM_AUTH_BOOTSTRAP_ADMIN_LOCALE = "en"
+CRM_AUTH_STAFF_RECOVERY = "false"
+CRM_AUTH_CUSTOMER_EMAIL = "false"
+CRM_AUTH_CUSTOMER_MERGE = "false"
+CRM_AUTH_LEGACY_LOGIN_DISABLED = "false"
+CRM_AUTH_CUSTOMER_WEBAUTHN_READY = "false"
+CRM_AUTH_STAFF_WEBAUTHN_READY = "false"
+CRM_AUTH_CLIENT_READY_TELEGRAM_BOT = "false"
+CRM_AUTH_CLIENT_READY_TELEGRAM_MINI_APP = "false"
+CRM_AUTH_CLIENT_READY_ADMIN_WEB = "false"
+CRM_AUTH_CLIENT_READY_ADMIN_ANDROID = "false"
+CRM_AUTH_CLIENT_READY_ADMIN_IOS = "false"
+CRM_AUTH_CLIENT_READY_CUSTOMER_WEB = "false"
+CRM_AUTH_CLIENT_READY_CUSTOMER_ANDROID = "false"
+CRM_AUTH_CLIENT_READY_CUSTOMER_IOS = "false"
+
+[secrets]
+required = [
+  "CRM_AUTH_EMAIL_OUTBOX_KEY_V1",
+  "CRM_AUTH_EMAIL_ALLOWED_TEST_DESTINATIONS",
+  "CRM_AUTH_CHALLENGE_HMAC_KEY_V1",
+  "CRM_AUTH_SESSION_HMAC_KEY_V1",
+  "CRM_AUTH_IDEMPOTENCY_HMAC_KEY_V1",
+  "CRM_AUTH_IDEMPOTENCY_RESPONSE_KEY_V1",
+  "CRM_AUTH_FINGERPRINT_KEY_V1",
+  "CRM_AUTH_RECOVERY_CODE_HMAC_KEY_V1",
+  "CRM_AUTH_BOOTSTRAP_SUPERADMIN_EMAIL",
+  "CRM_AUTH_BOOTSTRAP_ADMIN_EMAIL",
+  "CRM_AUTH_BOOTSTRAP_OWNER_RECEIPT"
+]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "crm-delivery-db"
 database_id = "14103291-eb66-4a3d-9f84-585832a4b015"
+
+[[workflows]]
+name = "crm-environment-staff-reconciliation"
+binding = "ENVIRONMENT_STAFF_RECONCILIATION_WORKFLOW"
+class_name = "EnvironmentStaffReconciliationWorkflow"
+
+[[send_email]]
+name = "AUTH_EMAIL"
+allowed_sender_addresses = ["security@auth.ayartuerk.me"]
+remote = false
+
+[[queues.producers]]
+binding = "AUTH_EMAIL_QUEUE"
+queue = "crm-auth-email-outbox"
+remote = false
+
+[[queues.consumers]]
+queue = "crm-auth-email-outbox"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+retry_delay = 30
+max_concurrency = 1
+dead_letter_queue = "crm-auth-email-outbox-dlq"
+
+[[queues.consumers]]
+queue = "crm-auth-email-outbox-dlq"
+max_batch_size = 10
+max_batch_timeout = 5
+max_concurrency = 1
+
+[triggers]
+crons = ["* * * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1

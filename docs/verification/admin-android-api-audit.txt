@@ -1,0 +1,1239 @@
+# Admin Android API Audit
+
+Generated: Fri Jul 10 12:33:07 +07 2026
+Branch: unified-order-v2
+Latest commit: c802c86 Update project docs for V2 lifecycle verification
+
+## Current git status
+?? docs/verification/2026-06-30/
+?? docs/verification/admin-android-api-audit.txt
+?? verification/android/
+?? verification/ios/
+
+## Admin API route references
+4822:<form action="/admin/login" method="post">
+4865:      location: "/admin/login",
+5023:  const superadminNav = data.session?.is_superadmin ? `<a href="/admin/superadmin"><button type="button">${ui.superadmin}</button></a>` : "";
+5042:      <form action="/admin/products/${product.id}/update" method="post">
+5055:      <form action="/admin/products/${product.id}/delete" method="post" style="display:inline;">
+5077:      <form action="/admin/meeting-points/${point.id}/update" method="post">
+5089:      ${point.is_active ? `<form action="/admin/meeting-points/${point.id}/default" method="post" style="display:inline;"><button type="submit">${ui.set_preferred}</button></form>` : ""}
+5090:      <form action="/admin/meeting-points/${point.id}/delete" method="post" style="display:inline;">
+5129:        <a href="/admin/customers/${customer.id}">
+5138:        <form action="/admin/customers/${customer.id}/delete" method="post" style="display:inline;" onsubmit="return confirm('Delete customer?');">
+5159:    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
+5166:  <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
+5167:  <a href="/admin/orders"><button type="button">${ui.orders}</button></a>
+5169:  <a href="/admin/products"><button type="button">${ui.products}</button></a>
+5170:  <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
+5172:  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
+5179:<form action="/admin/settings/admin-language" method="post">
+5193:<form action="/admin/settings/admin-telegram" method="post">
+5201:<form action="/admin/settings/working-hours" method="post">
+5230:<form action="/admin/settings/fulfillment-options" method="post">
+5272:<form action="/admin/settings/delivery-cities" method="post">
+5284:<form action="/admin/settings/ai-response-mode" method="post">
+5438:    <form action="/admin/products" method="post">
+5512:<form action="/admin/meeting-points" method="post">
+5725:  form.action = "/admin/customers/" + customerId + "/reply";
+6687:  const superadminNav = session?.is_superadmin ? `<a href="/admin/superadmin"><button type="button">${ui.superadmin}</button></a>` : "";
+6691:  <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
+6692:  <a href="/admin/orders"><button type="button">${ui.orders}</button></a>
+6694:  <a href="/admin/products"><button type="button">${ui.products}</button></a>
+6695:  <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
+6697:  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
+6747:      <form action="/admin/orders/${order.id}/return" method="post" style="display:inline;">
+6755:  forms.push(`<a href="/admin/orders/${order.id}"><button type="button">${ui.details}</button></a>`);
+6760:        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+6769:      <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+6775:      <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+6783:        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+6792:      <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+6798:      <form action="/admin/orders/${order.id}/status" method="post">
+6809:    <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+6826:        <br><a href="/admin/orders/${order.id}"><button type="button">${ui.details}</button></a>
+6946:          <form action="/admin/orders/${order.id}/groups/${group.id}/approve" method="post" style="display:inline;">
+6949:          <form action="/admin/orders/${order.id}/groups/${group.id}/reject" method="post" style="display:inline;">
+6983:        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+6993:        <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+7001:        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+7012:        <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+7022:        <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+7031:      <form action="/admin/orders/${order.id}/status" method="post" style="display:inline;">
+7058:<p><a href="/admin/orders">${ui.back_to_orders}</a></p>
+7080:    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
+7089:  <a href="/admin/orders"><button type="button">${ui.open_orders}</button></a>
+7159:    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
+7188:    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
+7488:  return redirectResponse(status === "delivered" ? "/admin/closedorders" : "/admin/orders");
+7501:  return redirectResponse("/admin/orders");
+7509:    return redirectResponse(`/admin/orders/${orderId}`);
+7513:    return redirectResponse(`/admin/orders/${orderId}`);
+7537:  return redirectResponse(`/admin/orders/${orderId}`);
+7548:    return redirectResponse(`/admin/orders/${orderId}`);
+7552:    return redirectResponse(`/admin/orders/${orderId}`);
+7578:  return redirectResponse(`/admin/orders/${orderId}`);
+7632:          <form action="/admin/superadmin/admins/${admin.id}/toggle" method="post" style="display:inline;">
+7635:          <form action="/admin/superadmin/admins/${admin.id}/delete" method="post" style="display:inline;">
+7669:    <form action="/admin/logout" method="post"><button type="submit">${escapeHtml(ui.logout)}</button></form>
+7692:<form action="/admin/superadmin/admins" method="post">
+7735:  if (!username || !password) return redirectResponse("/admin/superadmin");
+7749:  return redirectResponse("/admin/superadmin");
+7754:  if (!admin) return redirectResponse("/admin/superadmin");
+7755:  if (admin.username === session?.username) return redirectResponse("/admin/superadmin");
+7767:    return redirectResponse("/admin/superadmin");
+7777:  return redirectResponse("/admin/superadmin");
+7782:  if (!admin) return redirectResponse("/admin/superadmin");
+7783:  if (admin.username === session?.username) return redirectResponse("/admin/superadmin");
+7795:    return redirectResponse("/admin/superadmin");
+7800:  return redirectResponse("/admin/superadmin");
+7820:  return redirectResponse("/admin/products");
+7844:  return redirectResponse("/admin/products");
+7856:  return redirectResponse("/admin/products");
+7869:  return redirectResponse("/admin/products");
+7883:  return redirectResponse("/admin/products");
+7895:  return redirectResponse("/admin/products");
+8096:      <td>${customer ? `<a href="/admin/customers/${customer.id}"><button type="button" class="request-action-button">${ui.open_customer}</button></a><button type="button" class="request-action-button" onclick="openCustomerMessageModal('${customer.id}', '${escapeHtml(customerLabel)}')">${ui.answer}</button>` : ""}</td>
+8098:        <form action="/admin/customer-requests/group/done" method="post">
+8141:    <form action="/admin/logout" method="post"><button type="submit">${ui.logout}</button></form>
+8151:  <form action="/admin/customer-requests/all/done" method="post"><button type="submit">${ui.all_done}</button></form>
+8179:  form.action = "/admin/customers/" + customerId + "/message";
+8192:  const response = await fetch("/admin/open-requests", { credentials: "same-origin" });
+8242:      <form action="/admin/customer-requests/${item.id}/status" method="post">
+8303:  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
+8336:<form action="/admin/customers/${customer.id}/reply" method="post">
+8425:    return redirectResponse("/admin/customers");
+8452:  return redirectResponse("/admin/customers");
+8463:  return redirectResponse(`/admin/customers/${customerId}`);
+8473:  return redirectResponse(row ? `/admin/customers/${row.customer_id}` : "/admin");
+8490:  return redirectResponse("/admin/openrequests/");
+8495:  return redirectResponse("/admin/openrequests/");
+8536:<p><a href="/admin/login">Back to Login</a></p>
+8561:<p><a href="/admin/login">Back to Login</a></p>
+8590:  return redirectResponse("/admin/login");
+10406:      admin_login: "/api/v1/admin/login",
+10407:      admin_logout: "/api/v1/admin/logout",
+10408:      admin_change_password: "/api/v1/admin/password",
+10409:      admin_me: "/api/v1/admin/me",
+10410:      admin_dashboard: "/api/v1/admin/dashboard",
+10411:      admin_orders: "/api/v1/admin/orders",
+10412:      admin_closed_orders: "/api/v1/admin/closed-orders",
+10413:      admin_order_status: "/api/v1/admin/orders/{order_id}/status",
+10414:      admin_order_delivered: "/api/v1/admin/orders/{order_id}/delivered",
+10415:      admin_order_return: "/api/v1/admin/orders/{order_id}/return",
+10416:      admin_open_requests: "/api/v1/admin/open-requests",
+10417:      admin_products: "/api/v1/admin/products",
+10418:      admin_product_categories: "/api/v1/admin/product-categories",
+10419:      admin_meeting_points: "/api/v1/admin/meeting-points",
+10420:      admin_customers: "/api/v1/admin/customers",
+10421:      admin_settings: "/api/v1/admin/settings"
+10451:async function handleApiAdminLogin(request, env) {
+10494:async function handleApiAdminLogout(request, env) {
+10520:async function handleApiAdminPasswordChange(request, env) {
+10586:async function handleApiAdminMe(request, env) {
+10691:async function handleApiAdminDashboard(request, env) {
+10738:async function handleApiAdminOrders(request, env, closed = false) {
+10889:async function handleApiAdminCustomerAppOrderDetail(request, env, orderId) {
+10908:async function handleApiAdminCustomerAppOrders(request, env) {
+10927:async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
+10981:async function handleApiAdminV2DeliveryOnTheWay(request, env, orderId) {
+11022:async function handleApiAdminV2ReadyToPickup(request, env, orderId) {
+11088:async function handleApiAdminV2ApproveGroup(request, env, orderId, groupId) {
+11145:async function handleApiAdminV2RejectGroup(request, env, orderId, groupId) {
+11207:async function handleApiAdminV2CancelOrder(request, env, orderId) {
+11311:async function handleApiAdminOrderStatus(request, env, orderId) {
+11352:async function handleApiAdminOrderDelivered(request, env, orderId) {
+11378:async function handleApiAdminOrderReturn(request, env, orderId) {
+11405:async function handleApiAdminOpenRequests(request, env) {
+11448:async function handleApiAdminProducts(request, env) {
+11507:async function handleApiAdminProductDetail(request, env, productId) {
+11592:async function handleApiAdminProductCategories(request, env) {
+11635:async function handleApiAdminProductCategoryDetail(request, env, categoryId) {
+11703:async function handleApiAdminMeetingPoints(request, env) {
+11760:async function handleApiAdminMeetingPointDetail(request, env, pointId) {
+11901:async function handleApiAdminCustomers(request, env) {
+11957:async function handleApiAdminCustomerDetail(request, env, customerId) {
+12017:async function handleApiAdminCustomerReply(request, env, customerId) {
+12083:async function handleApiAdminSettings(request, env) {
+13720:  if (url.pathname === "/api/v1/admin/login") {
+13721:    return handleApiAdminLogin(request, env);
+13724:  if (url.pathname === "/api/v1/admin/logout") {
+13725:    return handleApiAdminLogout(request, env);
+13728:  if (url.pathname === "/api/v1/admin/password") {
+13729:    return handleApiAdminPasswordChange(request, env);
+13732:  if (url.pathname === "/api/v1/admin/me") {
+13733:    return handleApiAdminMe(request, env);
+13736:  if (url.pathname === "/api/v1/admin/dashboard") {
+13737:    return handleApiAdminDashboard(request, env);
+13740:  if (url.pathname === "/api/v1/admin/orders") {
+13741:    return handleApiAdminOrders(request, env, false);
+13744:  if (url.pathname === "/api/v1/admin/closed-orders") {
+13745:    return handleApiAdminOrders(request, env, true);
+13748:  if (url.pathname === "/api/v1/admin/customer-app-orders") {
+13749:    return handleApiAdminCustomerAppOrders(request, env);
+13752:  const adminV2OrderDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)$/);
+13754:    return handleApiAdminCustomerAppOrderDetail(request, env, Number(adminV2OrderDetailMatch[1]));
+13757:  const adminV2OrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/status$/);
+13759:    return handleApiAdminCustomerAppOrderStatus(request, env, Number(adminV2OrderStatusMatch[1]));
+13762:  const adminV2OrderOnTheWayMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/on-the-way$/);
+13764:    return handleApiAdminV2DeliveryOnTheWay(request, env, Number(adminV2OrderOnTheWayMatch[1]));
+13767:  const adminV2OrderReadyPickupMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/ready-to-pickup$/);
+13769:    return handleApiAdminV2ReadyToPickup(request, env, Number(adminV2OrderReadyPickupMatch[1]));
+13772:  const adminV2OrderCancelMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/cancel$/);
+13774:    return handleApiAdminV2CancelOrder(request, env, Number(adminV2OrderCancelMatch[1]));
+13777:  const adminV2OrderGroupApproveMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/approve$/);
+13779:    return handleApiAdminV2ApproveGroup(request, env, Number(adminV2OrderGroupApproveMatch[1]), Number(adminV2OrderGroupApproveMatch[2]));
+13782:  const adminV2OrderGroupRejectMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/reject$/);
+13784:    return handleApiAdminV2RejectGroup(request, env, Number(adminV2OrderGroupRejectMatch[1]), Number(adminV2OrderGroupRejectMatch[2]));
+13789:    return handleApiAdminOrderStatus(request, env, Number(adminOrderStatusMatch[1]));
+13794:    return handleApiAdminOrderDelivered(request, env, Number(adminOrderDeliveredMatch[1]));
+13799:    return handleApiAdminOrderReturn(request, env, Number(adminOrderReturnMatch[1]));
+13802:  if (url.pathname === "/api/v1/admin/open-requests") {
+13803:    return handleApiAdminOpenRequests(request, env);
+13806:  if (url.pathname === "/api/v1/admin/products") {
+13807:    return handleApiAdminProducts(request, env);
+13812:    return handleApiAdminProductDetail(request, env, Number(productDetailMatch[1]));
+13815:  if (url.pathname === "/api/v1/admin/product-categories") {
+13816:    return handleApiAdminProductCategories(request, env);
+13821:    return handleApiAdminProductCategoryDetail(request, env, Number(productCategoryDetailMatch[1]));
+13824:  if (url.pathname === "/api/v1/admin/meeting-points") {
+13825:    return handleApiAdminMeetingPoints(request, env);
+13830:    return handleApiAdminMeetingPointDetail(request, env, Number(meetingPointDetailMatch[1]));
+13833:  if (url.pathname === "/api/v1/admin/customers") {
+13834:    return handleApiAdminCustomers(request, env);
+13839:    return handleApiAdminCustomerReply(request, env, Number(customerReplyMatch[1]));
+13844:    return handleApiAdminCustomerDetail(request, env, Number(customerDetailMatch[1]));
+13847:  if (url.pathname === "/api/v1/admin/settings") {
+13848:    return handleApiAdminSettings(request, env);
+13961:  if (url.pathname === "/admin/login" && request.method === "GET") return handleLoginPage();
+13962:  if (url.pathname === "/admin/login" && request.method === "POST") return handleAdminLogin(request, env);
+13973:      return redirectResponse("/admin/login");
+13978:    if (request.method === "POST" && url.pathname !== "/admin/logout") {
+13985:  if ((url.pathname === "/admin/orders" || url.pathname === "/admin/orders/") && request.method === "GET") return handleAdminOrdersPage(env, adminSession);
+13987:  if ((url.pathname === "/admin/superadmin" || url.pathname === "/admin/superadmin/") && request.method === "GET") {
+13991:  if (url.pathname === "/admin/superadmin/admins" && request.method === "POST") {
+14006:  if ((url.pathname === "/admin/products" || url.pathname === "/admin/products/") && request.method === "GET") return handleAdminProductsPage(env, adminSession);
+14007:  if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env, adminSession);
+14009:  if ((url.pathname === "/admin/customers" || url.pathname === "/admin/customers/") && request.method === "GET") return handleAdminCustomersPage(env, adminSession);
+14012:  if (url.pathname === "/admin/logout" && request.method === "POST") return handleAdminLogout();
+14016:  if (url.pathname === "/admin/openrequests/" || url.pathname === "/admin/openrequests") return handleOpenRequestsPage(env, adminSession);
+14017:  if (url.pathname === "/admin/open-requests") return handleOpenRequestsPartial(env);
+14023:  if (url.pathname === "/admin/settings/admin-telegram" && request.method === "POST") return handleUpdateAdminTelegram(request, env);
+14024:  if (url.pathname === "/admin/settings/working-hours" && request.method === "POST") return handleUpdateWorkingHours(request, env);
+14025:  if (url.pathname === "/admin/settings/fulfillment-options" && request.method === "POST") return handleUpdateFulfillmentOptions(request, env);
+14026:  if (url.pathname === "/admin/settings/delivery-cities" && request.method === "POST") return handleUpdateDeliveryCities(request, env);
+14027:  if (url.pathname === "/admin/settings/admin-language" && request.method === "POST") return handleUpdateAdminLanguage(request, env);
+14028:  if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
+14052:  if (url.pathname === "/admin/products" && request.method === "POST") return handleCreateProduct(request, env);
+14065:  if (url.pathname === "/admin/meeting-points" && request.method === "POST") return handleCreateMeetingPoint(request, env);
+14089:  if (url.pathname === "/admin/customer-requests/group/done" && request.method === "POST") return handleMarkCustomerRequestGroupDone(request, env);
+14090:  if (url.pathname === "/admin/customer-requests/all/done" && request.method === "POST") return handleMarkAllDone(env);
+
+## Route matcher references
+4716:    "DELETE FROM admin_audit_logs WHERE created_at < datetime('now', '-30 days')"
+7798:  await env.DB.prepare("DELETE FROM admin_users WHERE id = ?").bind(adminId).run();
+13706:  if (url.pathname === "/api/v1/health" && request.method === "GET") {
+13714:  if (url.pathname === "/api/v1/capabilities" && request.method === "GET") {
+13720:  if (url.pathname === "/api/v1/admin/login") {
+13724:  if (url.pathname === "/api/v1/admin/logout") {
+13728:  if (url.pathname === "/api/v1/admin/password") {
+13732:  if (url.pathname === "/api/v1/admin/me") {
+13736:  if (url.pathname === "/api/v1/admin/dashboard") {
+13740:  if (url.pathname === "/api/v1/admin/orders") {
+13744:  if (url.pathname === "/api/v1/admin/closed-orders") {
+13748:  if (url.pathname === "/api/v1/admin/customer-app-orders") {
+13752:  const adminV2OrderDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)$/);
+13757:  const adminV2OrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/status$/);
+13762:  const adminV2OrderOnTheWayMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/on-the-way$/);
+13767:  const adminV2OrderReadyPickupMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/ready-to-pickup$/);
+13772:  const adminV2OrderCancelMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/cancel$/);
+13777:  const adminV2OrderGroupApproveMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/approve$/);
+13782:  const adminV2OrderGroupRejectMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/reject$/);
+13787:  const adminOrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/status$/);
+13792:  const adminOrderDeliveredMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/delivered$/);
+13797:  const adminOrderReturnMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/return$/);
+13802:  if (url.pathname === "/api/v1/admin/open-requests") {
+13806:  if (url.pathname === "/api/v1/admin/products") {
+13810:  const productDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/products\/(\d+)$/);
+13815:  if (url.pathname === "/api/v1/admin/product-categories") {
+13819:  const productCategoryDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/product-categories\/(\d+)$/);
+13824:  if (url.pathname === "/api/v1/admin/meeting-points") {
+13828:  const meetingPointDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/meeting-points\/(\d+)$/);
+13833:  if (url.pathname === "/api/v1/admin/customers") {
+13837:  const customerReplyMatch = url.pathname.match(/^\/api\/v1\/admin\/customers\/(\d+)\/reply$/);
+13842:  const customerDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customers\/(\d+)$/);
+13847:  if (url.pathname === "/api/v1/admin/settings") {
+13851:  if (url.pathname === "/api/v1/public/shops" && request.method === "GET") {
+13855:  if (url.pathname === "/api/v1/public/payment-methods" && request.method === "GET") {
+13859:  if (url.pathname === "/api/v1/public/catalog") {
+13863:  if (url.pathname === "/api/v1/public/meeting-points") {
+13867:  if (url.pathname === "/api/v1/customer/session/start") {
+13871:  if (url.pathname === "/api/v1/customer/session/verify") {
+13875:  if (url.pathname === "/api/v1/customer/session/logout") {
+13879:  if (url.pathname === "/api/v1/customer/me") {
+13883:  if (url.pathname === "/api/v1/customer/locations") {
+13887:  if (url.pathname === "/api/v1/customer/cart") {
+13891:  if (url.pathname === "/api/v1/customer/cart/items") {
+13900:  if (url.pathname === "/api/v1/customer/checkout/address") {
+13904:  if (url.pathname === "/api/v1/customer/checkout/pickup") {
+13908:  if (url.pathname === "/api/v1/customer/orders") {
+13936:  if (request.method === "OPTIONS" && url.pathname.startsWith("/api/v1/")) {
+13942:  if (url.pathname.startsWith("/api/v1/")) return handleApiV1(request, env);
+13944:  if (url.pathname === "/static/admin.css") {
+13961:  if (url.pathname === "/admin/login" && request.method === "GET") return handleLoginPage();
+13962:  if (url.pathname === "/admin/login" && request.method === "POST") return handleAdminLogin(request, env);
+13963:  if (url.pathname === "/admin/forgot-password" && request.method === "GET") return handleForgotPasswordPage();
+13964:  if (url.pathname === "/admin/forgot-password" && request.method === "POST") return handleSendForgotPasswordCode(env);
+13965:  if (url.pathname === "/admin/reset-password" && request.method === "GET") return handleResetPasswordPage();
+13966:  if (url.pathname === "/admin/reset-password" && request.method === "POST") return handleResetPassword(request, env);
+13970:  if (url.pathname.startsWith("/admin")) {
+13978:    if (request.method === "POST" && url.pathname !== "/admin/logout") {
+13979:      await logAdminAction(env, request, adminSession, "admin_post_action", url.pathname);
+13984:  if ((url.pathname === "/admin" || url.pathname === "/admin/") && request.method === "GET") return handleAdminHome(env, adminSession);
+13985:  if ((url.pathname === "/admin/orders" || url.pathname === "/admin/orders/") && request.method === "GET") return handleAdminOrdersPage(env, adminSession);
+13986:  if ((url.pathname === "/admin/closedorders" || url.pathname === "/admin/closedorders/") && request.method === "GET") return handleAdminClosedOrdersPage(env, adminSession);
+13987:  if ((url.pathname === "/admin/superadmin" || url.pathname === "/admin/superadmin/") && request.method === "GET") {
+13991:  if (url.pathname === "/admin/superadmin/admins" && request.method === "POST") {
+13995:  const superadminToggleAdmin = url.pathname.match(/^\/admin\/superadmin\/admins\/(\d+)\/toggle$/);
+13996:  if (superadminToggleAdmin && request.method === "POST") {
+14001:  const superadminDeleteAdmin = url.pathname.match(/^\/admin\/superadmin\/admins\/(\d+)\/delete$/);
+14002:  if (superadminDeleteAdmin && request.method === "POST") {
+14006:  if ((url.pathname === "/admin/products" || url.pathname === "/admin/products/") && request.method === "GET") return handleAdminProductsPage(env, adminSession);
+14007:  if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env, adminSession);
+14008:  if ((url.pathname === "/admin/ai" || url.pathname === "/admin/ai/") && request.method === "GET") return handleAdminAiPage(env, adminSession);
+14009:  if ((url.pathname === "/admin/customers" || url.pathname === "/admin/customers/") && request.method === "GET") return handleAdminCustomersPage(env, adminSession);
+14010:  const customerDelete = url.pathname.match(/^\/admin\/customers\/(\d+)\/delete$/);
+14012:  if (url.pathname === "/admin/logout" && request.method === "POST") return handleAdminLogout();
+14013:  if (url.pathname === "/admin/change-password" && request.method === "GET") return handleChangePasswordPage();
+14014:  if (url.pathname === "/admin/change-password" && request.method === "POST") return handleChangePassword(request, env);
+14016:  if (url.pathname === "/admin/openrequests/" || url.pathname === "/admin/openrequests") return handleOpenRequestsPage(env, adminSession);
+14017:  if (url.pathname === "/admin/open-requests") return handleOpenRequestsPartial(env);
+14019:  if (url.pathname === "/admin/search-location" && request.method === "GET") {
+14023:  if (url.pathname === "/admin/settings/admin-telegram" && request.method === "POST") return handleUpdateAdminTelegram(request, env);
+14024:  if (url.pathname === "/admin/settings/working-hours" && request.method === "POST") return handleUpdateWorkingHours(request, env);
+14025:  if (url.pathname === "/admin/settings/fulfillment-options" && request.method === "POST") return handleUpdateFulfillmentOptions(request, env);
+14026:  if (url.pathname === "/admin/settings/delivery-cities" && request.method === "POST") return handleUpdateDeliveryCities(request, env);
+14027:  if (url.pathname === "/admin/settings/admin-language" && request.method === "POST") return handleUpdateAdminLanguage(request, env);
+14028:  if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
+14030:  const adminOrderDetail = url.pathname.match(/^\/admin\/orders\/(\d+)$/);
+14031:  if (adminOrderDetail && request.method === "GET") return handleAdminOrderDetailPage(env, adminSession, Number(adminOrderDetail[1]));
+14033:  const orderGroupApprove = url.pathname.match(/^\/admin\/orders\/(\d+)\/groups\/(\d+)\/approve$/);
+14038:  const orderGroupReject = url.pathname.match(/^\/admin\/orders\/(\d+)\/groups\/(\d+)\/reject$/);
+14043:  const orderStatusUpdate = url.pathname.match(/^\/admin\/orders\/(\d+)\/status$/);
+14046:  const orderDelivered = url.pathname.match(/^\/admin\/orders\/(\d+)\/delivered$/);
+14049:  const orderReturn = url.pathname.match(/^\/admin\/orders\/(\d+)\/return$/);
+14052:  if (url.pathname === "/admin/products" && request.method === "POST") return handleCreateProduct(request, env);
+14054:  if (url.pathname === "/admin/product-categories" && request.method === "POST") return handleCreateProductCategory(request, env);
+14055:  const productCategoryUpdate = url.pathname.match(/^\/admin\/product-categories\/(\d+)\/update$/);
+14057:  const productCategoryDelete = url.pathname.match(/^\/admin\/product-categories\/(\d+)\/delete$/);
+14060:  const productUpdate = url.pathname.match(/^\/admin\/products\/(\d+)\/update$/);
+14062:  const productDelete = url.pathname.match(/^\/admin\/products\/(\d+)\/delete$/);
+14065:  if (url.pathname === "/admin/meeting-points" && request.method === "POST") return handleCreateMeetingPoint(request, env);
+14066:  const pointUpdate = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/update$/);
+14068:  const pointDefault = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/default$/);
+14070:  const pointDelete = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/delete$/);
+14073:  const learnedApprove = url.pathname.match(/^\/admin\/learned-patterns\/(\d+)\/approve$/);
+14076:  const learnedReject = url.pathname.match(/^\/admin\/learned-patterns\/(\d+)\/reject$/);
+14079:  const learnedDelete = url.pathname.match(/^\/admin\/learned-patterns\/(\d+)\/delete$/);
+14082:  const customerDetail = url.pathname.match(/^\/admin\/customers\/(\d+)$/);
+14084:  const customerReply = url.pathname.match(/^\/admin\/customers\/(\d+)\/reply$/);
+14087:  const requestStatus = url.pathname.match(/^\/admin\/customer-requests\/(\d+)\/status$/);
+14089:  if (url.pathname === "/admin/customer-requests/group/done" && request.method === "POST") return handleMarkCustomerRequestGroupDone(request, env);
+14090:  if (url.pathname === "/admin/customer-requests/all/done" && request.method === "POST") return handleMarkAllDone(env);
+
+## Admin order lifecycle handlers
+130:      cancel: "Cancel",
+138:      cancel: "Abbrechen",
+146:      cancel: "İptal",
+154:      cancel: "إلغاء",
+162:      cancel: "Отмена",
+741:      cancel: "Cancel",
+818:      cancel: "Abbrechen",
+895:      cancel: "İptal",
+972:      cancel: "إلغاء",
+1049:      cancel: "Отмена",
+3163:      cancel: "Cancel checkout"
+3172:      cancel: "Checkout abbrechen"
+3181:      cancel: "Checkout iptal"
+3190:      cancel: "إلغاء الدفع"
+3199:      cancel: "Отменить оформление"
+3220:    [{ text: ui.cancel, callback_data: "location_cancel" }]
+3672:      callback_data: "cancel_location_entry"
+5697:        <button type="button" onclick="closeCustomerMessageModal()">${ui.cancel || "Cancel"}</button>
+6033:    cancelled: "Cancelled",
+6034:    not_delivered: "Not delivered",
+6035:    delivered: "Delivered",
+6046:    "not_delivered",
+6047:    "delivered",
+6048:    "cancelled"
+6073:    ? "COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled')"
+6074:    : "COALESCE(o.order_status, o.status, '') NOT IN ('delivered', 'closed', 'cancelled')";
+6088:      NULL AS delivered_at,
+6090:        WHEN COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled')
+6147:      delivered: "Delivered",
+6148:      not_delivered: "Not delivered",
+6150:      picked_up_delivered: "Picked up / delivered",
+6151:      cancel: "Cancel",
+6153:      return_not_delivered: "Return as not delivered",
+6154:      no_action_cancelled: "No action for cancelled order.",
+6155:      no_lifecycle_action_cancelled: "No lifecycle action for cancelled order.",
+6189:      status_cancelled: "Cancelled",
+6191:      status_delivered: "Delivered",
+6192:      status_not_delivered: "Not delivered",
+6210:      note_marked_delivered_admin_web: "Marked delivered from admin web",
+6213:      note_marked_not_delivered_admin_web: "Marked not delivered from admin web",
+6214:      note_cancelled_admin_web: "Cancelled from admin web",
+6250:      delivered: "Geliefert",
+6251:      not_delivered: "Nicht geliefert",
+6253:      picked_up_delivered: "Abgeholt / geliefert",
+6254:      cancel: "Abbrechen",
+6256:      return_not_delivered: "Als nicht geliefert zurücksetzen",
+6257:      no_action_cancelled: "Keine Aktion für stornierte Bestellung.",
+6258:      no_lifecycle_action_cancelled: "Keine Lifecycle-Aktion für stornierte Bestellung.",
+6292:      status_cancelled: "Storniert",
+6294:      status_delivered: "Geliefert",
+6295:      status_not_delivered: "Nicht geliefert",
+6313:      note_marked_delivered_admin_web: "Von Admin-Web als geliefert markiert",
+6316:      note_marked_not_delivered_admin_web: "Von Admin-Web als nicht geliefert markiert",
+6317:      note_cancelled_admin_web: "Von Admin-Web storniert",
+6353:      delivered: "Teslim edildi",
+6354:      not_delivered: "Teslim edilmedi",
+6356:      picked_up_delivered: "Teslim alındı / teslim edildi",
+6357:      cancel: "İptal",
+6359:      return_not_delivered: "Teslim edilmedi olarak geri al",
+6360:      no_action_cancelled: "İptal edilen sipariş için işlem yok.",
+6361:      no_lifecycle_action_cancelled: "İptal edilen sipariş için lifecycle işlemi yok.",
+6395:      status_cancelled: "İptal edildi",
+6397:      status_delivered: "Teslim edildi",
+6398:      status_not_delivered: "Teslim edilmedi",
+6416:      note_marked_delivered_admin_web: "Admin web tarafından teslim edildi olarak işaretlendi",
+6419:      note_marked_not_delivered_admin_web: "Admin web tarafından teslim edilmedi olarak işaretlendi",
+6420:      note_cancelled_admin_web: "Admin web tarafından iptal edildi",
+6456:      delivered: "تم التسليم",
+6457:      not_delivered: "لم يتم التسليم",
+6459:      picked_up_delivered: "تم الاستلام / التسليم",
+6460:      cancel: "إلغاء",
+6462:      return_not_delivered: "إرجاع كغير مُسلّم",
+6463:      no_action_cancelled: "لا يوجد إجراء للطلب الملغي.",
+6464:      no_lifecycle_action_cancelled: "لا يوجد إجراء دورة حياة للطلب الملغي.",
+6498:      status_cancelled: "ملغي",
+6500:      status_delivered: "تم التسليم",
+6501:      status_not_delivered: "لم يتم التسليم",
+6519:      note_marked_delivered_admin_web: "تم تحديده كمُسلّم من لوحة الإدارة",
+6522:      note_marked_not_delivered_admin_web: "تم تحديده كغير مُسلّم من لوحة الإدارة",
+6523:      note_cancelled_admin_web: "تم إلغاؤه من لوحة الإدارة",
+6559:      delivered: "Доставлено",
+6560:      not_delivered: "Не доставлено",
+6562:      picked_up_delivered: "Получено / доставлено",
+6563:      cancel: "Отмена",
+6565:      return_not_delivered: "Вернуть как не доставлено",
+6566:      no_action_cancelled: "Нет действия для отмененного заказа.",
+6567:      no_lifecycle_action_cancelled: "Нет lifecycle-действия для отмененного заказа.",
+6601:      status_cancelled: "Отменен",
+6603:      status_delivered: "Доставлен",
+6604:      status_not_delivered: "Не доставлен",
+6622:      note_marked_delivered_admin_web: "Отмечено как доставленное через админ-панель",
+6625:      note_marked_not_delivered_admin_web: "Отмечено как не доставленное через админ-панель",
+6626:      note_cancelled_admin_web: "Отменено через админ-панель",
+6658:    "Marked delivered from admin web": ui.note_marked_delivered_admin_web,
+6661:    "Marked not delivered from admin web": ui.note_marked_not_delivered_admin_web,
+6662:    "Cancelled from admin web": ui.note_cancelled_admin_web,
+6742:    if (currentStatus === "cancelled") {
+6743:      return `<em>${ui.no_action_cancelled}</em>`;
+6748:        <button type="submit">${ui.return_not_delivered}</button>
+6758:    if (order.delivery_status !== "on_the_way" && currentStatus !== "delivered") {
+6769:      <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+6770:        <button type="submit">${ui.delivered}</button>
+6776:        <input type="hidden" name="order_status" value="not_delivered">
+6777:        <button type="submit">${ui.not_delivered}</button>
+6792:      <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+6793:        <button type="submit">${ui.picked_up_delivered}</button>
+6810:      <input type="hidden" name="order_status" value="cancelled">
+6811:      <button type="submit">${ui.cancel}</button>
+6974:  if (currentStatus === "cancelled") {
+6975:    return `<em>${ui.no_lifecycle_action_cancelled}</em>`;
+6981:    if (order.delivery_status !== "on_the_way" && currentStatus !== "delivered") {
+6991:    if (currentStatus !== "delivered") {
+6993:        <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+6994:          <button type="submit">${ui.delivered}</button>
+6999:    if (currentStatus !== "not_delivered") {
+7002:          <input type="hidden" name="order_status" value="not_delivered">
+7003:          <button type="submit">${ui.not_delivered}</button>
+7020:    if (order.pickup_status !== "picked_up" && currentStatus !== "delivered") {
+7022:        <form action="/admin/orders/${order.id}/delivered" method="post" style="display:inline;">
+7023:          <button type="submit">${ui.picked_up_delivered}</button>
+7029:  if (!["delivered", "cancelled", "not_delivered", "closed"].includes(currentStatus)) {
+7032:        <input type="hidden" name="order_status" value="cancelled">
+7033:        <button type="submit">${ui.cancel}</button>
+7244:    not_delivered: {
+7245:      en: "Your order was marked as not delivered. Please contact admin or choose an option below.",
+7251:    delivered: {
+7252:      en: "Your order was marked as delivered. Thank you.",
+7270:  if (status === "not_delivered") keyboard = getMenuKeyboard(language);
+7306:      AND status NOT IN ('done', 'cancelled')
+7324:async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
+7330:  if (status === "delivered") {
+7331:    return await markTelegramV2OrderDelivered(env, orderId, note || "Marked delivered from admin web");
+7395:  if (status === "not_delivered") {
+7398:      SET status = 'not_delivered',
+7399:          order_status = 'not_delivered',
+7401:            WHEN fulfillment_type = 'delivery' THEN 'not_delivered'
+7405:            WHEN fulfillment_type = 'pickup' THEN 'not_delivered'
+7413:    await addV2OrderHistory(env, orderId, previousStatus, "not_delivered", { username: "admin_web" }, note || "Marked not delivered from admin web");
+7420:  if (status === "cancelled") {
+7423:      SET status = 'cancelled',
+7424:          order_status = 'cancelled',
+7426:            WHEN fulfillment_type = 'delivery' THEN 'cancelled'
+7430:            WHEN fulfillment_type = 'pickup' THEN 'cancelled'
+7434:          cancelled_at = CURRENT_TIMESTAMP,
+7435:          cancel_reason = ?,
+7443:      SET group_status = 'cancelled',
+7444:          admin_decision = 'cancelled',
+7453:      SET item_status = 'cancelled',
+7454:          admin_decision = 'cancelled',
+7460:    await closeDeliveryLocationRequestsForV2Order(env, order, "cancelled");
+7462:    await addV2OrderHistory(env, orderId, previousStatus, "cancelled", { username: "admin_web" }, note || "Cancelled from admin web");
+7487:  await updateOrderStatusByAdmin(env, orderId, status, note);
+7488:  return redirectResponse(status === "delivered" ? "/admin/closedorders" : "/admin/orders");
+7492:  await updateOrderStatusByAdmin(env, orderId, "delivered", "");
+7500:  await updateOrderStatusByAdmin(env, orderId, "not_delivered", "Returned from closed orders");
+8168:        <button type="button" onclick="closeCustomerMessageModal()">${ui.cancel}</button>
+9614:    en: "Location entry cancelled. You can now send a product name or choose an option.",
+9798:    WHERE COALESCE(o.order_status, o.status, '') NOT IN ('cancelled', 'closed', 'delivered')
+9876:        callback_data: `admin_order_delivered_${order.id}`
+9882:async function markTelegramV2OrderDelivered(env, orderId, note = "") {
+9890:    SET status = 'delivered',
+9891:        order_status = 'delivered',
+9893:          WHEN fulfillment_type = 'delivery' THEN 'delivered'
+9909:    "delivered",
+9911:    note || "Marked delivered from Telegram /o"
+9929:      AND COALESCE(order_status, status, '') NOT IN ('cancelled', 'closed', 'delivered', 'not_delivered')
+9986:  const orderId = Number(callbackQuery.data.replace("admin_order_delivered_", ""));
+9987:  const updatedOrder = await markTelegramV2OrderDelivered(env, orderId, "Marked delivered from Telegram /o");
+10109:  if (["done", "cancelled"].includes(String(requestRow.status || ""))) {
+10139:      "not_delivered",
+10140:      "not_delivered",
+10164:    await env.DB.prepare("UPDATE customer_requests SET status = 'cancelled' WHERE id = ?")
+10206:  if (callbackQuery.data === "location_cancel") return handleCancelLocationEntry(env, callbackQuery);
+10214:  if (callbackQuery.data === "cancel_location_entry") return handleCancelLocationEntry(env, callbackQuery);
+10218:  if (callbackQuery.data.startsWith("admin_order_delivered_")) return handleAdminOrderDeliveredSelection(env, callbackQuery);
+10414:      admin_order_delivered: "/api/v1/admin/orders/{order_id}/delivered",
+10641:    delivered_at: order.delivered_at || null,
+10862:  return "Your order could not be delivered.";
+10866:  return "Your order has been delivered.";
+10870:  return `Your order was cancelled by admin.${suffix}`;
+10946:    "cancelled",
+10981:async function handleApiAdminV2DeliveryOnTheWay(request, env, orderId) {
+11002:  if (String(order.order_status || order.status || "") === "cancelled") {
+11003:    return apiError("order_cancelled", "Cancelled orders cannot be marked on the way.", 400);
+11022:async function handleApiAdminV2ReadyToPickup(request, env, orderId) {
+11043:  if (String(order.order_status || order.status || "") === "cancelled") {
+11044:    return apiError("order_cancelled", "Cancelled orders cannot be marked ready to pick up.", 400);
+11088:async function handleApiAdminV2ApproveGroup(request, env, orderId, groupId) {
+11110:  if (String(order.order_status || order.status || "") === "cancelled") {
+11111:    return apiError("order_cancelled", "Cancelled orders cannot be updated.", 400);
+11145:async function handleApiAdminV2RejectGroup(request, env, orderId, groupId) {
+11170:  if (String(order.order_status || order.status || "") === "cancelled") {
+11171:    return apiError("order_cancelled", "Cancelled orders cannot be updated.", 400);
+11207:async function handleApiAdminV2CancelOrder(request, env, orderId) {
+11219:  const reason = String(body.reason || body.cancel_reason || body.note || "").trim();
+11227:  if (String(order.order_status || order.status || "") === "cancelled") {
+11228:    return apiError("order_already_cancelled", "Order is already cancelled.", 400);
+11235:    SET status = 'cancelled',
+11236:        order_status = 'cancelled',
+11238:          WHEN fulfillment_type = 'delivery' THEN 'cancelled'
+11242:          WHEN fulfillment_type = 'pickup' THEN 'cancelled'
+11246:        cancelled_at = CURRENT_TIMESTAMP,
+11247:        cancelled_by_admin_id = ?,
+11248:        cancel_reason = ?,
+11261:    SET group_status = 'cancelled',
+11262:        admin_decision = 'cancelled',
+11271:    SET item_status = 'cancelled',
+11272:        admin_decision = 'cancelled',
+11278:  await closeDeliveryLocationRequestsForV2Order(env, order, "cancelled");
+11280:  await addV2OrderHistory(env, orderId, previousStatus, "cancelled", session, reason);
+11282:  await logAdminAction(env, request, session, "api_v2_order_cancelled", `order:${orderId}`);
+11298:  "not_delivered",
+11299:  "delivered",
+11300:  "cancelled"
+11342:  await updateOrderStatusByAdmin(env, orderId, status, note);
+11368:  await updateOrderStatusByAdmin(env, orderId, "delivered", "");
+11369:  await logAdminAction(env, request, session, "api_order_delivered_v2_compat", `order:${orderId}`);
+11394:  await updateOrderStatusByAdmin(env, orderId, "not_delivered", "Returned from closed orders");
+12636:    cancelled: "Cancelled",
+12638:    delivered: "Delivered"
+12647:    cancelled: "Cancelled",
+12648:    delivered: "Delivered",
+12649:    not_delivered: "Not delivered"
+12658:    cancelled: "Cancelled",
+12675:    cancelled: "Cancelled"
+12685:  return ["cancelled", "closed", "delivered"].includes(String(status || ""));
+12784:      AND COALESCE(o.order_status, o.status, 'draft') NOT IN ('cancelled', 'closed', 'delivered')
+12797:      AND COALESCE(order_status, '') != 'cancelled'
+12857:    cancelled: { item_count: 0, total_amount: 0 }
+12938:    cancelled_at: order.cancelled_at || "",
+12939:    cancel_reason: order.cancel_reason || "",
+12949:      cancelled: { ...sectionTotals.cancelled, total_formatted: formatPrice(sectionTotals.cancelled.total_amount) }
+13748:  if (url.pathname === "/api/v1/admin/customer-app-orders") {
+13752:  const adminV2OrderDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)$/);
+13757:  const adminV2OrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/status$/);
+13762:  const adminV2OrderOnTheWayMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/on-the-way$/);
+13764:    return handleApiAdminV2DeliveryOnTheWay(request, env, Number(adminV2OrderOnTheWayMatch[1]));
+13767:  const adminV2OrderReadyPickupMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/ready-to-pickup$/);
+13769:    return handleApiAdminV2ReadyToPickup(request, env, Number(adminV2OrderReadyPickupMatch[1]));
+13772:  const adminV2OrderCancelMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/cancel$/);
+13774:    return handleApiAdminV2CancelOrder(request, env, Number(adminV2OrderCancelMatch[1]));
+13777:  const adminV2OrderGroupApproveMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/approve$/);
+13779:    return handleApiAdminV2ApproveGroup(request, env, Number(adminV2OrderGroupApproveMatch[1]), Number(adminV2OrderGroupApproveMatch[2]));
+13782:  const adminV2OrderGroupRejectMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/reject$/);
+13784:    return handleApiAdminV2RejectGroup(request, env, Number(adminV2OrderGroupRejectMatch[1]), Number(adminV2OrderGroupRejectMatch[2]));
+13792:  const adminOrderDeliveredMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/(\d+)\/delivered$/);
+14046:  const orderDelivered = url.pathname.match(/^\/admin\/orders\/(\d+)\/delivered$/);
+
+## Admin product handlers
+52:    "products",
+63:    "AI must not invent products",
+170:    key: "products",
+171:    callback_data: "option_products",
+172:    reply_trigger: "products",
+173:    typed_values: ["1", "products", "product", "produkte", "produkt", "ürünler", "urunler", "ürün", "urun"],
+224:  en: ["location", "address", "where", "meet", "meeting", "product", "products", "price", "hello", "hi"],
+232:  "product", "products", "price", "prices", "menu", "list", "buy", "available", "order",
+324:      products: "Products",
+396:      products: "Produkte",
+468:      products: "Ürünler",
+540:      products: "المنتجات",
+612:      products: "Продукты",
+1571:    en: { products: "1. Product List", admin: "2. Contact admin" },
+1572:    de: { products: "1. Produktliste", admin: "2. Admin kontaktieren" },
+1573:    tr: { products: "1. Ürün listesi", admin: "2. Admin ile iletişim" },
+1574:    ar: { products: "1. قائمة المنتجات", admin: "2. التواصل مع الإدارة" },
+1575:    ru: { products: "1. Список товаров", admin: "2. Связаться с админом" }
+1580:      [{ text: selected.products, callback_data: "option_products" }],
+2098:      ai_response_mode_help: "The bot always checks buttons, menu numbers, products, locations, addresses, working hours, and admin commands first. OpenAI is used only if the app cannot handle the message.",
+2100:      ai_project_context_help: "These instructions are added dynamically to OpenAI calls together with live products, prices, meeting points, working hours, customer history, and app capabilities."
+2359:  const result = await env.DB.prepare("SELECT id, name, price, is_active FROM products WHERE is_active = 1 ORDER BY id ASC").all();
+2372:     FROM products p
+2495:     JOIN products p ON p.id = pa.product_id
+2519:  const products = await getActiveProducts(env);
+2521:  for (const product of products) {
+2559:      available_products: "Available products:",
+2563:      back_to_products: "Back to products",
+2564:      uncategorized_products: "Uncategorized products",
+2566:      no_products_available: "No active products are available right now.",
+2567:      no_products_in_category: "No active products are available in this category.",
+2572:      available_products: "Verfügbare Produkte:",
+2576:      back_to_products: "Zurück zu Produkten",
+2577:      uncategorized_products: "Nicht kategorisierte Produkte",
+2579:      no_products_available: "Derzeit sind keine aktiven Produkte verfügbar.",
+2580:      no_products_in_category: "In dieser Kategorie sind keine aktiven Produkte verfügbar.",
+2585:      available_products: "Mevcut ürünler:",
+2589:      back_to_products: "Ürünlere dön",
+2590:      uncategorized_products: "Kategorisiz ürünler",
+2592:      no_products_available: "Şu anda aktif ürün yok.",
+2593:      no_products_in_category: "Bu kategoride aktif ürün yok.",
+2598:      available_products: "المنتجات المتوفرة:",
+2602:      back_to_products: "العودة إلى المنتجات",
+2603:      uncategorized_products: "منتجات بدون فئة",
+2605:      no_products_available: "لا توجد منتجات نشطة حالياً.",
+2606:      no_products_in_category: "لا توجد منتجات نشطة في هذه الفئة.",
+2611:      available_products: "Доступные товары:",
+2615:      back_to_products: "Назад к товарам",
+2616:      uncategorized_products: "Товары без категории",
+2618:      no_products_available: "Сейчас нет активных товаров.",
+2619:      no_products_in_category: "В этой категории нет активных товаров.",
+2632:     JOIN products p ON p.category_id = pc.id
+2643:     FROM products
+2654:     FROM products
+2707:function getProductMenuKeyboard(products, language = "en", page = 0) {
+2709:  const paged = paginateTelegramItems(products, page);
+2733:    rows.push([{ text: ui.uncategorized_products, callback_data: "product_category_uncategorized" }]);
+2736:  rows.push([{ text: ui.back_to_products, callback_data: "product_back_to_products" }]);
+2740:function getProductsInCategoryKeyboard(products, language = "en", callbackPrefix = "product_category_page", page = 0) {
+2742:  const paged = paginateTelegramItems(products, page);
+2748:  rows.push([{ text: ui.back_to_products, callback_data: "product_back_to_products" }]);
+2756:  const products = await getActiveProducts(env);
+2758:  if (!products.length) {
+2759:    await sendTelegramMessage(env, chatId, ui.no_products_available);
+2763:  const paged = paginateTelegramItems(products, page);
+2764:  await sendTelegramMessage(env, chatId, ui.available_products, getProductMenuKeyboard(products, language, paged.page));
+2777:      continue_shopping: "See products",
+3242:    JOIN products p ON p.id = ci.product_id
+3370:  if (data === "product_back_to_products") {
+3389:    const products = await getActiveUncategorizedProducts(env);
+3391:    if (!products.length) {
+3392:      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
+3399:      ui.uncategorized_products,
+3400:      getProductsInCategoryKeyboard(products, language, "product_category_uncategorized_page", 0)
+3407:    const products = await getActiveUncategorizedProducts(env);
+3409:    if (!products.length) {
+3410:      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
+3417:      ui.uncategorized_products,
+3418:      getProductsInCategoryKeyboard(products, language, "product_category_uncategorized_page", page)
+3426:      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
+3432:    const products = await getActiveProductsByCategory(env, categoryId);
+3434:    if (!products.length) {
+3435:      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
+3442:      ui.available_products,
+3443:      getProductsInCategoryKeyboard(products, language, `product_category_${categoryId}_page`, page)
+3450:    const products = await getActiveProductsByCategory(env, categoryId);
+3452:    if (!products.length) {
+3453:      await sendTelegramMessage(env, chatId, ui.no_products_in_category);
+3460:      ui.available_products,
+3461:      getProductsInCategoryKeyboard(products, language, `product_category_${categoryId}_page`, 0)
+3475:      "SELECT id, name, price, is_active FROM products WHERE id = ? AND is_active = 1"
+3479:      await sendTelegramMessage(env, chatId, ui.no_products_available);
+3491:  const products = await getActiveProducts(env);
+3494:  if (!products.length) {
+3495:    return ui.no_products_available;
+3498:  const lines = products.map((product) => `- ${product.name}: ${formatPrice(product.price)}`);
+3499:  return `${ui.available_products}\n${lines.join("\n")}`;
+3596:  const products = await getActiveProducts(env);
+3597:  if (!products.length) return null;
+4877:    LEFT JOIN products p ON p.id = lp.product_id
+4986:  const [customers, products, productCategories, meetingPoints, aliasMap] = await Promise.all([
+4996:    products,
+5033:  const productRows = data.products.map((product) => `
+5042:      <form action="/admin/products/${product.id}/update" method="post">
+5055:      <form action="/admin/products/${product.id}/delete" method="post" style="display:inline;">
+5169:  <a href="/admin/products"><button type="button">${ui.products}</button></a>
+5331:${section === "products" ? `
+5332:<h2>${ui.products}</h2>
+5335:.products-top-layout-force {
+5344:.products-panel-force {
+5353:.products-field-force {
+5361:.products-field-force label {
+5366:.products-field-force input,
+5367:.products-field-force select {
+5374:  .products-top-layout-force {
+5378:  .products-field-force {
+5383:  .products-field-force label {
+5389:<div class="products-top-layout-force">
+5390:  <section class="products-panel-force">
+5393:    <div class="products-field-force">
+5398:    <div class="products-field-force">
+5403:    <div class="products-field-force">
+5408:    <div class="products-field-force">
+5413:    <div class="products-field-force">
+5422:    <div class="products-field-force">
+5435:  <section class="products-panel-force">
+5438:    <form action="/admin/products" method="post">
+5439:      <div class="products-field-force">
+5444:      <div class="products-field-force">
+5449:      <div class="products-field-force">
+5461:<table id="products-table" border="1" cellpadding="10">
+5470:<div class="products-top-layout-force">
+5471:  <section class="products-panel-force">
+5475:      <div class="products-field-force">
+5484:  <section class="products-panel-force">
+5873:  document.querySelectorAll("#products-table tr[data-product-id]").forEach((row) => {
+6694:  <a href="/admin/products"><button type="button">${ui.products}</button></a>
+7584:  return htmlResponse(renderAdminDashboard(data, "products"));
+7812:      "INSERT INTO products (name, price, category_id, is_active) VALUES (?, ?, ?, 1) RETURNING id"
+7820:  return redirectResponse("/admin/products");
+7834:      "UPDATE products SET name = ?, price = ?, category_id = ?, is_active = ? WHERE id = ?"
+7844:  return redirectResponse("/admin/products");
+7853:    "DELETE FROM products WHERE id = ?"
+7856:  return redirectResponse("/admin/products");
+7869:  return redirectResponse("/admin/products");
+7883:  return redirectResponse("/admin/products");
+7888:    "UPDATE products SET category_id = NULL WHERE category_id = ?"
+7895:  return redirectResponse("/admin/products");
+8923:  const products = await getActiveProducts(env);
+8938:      "products",
+8959:    active_products: products.map((product) => ({
+8983:- The local app handles commands, buttons, typed menu numbers, products, aliases, locations, addresses, working hours, admin contact, admin replies, delivery ETA, and learned rules before you are called.
+8988:- Do not invent products, prices, locations, working hours, admin details, or delivery promises.
+8989:- Use only live products and meeting points from the provided context.
+9001:  "product_name": "exact product name from active_products, or empty string"
+9210:      "SELECT id, name, price, is_active FROM products WHERE id = ? AND is_active = 1"
+9303:  if (!(await isWithinWorkingHours(env)) && !["products", "contact_admin"].includes(selectedMenuKey)) {
+9326:    } else if (selectedMenuOption.reply_trigger === "products") {
+9379:    if (replyText !== null && !replyText.includes("Available products:")) {
+9417:              "SELECT id FROM products WHERE name = ? AND is_active = 1"
+10052:  if (!(await isWithinWorkingHours(env)) && !["products", "contact_admin"].includes(option.key)) {
+10417:      admin_products: "/api/v1/admin/products",
+10714:    env.DB.prepare("SELECT COUNT(*) AS count FROM products WHERE is_active = 1").first(),
+10729:      active_products_count: Number(activeProductsRow?.count || 0),
+10882:  return "Your additional products were approved and added to your order.";
+10886:  return "Your additional products were rejected. Do you want to create a new order with these items?";
+11448:async function handleApiAdminProducts(request, env) {
+11456:    const products = await getAllProducts(env);
+11461:      products: products.map((product) => mapProductForApi(product, aliasMap)),
+11463:      count: products.length
+11486:      "INSERT INTO products (name, price, category_id, is_active) VALUES (?, ?, ?, 1) RETURNING id"
+11507:async function handleApiAdminProductDetail(request, env, productId) {
+11522:     FROM products p
+11559:      "UPDATE products SET name = ?, price = ?, category_id = ?, is_active = ? WHERE id = ?"
+11579:    await env.DB.prepare("DELETE FROM products WHERE id = ?").bind(productId).run();
+11592:async function handleApiAdminProductCategories(request, env) {
+11635:async function handleApiAdminProductCategoryDetail(request, env, categoryId) {
+11676:    await env.DB.prepare("UPDATE products SET category_id = NULL WHERE category_id = ?").bind(categoryId).run();
+12178:  const productsResult = await env.DB.prepare(
+12186:     FROM products p
+12197:    products: (productsResult.results || []).map((product) => mapProductForApi(product, {})),
+12742:    JOIN products p ON p.id = ci.product_id
+13272:    FROM products
+13806:  if (url.pathname === "/api/v1/admin/products") {
+13807:    return handleApiAdminProducts(request, env);
+13810:  const productDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/products\/(\d+)$/);
+13812:    return handleApiAdminProductDetail(request, env, Number(productDetailMatch[1]));
+13816:    return handleApiAdminProductCategories(request, env);
+13821:    return handleApiAdminProductCategoryDetail(request, env, Number(productCategoryDetailMatch[1]));
+14006:  if ((url.pathname === "/admin/products" || url.pathname === "/admin/products/") && request.method === "GET") return handleAdminProductsPage(env, adminSession);
+14052:  if (url.pathname === "/admin/products" && request.method === "POST") return handleCreateProduct(request, env);
+14060:  const productUpdate = url.pathname.match(/^\/admin\/products\/(\d+)\/update$/);
+14062:  const productDelete = url.pathname.match(/^\/admin\/products\/(\d+)\/delete$/);
+
+## Admin customer handlers
+361:      customers: "Customers",
+433:      customers: "Kunden",
+505:      customers: "Müşteriler",
+577:      customers: "العملاء",
+649:      customers: "Клиенты",
+706:      fulfillment_options_help: "These settings control which location choices are shown to customers after they request a product.",
+721:      customer_locations: "Customer Locations",
+798:      customer_locations: "Kundenstandorte",
+875:      customer_locations: "Müşteri Konumları",
+952:      customer_locations: "مواقع العملاء",
+1029:      customer_locations: "Локации клиента",
+1970:  const existing = await env.DB.prepare("SELECT * FROM customers WHERE telegram_user_id = ?").bind(telegramUserId).first();
+1974:      "UPDATE customers SET username = ?, full_name = ?, last_seen_at = CURRENT_TIMESTAMP WHERE telegram_user_id = ?"
+1981:    "INSERT INTO customers (telegram_user_id, username, full_name, language, preferred_language) VALUES (?, ?, ?, ?, ?)"
+1996:  await env.DB.prepare("UPDATE customers SET language = ?, preferred_language = ? WHERE id = ?")
+2001:  await env.DB.prepare("UPDATE customers SET conversation_state = ? WHERE id = ?").bind(state, customerId).run();
+2025:    UPDATE customer_locations_v2
+2033:    UPDATE customer_locations_v2
+3774:    FROM customer_locations_v2
+3861:    FROM customer_locations_v2
+3918:    FROM customer_locations_v2
+4243:    FROM customer_locations_v2
+4502:    const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(row.customer_id).first();
+4523:    const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(row.customer_id).first();
+4986:  const [customers, products, productCategories, meetingPoints, aliasMap] = await Promise.all([
+4987:    env.DB.prepare("SELECT * FROM customers ORDER BY last_seen_at DESC").all(),
+4995:    customers: customers.results,
+5121:  const customerRows = data.customers.map((customer) => `
+5129:        <a href="/admin/customers/${customer.id}">
+5138:        <form action="/admin/customers/${customer.id}/delete" method="post" style="display:inline;" onsubmit="return confirm('Delete customer?');">
+5172:  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
+5574:${section === "customers" ? `
+5575:<h2>${ui.customers}</h2>
+5578:.customers-filter-layout-force {
+5587:.customers-panel-force {
+5596:.customers-field-force {
+5604:.customers-field-force label {
+5609:.customers-field-force input,
+5610:.customers-field-force select {
+5617:  .customers-filter-layout-force {
+5621:  .customers-field-force {
+5626:  .customers-field-force label {
+5632:<div class="customers-filter-layout-force">
+5633:  <section class="customers-panel-force">
+5636:    <div class="customers-field-force">
+5641:    <div class="customers-field-force">
+5646:    <div class="customers-field-force">
+5659:    <div class="customers-field-force">
+5664:    <div class="customers-field-force">
+5674:<table id="customers-table" border="1" cellpadding="10">
+5725:  form.action = "/admin/customers/" + customerId + "/reply";
+5923:  const table = document.getElementById("customers-table");
+6097:      customers.full_name,
+6098:      customers.username,
+6099:      customers.telegram_user_id,
+6100:      customers.preferred_language,
+6112:    LEFT JOIN customers ON o.session_token = ('app_customer_' || customers.id)
+6697:  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
+7205:      customers.telegram_user_id,
+7206:      customers.preferred_language,
+7207:      customers.language
+7209:    LEFT JOIN customers ON o.session_token = ('app_customer_' || customers.id)
+7602:  return htmlResponse(renderAdminDashboard(data, "customers"));
+8042:  const customers = await env.DB.prepare("SELECT * FROM customers ORDER BY last_seen_at DESC").all();
+8047:  const customerMap = Object.fromEntries(customers.results.map((customer) => [customer.id, customer]));
+8096:      <td>${customer ? `<a href="/admin/customers/${customer.id}"><button type="button" class="request-action-button">${ui.open_customer}</button></a><button type="button" class="request-action-button" onclick="openCustomerMessageModal('${customer.id}', '${escapeHtml(customerLabel)}')">${ui.answer}</button>` : ""}</td>
+8179:  form.action = "/admin/customers/" + customerId + "/message";
+8209:  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?")
+8227:    FROM customer_locations_v2
+8303:  <a href="/admin/customers"><button type="button">${ui.customers}</button></a>
+8336:<form action="/admin/customers/${customer.id}/reply" method="post">
+8344:  <button type="button" id="customer-locations-tab-button" onclick="showCustomerDetailTab('customer-locations')">${ui.customer_locations || "Customer Locations"}</button>
+8357:  <h2>${ui.customer_locations || "Customer Locations"}</h2>
+8421:    "SELECT * FROM customers WHERE id = ?"
+8425:    return redirectResponse("/admin/customers");
+8437:    "DELETE FROM customer_locations_v2 WHERE customer_id = ? OR session_token = ?"
+8449:    "DELETE FROM customers WHERE id = ?"
+8452:  return redirectResponse("/admin/customers");
+8458:  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(customerId).first();
+8463:  return redirectResponse(`/admin/customers/${customerId}`);
+8473:  return redirectResponse(row ? `/admin/customers/${row.customer_id}` : "/admin");
+9128:    const target = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(Number(pendingCustomerId)).first();
+9783:      customers.full_name,
+9784:      customers.username,
+9785:      customers.telegram_user_id,
+9796:    LEFT JOIN customers ON o.session_token = ('app_customer_' || customers.id)
+10017:  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(customerId).first();
+10114:  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(requestRow.customer_id).first();
+10420:      admin_customers: "/api/v1/admin/customers",
+10433:      locations: "/api/v1/customer/locations",
+10713:    env.DB.prepare("SELECT COUNT(*) AS count FROM customers").first(),
+10728:      active_customers_count: Number(activeCustomersRow?.count || 0),
+10770:    LEFT JOIN customers c ON o.session_token = ('app_customer_' || c.id)
+10839:    return await env.DB.prepare("SELECT * FROM customers WHERE id = ?")
+10889:async function handleApiAdminCustomerAppOrderDetail(request, env, orderId) {
+10908:async function handleApiAdminCustomerAppOrders(request, env) {
+10927:async function handleApiAdminCustomerAppOrderStatus(request, env, orderId) {
+11901:async function handleApiAdminCustomers(request, env) {
+11919:  let customers = (await env.DB.prepare("SELECT * FROM customers ORDER BY last_seen_at DESC").all()).results || [];
+11922:    customers = customers.filter((customer) => {
+11936:    customers = customers.filter((customer) => (
+11942:    customers = customers.filter((customer) => Number(customer.is_blocked || 0) !== 1);
+11946:    customers = customers.filter((customer) => Number(customer.is_blocked || 0) === 1);
+11949:  customers = customers.slice(0, limit);
+11952:    customers: customers.map(mapCustomerForApi),
+11953:    count: customers.length
+11957:async function handleApiAdminCustomerDetail(request, env, customerId) {
+11964:  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(customerId).first();
+11976:        FROM customer_locations_v2
+11994:    await env.DB.prepare("DELETE FROM customer_locations_v2 WHERE customer_id = ? OR session_token = ?")
+12004:    await env.DB.prepare("DELETE FROM customers WHERE id = ?").bind(customerId).run();
+12017:async function handleApiAdminCustomerReply(request, env, customerId) {
+12040:  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(customerId).first();
+12291:    JOIN customers c ON c.id = s.customer_id
+12308:      `UPDATE customers
+12323:    return env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(existing.id).first();
+12329:    "INSERT INTO customers (telegram_user_id, username, full_name, language, preferred_language) VALUES (?, ?, ?, ?, ?)"
+12332:  return env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(result.meta.last_row_id).first();
+12378:     JOIN customers c ON c.id = s.customer_id
+12392:    "UPDATE customers SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?"
+12511:    `UPDATE customers
+12520:  const updatedCustomer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?")
+12534:    FROM customer_locations_v2
+12607:  const updated = await env.DB.prepare("SELECT * FROM customer_locations_v2 WHERE id = ?")
+12782:    LEFT JOIN customers c ON o.session_token = ('app_customer_' || c.id)
+12990:    INSERT INTO customer_locations_v2 (
+13014:  return await env.DB.prepare("SELECT * FROM customer_locations_v2 WHERE id = ?")
+13025:      FROM customer_locations_v2
+13037:      FROM customer_locations_v2
+13622:    LEFT JOIN customers c ON o.session_token = ('app_customer_' || c.id)
+13640:    LEFT JOIN customers c ON o.session_token = ('app_customer_' || c.id)
+13749:    return handleApiAdminCustomerAppOrders(request, env);
+13754:    return handleApiAdminCustomerAppOrderDetail(request, env, Number(adminV2OrderDetailMatch[1]));
+13759:    return handleApiAdminCustomerAppOrderStatus(request, env, Number(adminV2OrderStatusMatch[1]));
+13833:  if (url.pathname === "/api/v1/admin/customers") {
+13834:    return handleApiAdminCustomers(request, env);
+13837:  const customerReplyMatch = url.pathname.match(/^\/api\/v1\/admin\/customers\/(\d+)\/reply$/);
+13839:    return handleApiAdminCustomerReply(request, env, Number(customerReplyMatch[1]));
+13842:  const customerDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customers\/(\d+)$/);
+13844:    return handleApiAdminCustomerDetail(request, env, Number(customerDetailMatch[1]));
+13883:  if (url.pathname === "/api/v1/customer/locations") {
+14009:  if ((url.pathname === "/admin/customers" || url.pathname === "/admin/customers/") && request.method === "GET") return handleAdminCustomersPage(env, adminSession);
+14010:  const customerDelete = url.pathname.match(/^\/admin\/customers\/(\d+)\/delete$/);
+14082:  const customerDetail = url.pathname.match(/^\/admin\/customers\/(\d+)$/);
+14084:  const customerReply = url.pathname.match(/^\/admin\/customers\/(\d+)\/reply$/);
+
+## Admin open request handlers
+16:const ADMIN_CSS = ':root {\n    --bg: #f4f6f8;\n    --panel: #ffffff;\n    --text: #1f2937;\n    --muted: #6b7280;\n    --border: #d9dee7;\n    --primary: #2563eb;\n    --primary-hover: #1d4ed8;\n    --danger: #dc2626;\n    --success: #16a34a;\n    --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);\n    --radius: 14px;\n}\n\n* {\n    box-sizing: border-box;\n}\n\nbody {\n    margin: 0;\n    padding: 24px;\n    background: var(--bg);\n    color: var(--text);\n    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;\n    font-size: 15px;\n    line-height: 1.45;\n}\n\nh1 {\n    margin: 0 0 18px;\n    font-size: 28px;\n    letter-spacing: -0.03em;\n}\n\nh2 {\n    margin: 28px 0 12px;\n    font-size: 20px;\n    letter-spacing: -0.02em;\n}\n\nh3 {\n    margin: 22px 0 10px;\n    font-size: 17px;\n}\n\np {\n    margin: 10px 0;\n}\n\na {\n    color: var(--primary);\n    text-decoration: none;\n}\n\na:hover {\n    text-decoration: underline;\n}\n\nform {\n    margin: 0;\n}\n\nbody > form,\nbody > p,\nbody > table,\nbody > div,\nbody > h2 + form,\nbody > h3 + form {\n    max-width: 1200px;\n}\n\nbody > table,\n#open-requests-container,\nform:not([style*="display:inline"]) {\n    background: var(--panel);\n    border: 1px solid var(--border);\n    border-radius: var(--radius);\n    box-shadow: var(--shadow);\n    padding: 16px;\n    margin-bottom: 18px;\n}\n\ntable {\n    width: 100%;\n    border-collapse: collapse;\n    background: var(--panel);\n    border: 1px solid var(--border) !important;\n    border-radius: var(--radius);\n    overflow: hidden;\n}\n\nth,\ntd {\n    border: 1px solid var(--border) !important;\n    padding: 10px;\n    text-align: left;\n    vertical-align: top;\n}\n\nth {\n    background: #eef2f7;\n    font-weight: 700;\n    color: #111827;\n}\n\ntr:nth-child(even) td {\n    background: #fafbfc;\n}\n\ninput,\nselect,\ntextarea {\n    width: 100%;\n    max-width: 720px;\n    border: 1px solid var(--border);\n    border-radius: 10px;\n    padding: 9px 10px;\n    font: inherit;\n    background: #fff;\n    color: var(--text);\n}\n\ninput[type="checkbox"],\ninput[type="radio"] {\n    width: auto;\n    margin-right: 6px;\n}\n\ntextarea {\n    min-height: 84px;\n    resize: vertical;\n}\n\nbutton {\n    appearance: none;\n    border: 0;\n    border-radius: 10px;\n    background: var(--primary);\n    color: #fff;\n    padding: 9px 13px;\n    font: inherit;\n    font-weight: 650;\n    cursor: pointer;\n    margin: 3px 4px 3px 0;\n}\n\nbutton:hover {\n    background: var(--primary-hover);\n}\n\nbutton[type="submit"] {\n    background: var(--primary);\n}\n\nform[action*="logout"] button,\nform[action*="delete"] button {\n    background: var(--danger);\n}\n\nform[action*="logout"] button:hover,\nform[action*="delete"] button:hover {\n    background: #b91c1c;\n}\n\np[style*="color:red"],\n.error {\n    color: var(--danger) !important;\n    background: #fef2f2;\n    border: 1px solid #fecaca;\n    padding: 10px 12px;\n    border-radius: 10px;\n}\n\np[style*="color:green"],\n.success {\n    color: var(--success) !important;\n    background: #f0fdf4;\n    border: 1px solid #bbf7d0;\n    padding: 10px 12px;\n    border-radius: 10px;\n}\n\n.page-actions {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8px;\n    margin: 14px 0 22px;\n}\n\n.page-actions form {\n    background: transparent;\n    border: 0;\n    box-shadow: none;\n    padding: 0;\n    margin: 0;\n}\n\n@media (max-width: 760px) {\n    body {\n        padding: 14px;\n        font-size: 14px;\n    }\n\n    h1 {\n        font-size: 23px;\n    }\n\n    h2 {\n        font-size: 18px;\n    }\n\n    body > table,\n    #open-requests-container,\n    form:not([style*="display:inline"]) {\n        padding: 12px;\n        border-radius: 12px;\n        overflow-x: auto;\n    }\n\n    table {\n        min-width: 720px;\n        display: block;\n        overflow-x: auto;\n        white-space: nowrap;\n    }\n\n    input,\n    select,\n    textarea {\n        max-width: none;\n    }\n\n    button {\n        width: 100%;\n        margin: 4px 0;\n    }\n\n    form[style*="display:inline"] button,\n    td button {\n        width: auto;\n    }\n\n    .page-actions {\n        display: block;\n    }\n}\n\n.request-action-button {\n    width: 135px;\n    text-align: center;\n}\n\n/* Compact admin UI adjustment */\nbody {\n    font-size: 13px;\n    padding: 18px;\n}\n\nh1 {\n    font-size: 24px;\n    margin-bottom: 14px;\n}\n\nh2 {\n    font-size: 17px;\n    margin: 22px 0 10px;\n}\n\nh3 {\n    font-size: 15px;\n}\n\nbutton {\n    padding: 6px 10px;\n    font-size: 13px;\n    border-radius: 8px;\n    margin: 2px 3px 2px 0;\n}\n\ninput,\nselect,\ntextarea {\n    font-size: 13px;\n    padding: 7px 9px;\n    border-radius: 8px;\n}\n\nth,\ntd {\n    padding: 7px 8px;\n}\n\nbody > table,\n#open-requests-container,\nform:not([style*="display:inline"]) {\n    padding: 12px;\n    margin-bottom: 14px;\n}\n\n.request-action-button {\n    width: 110px;\n}\n\n@media (max-width: 760px) {\n    body {\n        font-size: 13px;\n        padding: 10px;\n    }\n\n    h1 {\n        font-size: 21px;\n    }\n\n    h2 {\n        font-size: 16px;\n    }\n\n    button {\n        font-size: 13px;\n        padding: 7px 9px;\n    }\n\n    th,\n    td {\n        padding: 6px 7px;\n    }\n}\n\nhr {\n    max-width: 1200px;\n    border: 0;\n    border-top: 1px solid var(--border);\n    margin: 14px 0 18px;\n}\n\n.admin-header {\n    max-width: 1200px;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    gap: 12px;\n    margin-bottom: 10px;\n}\n\n.admin-header h1 {\n    margin: 0;\n}\n\n.header-actions {\n    display: flex;\n    align-items: center;\n    gap: 8px;\n}\n\n.header-actions form {\n    background: transparent;\n    border: 0;\n    box-shadow: none;\n    padding: 0;\n    margin: 0;\n}\n\n@media (max-width: 760px) {\n    .admin-header {\n        align-items: flex-start;\n        flex-direction: column;\n    }\n\n    .header-actions {\n        width: 100%;\n        display: grid;\n        grid-template-columns: 1fr 1fr;\n    }\n\n    .header-actions a,\n    .header-actions form {\n        width: 100%;\n    }\n\n    .header-actions button {\n        width: 100%;\n    }\n}\n\n.admin-header {\n    background: transparent;\n    border: 0;\n    box-shadow: none;\n    padding: 0;\n}\n\n.header-actions {\n    display: flex;\n    gap: 8px;\n}\n\n.header-actions form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 0 !important;\n}\n\n.header-actions a {\n    display: inline-block;\n}\n\nhr + hr {\n    margin-top: -10px;\n}\n\n@media (max-width: 760px) {\n    .admin-header {\n        flex-direction: column;\n        align-items: flex-start;\n    }\n\n    .header-actions {\n        display: grid;\n        grid-template-columns: 1fr 1fr;\n        width: 100%;\n    }\n}\n\n.all-done-header-form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 6px 0 0 0 !important;\n}\n\n.all-done-header-form button {\n    width: 90px;\n}\n#open-requests-container table th:nth-child(9),\n#open-requests-container table td:nth-child(9) {\n    width: 125px;\n    min-width: 125px;\n    max-width: 125px;\n    padding: 7px 8px;\n}\n\n#open-requests-container table td:nth-child(9) form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 0 0 5px 0 !important;\n}\n\n#open-requests-container table td:nth-child(9) button,\n.request-action-button {\n    width: 110px;\n    margin: 0 0 5px 0 !important;\n}\n\n.all-done-header-form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 0 !important;\n}\n\n.all-done-header-form button {\n    width: 90px;\n}\n\n.open-requests-table-actions {\n    max-width: 1200px;\n    display: flex;\n    justify-content: flex-end;\n    margin: 0 0 8px 0;\n}\n\n.open-requests-table-actions form {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    padding: 0 !important;\n    margin: 0 !important;\n}\n\n.open-requests-table-actions button {\n    width: 90px;\n}\n\n.admin-info-text {\n    max-width: 1200px;\n    background: #eef2ff;\n    border: 1px solid #c7d2fe;\n    border-radius: 10px;\n    padding: 10px 12px;\n    color: #1e3a8a;\n    margin: 10px 0 18px;\n}\n';
+1591:      [{ text: "Open Requests", url: `${adminUrl.replace(/\/$/, "")}/openrequests/` }]
+2012:    `INSERT INTO customer_requests
+4234:    "SELECT * FROM customer_requests WHERE id = ?"
+4253:    `UPDATE customer_requests
+4498:    "SELECT DISTINCT customer_id FROM customer_requests WHERE request_type = 'location' AND status != 'done'"
+4519:    "SELECT DISTINCT customer_id FROM customer_requests WHERE request_type = 'location' AND status != 'done'"
+5166:  <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
+6691:  <a href="/admin/openrequests/"><button type="button">${ui.open_requests}</button></a>
+7302:    UPDATE customer_requests
+8044:    "SELECT * FROM customer_requests WHERE status != 'done' AND request_type != 'product_list' ORDER BY created_at DESC"
+8150:<div class="open-requests-table-actions">
+8153:<div id="open-requests-container">${table}</div>
+8192:  const response = await fetch("/admin/open-requests", { credentials: "same-origin" });
+8195:  document.getElementById("open-requests-container").innerHTML = html;
+8222:    "SELECT * FROM customer_requests WHERE customer_id = ? ORDER BY created_at DESC"
+8433:    "DELETE FROM customer_requests WHERE customer_id = ?"
+8470:    await env.DB.prepare("UPDATE customer_requests SET status = ? WHERE id = ?").bind(status, requestId).run();
+8472:  const row = await env.DB.prepare("SELECT customer_id FROM customer_requests WHERE id = ?").bind(requestId).first();
+8483:    await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE customer_id = ? AND request_type = ? AND status != 'done' AND item_name = ?")
+8486:    await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE customer_id = ? AND request_type = ? AND status != 'done' AND item_name IS NULL")
+8490:  return redirectResponse("/admin/openrequests/");
+8494:  await env.DB.prepare("UPDATE customer_requests SET status = 'done' WHERE status != 'done'").run();
+8495:  return redirectResponse("/admin/openrequests/");
+10103:  const requestRow = await env.DB.prepare("SELECT * FROM customer_requests WHERE id = ?").bind(requestId).first();
+10164:    await env.DB.prepare("UPDATE customer_requests SET status = 'cancelled' WHERE id = ?")
+10172:  await env.DB.prepare("UPDATE customer_requests SET status = ? WHERE id = ?")
+10416:      admin_open_requests: "/api/v1/admin/open-requests",
+11405:async function handleApiAdminOpenRequests(request, env) {
+11973:      env.DB.prepare("SELECT * FROM customer_requests WHERE customer_id = ? ORDER BY created_at DESC").bind(customerId).all(),
+11993:    await env.DB.prepare("DELETE FROM customer_requests WHERE customer_id = ?").bind(customerId).run();
+13802:  if (url.pathname === "/api/v1/admin/open-requests") {
+13803:    return handleApiAdminOpenRequests(request, env);
+14016:  if (url.pathname === "/admin/openrequests/" || url.pathname === "/admin/openrequests") return handleOpenRequestsPage(env, adminSession);
+14017:  if (url.pathname === "/admin/open-requests") return handleOpenRequestsPartial(env);
+
+## Admin meeting point handlers
+336:      meeting_points: "Meeting Points",
+408:      meeting_points: "Treffpunkte",
+480:      meeting_points: "Buluşma Noktaları",
+552:      meeting_points: "نقاط اللقاء",
+624:      meeting_points: "Точки встречи",
+2390:    "SELECT id, name, address, google_maps_link, is_default, is_active FROM meeting_points WHERE is_active = 1 ORDER BY is_default DESC, name ASC"
+2397:    "SELECT id, name, address, google_maps_link, is_default, is_active FROM meeting_points ORDER BY id ASC"
+3218:    [{ text: ui.see_locations, callback_data: "location_show_meeting_points" }],
+5077:      <form action="/admin/meeting-points/${point.id}/update" method="post">
+5089:      ${point.is_active ? `<form action="/admin/meeting-points/${point.id}/default" method="post" style="display:inline;"><button type="submit">${ui.set_preferred}</button></form>` : ""}
+5090:      <form action="/admin/meeting-points/${point.id}/delete" method="post" style="display:inline;">
+5170:  <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
+5499:${section === "meeting_points" ? `
+5500:<h2>${ui.meeting_points}</h2>
+5512:<form action="/admin/meeting-points" method="post">
+6695:  <a href="/admin/meeting-points"><button type="button">${ui.meeting_points}</button></a>
+7590:  return htmlResponse(renderAdminDashboard(data, "meeting_points"));
+7907:      "INSERT INTO meeting_points (name, address, google_maps_link, is_default, is_active) VALUES (?, ?, ?, ?, 1)"
+7929:  const before = await env.DB.prepare("SELECT * FROM meeting_points WHERE id = ?").bind(pointId).first();
+7933:      "UPDATE meeting_points SET name = ?, address = ?, google_maps_link = ?, is_active = ?, is_default = CASE WHEN ? = 0 THEN 0 ELSE is_default END WHERE id = ?"
+7945:  await env.DB.prepare("UPDATE meeting_points SET is_default = 1, is_active = 1 WHERE id = ?").bind(pointId).run();
+7946:  const point = await env.DB.prepare("SELECT * FROM meeting_points WHERE id = ?").bind(pointId).first();
+7952:  await env.DB.prepare("DELETE FROM meeting_points WHERE id = ?").bind(pointId).run();
+8964:    active_meeting_points: meetingPoints.map((point) => ({
+9577:  const point = await env.DB.prepare("SELECT * FROM meeting_points WHERE id = ? AND is_active = 1").bind(pointId).first();
+9753:  const point = await env.DB.prepare("SELECT * FROM meeting_points WHERE id = ? AND is_active = 1").bind(pointId).first();
+10210:  if (callbackQuery.data === "location_show_meeting_points") {
+10419:      admin_meeting_points: "/api/v1/admin/meeting-points",
+10425:      meeting_points: "/api/v1/public/meeting-points"
+10715:    env.DB.prepare("SELECT COUNT(*) AS count FROM meeting_points WHERE is_active = 1").first()
+10730:      active_meeting_points_count: Number(activeMeetingPointsRow?.count || 0)
+11703:async function handleApiAdminMeetingPoints(request, env) {
+11714:      meeting_points: points.map(mapMeetingPointForApi),
+11736:      "INSERT INTO meeting_points (name, address, google_maps_link, is_default, is_active) VALUES (?, ?, ?, ?, 1)"
+11760:async function handleApiAdminMeetingPointDetail(request, env, pointId) {
+11768:    "SELECT id, name, address, google_maps_link, is_default, is_active FROM meeting_points WHERE id = ?"
+11799:      "UPDATE meeting_points SET name = ?, address = ?, google_maps_link = ?, is_active = ?, is_default = CASE WHEN ? = 0 THEN 0 ELSE is_default END WHERE id = ?"
+11807:      await env.DB.prepare("UPDATE meeting_points SET is_default = 1, is_active = 1 WHERE id = ?").bind(pointId).run();
+11824:    await env.DB.prepare("DELETE FROM meeting_points WHERE id = ?").bind(pointId).run();
+12202:    meeting_points: meetingPoints.map(mapMeetingPointForApi),
+12235:    meeting_points: meetingPoints.map(mapMeetingPointForApi),
+13824:  if (url.pathname === "/api/v1/admin/meeting-points") {
+13825:    return handleApiAdminMeetingPoints(request, env);
+13828:  const meetingPointDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/meeting-points\/(\d+)$/);
+13830:    return handleApiAdminMeetingPointDetail(request, env, Number(meetingPointDetailMatch[1]));
+13863:  if (url.pathname === "/api/v1/public/meeting-points") {
+14007:  if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env, adminSession);
+14065:  if (url.pathname === "/admin/meeting-points" && request.method === "POST") return handleCreateMeetingPoint(request, env);
+14066:  const pointUpdate = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/update$/);
+14068:  const pointDefault = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/default$/);
+14070:  const pointDelete = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/delete$/);
+
+## Admin settings handlers
+304:      notification_settings: "Notification Settings",
+376:      notification_settings: "Benachrichtigungseinstellungen",
+448:      notification_settings: "Bildirim Ayarları",
+520:      notification_settings: "إعدادات الإشعارات",
+592:      notification_settings: "Настройки уведомлений",
+706:      fulfillment_options_help: "These settings control which location choices are shown to customers after they request a product.",
+1677:  const row = await env.DB.prepare("SELECT value FROM app_settings WHERE key = ?").bind(key).first();
+1682:  const existing = await env.DB.prepare("SELECT id FROM app_settings WHERE key = ?").bind(key).first();
+1684:    await env.DB.prepare("UPDATE app_settings SET value = ? WHERE key = ?").bind(String(value ?? ""), key).run();
+1686:    await env.DB.prepare("INSERT INTO app_settings (key, value) VALUES (?, ?)").bind(key, String(value ?? "")).run();
+4336:  const settings = await getFulfillmentSettings(env);
+4340:    allowPreferred: settings.allowPreferred,
+4341:    allowNew: settings.allowNew,
+4342:    allowPickup: settings.allowPickup,
+5002:    settings: {
+5022:  const ui = getAdminUiText(data.settings.admin_view_language);
+5024:  const adminText = ADMIN_TEXTS[data.settings.admin_view_language] || ADMIN_TEXTS.en;
+5179:<form action="/admin/settings/admin-language" method="post">
+5182:    <option value="en" ${selected(data.settings.admin_view_language, "en")}>English</option>
+5183:    <option value="de" ${selected(data.settings.admin_view_language, "de")}>Deutsch</option>
+5184:    <option value="tr" ${selected(data.settings.admin_view_language, "tr")}>Türkçe</option>
+5185:    <option value="ar" ${selected(data.settings.admin_view_language, "ar")}>العربية</option>
+5186:    <option value="ru" ${selected(data.settings.admin_view_language, "ru")}>Русский</option>
+5192:<h2>${ui.notification_settings}</h2>
+5193:<form action="/admin/settings/admin-telegram" method="post">
+5195:  <input type="text" name="admin_telegram_chat_id" value="${escapeHtml(data.settings.admin_telegram_chat_id)}" size="30" required>
+5201:<form action="/admin/settings/working-hours" method="post">
+5202:  <label><input type="checkbox" name="working_hours_enabled" value="on" ${checked(data.settings.working_hours_enabled === "on")}>${ui.enable_working_hours}</label>
+5206:    ${getAdminTimezoneOptions(data.settings.working_hours_timezone, ui._language)}
+5210:  <input type="time" name="working_hours_start" value="${escapeHtml(data.settings.working_hours_start)}" required>
+5213:  <input type="time" name="working_hours_end" value="${escapeHtml(data.settings.working_hours_end)}" required>
+5216:  <label><input type="radio" name="working_hours_message_mode" value="auto" ${checked(data.settings.working_hours_message_mode === "auto")}>${ui.auto_message}</label>
+5218:  <label><input type="radio" name="working_hours_message_mode" value="custom" ${checked(data.settings.working_hours_message_mode !== "auto")}>${ui.custom_message}</label>
+5221:  <textarea name="working_hours_closed_message" rows="3" cols="80">${escapeHtml(data.settings.working_hours_closed_message)}</textarea>
+5230:<form action="/admin/settings/fulfillment-options" method="post">
+5238:      ${checked(data.settings.allow_preferred_customer_location === "on")}
+5249:      ${checked(data.settings.allow_new_customer_location === "on")}
+5260:      ${checked(data.settings.allow_customer_pickup === "on")}
+5272:<form action="/admin/settings/delivery-cities" method="post">
+5276:  <textarea name="allowed_delivery_cities" rows="3" cols="80">${escapeHtml((data.settings.allowed_delivery_cities || ["Berlin"]).join(", "))}</textarea>
+5284:<form action="/admin/settings/ai-response-mode" method="post">
+5290:      ${checked(data.settings.ai_response_mode !== "ai_fallback")}
+5301:      ${checked(data.settings.ai_response_mode === "ai_fallback")}
+5318:  >${escapeHtml(data.settings.ai_custom_instructions || "")}</textarea>
+8441:    `DELETE FROM app_settings
+10421:      admin_settings: "/api/v1/admin/settings"
+11998:      `DELETE FROM app_settings
+12083:async function handleApiAdminSettings(request, env) {
+12092:      settings: await getApiAdminSettings(env)
+12165:    await logAdminAction(env, request, session, "api_settings_updated", "admin_settings");
+12168:      settings: await getApiAdminSettings(env)
+13847:  if (url.pathname === "/api/v1/admin/settings") {
+13848:    return handleApiAdminSettings(request, env);
+14023:  if (url.pathname === "/admin/settings/admin-telegram" && request.method === "POST") return handleUpdateAdminTelegram(request, env);
+14024:  if (url.pathname === "/admin/settings/working-hours" && request.method === "POST") return handleUpdateWorkingHours(request, env);
+14025:  if (url.pathname === "/admin/settings/fulfillment-options" && request.method === "POST") return handleUpdateFulfillmentOptions(request, env);
+14026:  if (url.pathname === "/admin/settings/delivery-cities" && request.method === "POST") return handleUpdateDeliveryCities(request, env);
+14027:  if (url.pathname === "/admin/settings/admin-language" && request.method === "POST") return handleUpdateAdminLanguage(request, env);
+14028:  if (url.pathname === "/admin/settings/ai-response-mode" && request.method === "POST") return handleUpdateAiResponseMode(request, env);
+
+## Admin auth/session handlers
+4569:async function createAdminToken(env, username, role = "admin") {
+4610:async function verifyAdminToken(env, token) {
+4631:  if (env.SUPERADMIN_USERNAME && username === env.SUPERADMIN_USERNAME) {
+4637:  if (username === env.ADMIN_USERNAME) {
+4655:  return await getSetting(env, "admin_password_override") || env.ADMIN_PASSWORD;
+4659:  return await getSetting(env, "superadmin_password_override") || env.SUPERADMIN_PASSWORD;
+4670:  if (username === env.ADMIN_USERNAME && password === await getCurrentAdminPassword(env)) {
+4674:  if (env.SUPERADMIN_USERNAME && env.SUPERADMIN_PASSWORD && username === env.SUPERADMIN_USERNAME && password === await getCurrentSuperadminPassword(env)) {
+4700:  const payload = await verifyAdminToken(env, token);
+4759:  if (env.SUPERADMIN_USERNAME) {
+4762:      username: env.SUPERADMIN_USERNAME,
+4772:  if (env.ADMIN_USERNAME) {
+4775:      username: env.ADMIN_USERNAME,
+4822:<form action="/admin/login" method="post">
+4851:  const token = await createAdminToken(env, auth.username, auth.role);
+4865:      location: "/admin/login",
+7765:    && !env.SUPERADMIN_USERNAME
+7793:    && !env.SUPERADMIN_USERNAME
+8522:  if (!(await authenticateAdmin(env, env.ADMIN_USERNAME, current))) return handleChangePasswordPage("Current password is incorrect.", null);
+8536:<p><a href="/admin/login">Back to Login</a></p>
+8561:<p><a href="/admin/login">Back to Login</a></p>
+8590:  return redirectResponse("/admin/login");
+9009:        "authorization": `Bearer ${env.OPENAI_API_KEY}`,
+10250:  "access-control-allow-headers": "content-type,authorization,x-customer-session-token",
+10372:function getBearerToken(request) {
+10373:  const header = request.headers.get("authorization") || "";
+10374:  const match = header.match(/^Bearer\s+(.+)$/i);
+10379:  const token = getBearerToken(request) || parseCookies(request)[ADMIN_COOKIE_NAME];
+10380:  const payload = await verifyAdminToken(env, token);
+10406:      admin_login: "/api/v1/admin/login",
+10451:async function handleApiAdminLogin(request, env) {
+10479:  const token = await createAdminToken(env, auth.username, auth.role);
+10482:    token_type: "Bearer",
+10499:  const token = getBearerToken(request) || parseCookies(request)[ADMIN_COOKIE_NAME];
+10505:  const payload = await verifyAdminToken(env, token);
+10525:  const token = getBearerToken(request) || parseCookies(request)[ADMIN_COOKIE_NAME];
+10561:  if (session.username === env.ADMIN_USERNAME) {
+10563:  } else if (env.SUPERADMIN_USERNAME && session.username === env.SUPERADMIN_USERNAME) {
+12355:    token_type: "Bearer",
+12360:function getCustomerBearerToken(request) {
+12361:  const auth = request.headers.get("authorization") || "";
+12367:  const token = getCustomerBearerToken(request);
+12433:  const token = getCustomerBearerToken(request);
+13720:  if (url.pathname === "/api/v1/admin/login") {
+13721:    return handleApiAdminLogin(request, env);
+13961:  if (url.pathname === "/admin/login" && request.method === "GET") return handleLoginPage();
+13962:  if (url.pathname === "/admin/login" && request.method === "POST") return handleAdminLogin(request, env);
+13973:      return redirectResponse("/admin/login");
+
+## Mobile/API parity references
+AGENTS.md:207:## Current Android / domain direction
+AGENTS.md:209:- Build two Android apps in parallel with the existing Telegram bot and admin web UI.
+AGENTS.md:211:- Do not create a separate Android webhook.
+AGENTS.md:216:- Android apps, Telegram, and admin web must use the same Cloudflare Worker backend and the same D1 database.
+AGENTS.md:217:- Add versioned mobile/backend API routes under:
+AGENTS.md:221:- Backend remains the source of truth. Android apps must call backend APIs and must not duplicate business logic locally.
+AGENTS.md:223:- Do not break current production routes while adding Android APIs.
+AGENTS.md:225:## Android app roadmap
+AGENTS.md:227:The production Android app roadmap is documented in:
+AGENTS.md:233:- Admin Android App
+AGENTS.md:234:- Customer Android App
+AGENTS.md:238:Backend remains the source of truth. Android apps must call backend APIs and should not duplicate business logic locally.
+AGENTS.md:254:V2 order/location/customer-app lifecycle is now verified across:
+AGENTS.md:259:- Android shared customer API parity
+AGENTS.md:260:- Apple shared customer API parity
+AGENTS.md:275:- Customer app / mobile / Telegram customer order work must use the V2 customer cart/order/location model.
+AGENTS.md:276:- Admin API routes for customer app orders live under /api/v1/admin/customer-app-orders.
+README.md:133:- Responsive admin UI for desktop and mobile
+README.md:676:Open Requests are admin-actionable rows only. For our-location / meeting-point flow, the row is created only after the customer approves delivery at that location. Asking for location alone should not create an Open Request.
+README.md:703:## Current Android and domain direction
+README.md:705:Two Android apps are now part of the active project direction:
+README.md:707:1. Admin Android App
+README.md:708:2. Customer Android App
+README.md:710:The Android apps must be built in parallel with the existing Telegram bot and current admin web UI.
+README.md:716:- Do not create a separate Android webhook.
+README.md:717:- Do not create a separate Android backend/database.
+README.md:718:- Telegram, admin web, Admin Android App, and Customer Android App must use the same Cloudflare Worker backend and the same Cloudflare D1 database.
+README.md:719:- Add versioned API endpoints under `/api/v1/...` for Android and future clients.
+README.md:728:- Do not move Telegram to a separate webhook while building Android apps.
+README.md:735:4. Start Android UI only after the first API contract is stable.
+README.md:737:Android roadmap:
+README.md:765:## V2 customer app order/location lifecycle
+README.md:798:- admin API customer-app order list/detail
+README.md:819:- Telegram, Telegram Mini App, Android shared API, Apple shared API, admin API, and admin web must stay aligned on the same V2 backend lifecycle.
+README.md:820:- Admin web routes under /admin/orders and API routes under /api/v1/admin/customer-app-orders must remain behaviorally consistent.
+docs/verification/v2-customer-order-location-admin-lifecycle.md:10:- Android shared customer API client
+docs/verification/v2-customer-order-location-admin-lifecycle.md:11:- Apple shared customer API client
+docs/verification/v2-customer-order-location-admin-lifecycle.md:32:546dc34 Add mobile customer location API parity
+docs/verification/v2-customer-order-location-admin-lifecycle.md:36:ce4dddc Fix customer app language and order customer mapping
+docs/verification/v2-customer-order-location-admin-lifecycle.md:39:0dbdbd2 Add Apple customer API parity methods
+docs/verification/v2-customer-order-location-admin-lifecycle.md:40:0575225 Add Android customer API parity methods
+docs/verification/v2-customer-order-location-admin-lifecycle.md:112:Android shared API parity: verified
+docs/verification/v2-customer-order-location-admin-lifecycle.md:113:Apple shared API parity: verified
+cloudflare-worker/src/index.js:10406:      admin_login: "/api/v1/admin/login",
+cloudflare-worker/src/index.js:10407:      admin_logout: "/api/v1/admin/logout",
+cloudflare-worker/src/index.js:10408:      admin_change_password: "/api/v1/admin/password",
+cloudflare-worker/src/index.js:10409:      admin_me: "/api/v1/admin/me",
+cloudflare-worker/src/index.js:10410:      admin_dashboard: "/api/v1/admin/dashboard",
+cloudflare-worker/src/index.js:10411:      admin_orders: "/api/v1/admin/orders",
+cloudflare-worker/src/index.js:10412:      admin_closed_orders: "/api/v1/admin/closed-orders",
+cloudflare-worker/src/index.js:10413:      admin_order_status: "/api/v1/admin/orders/{order_id}/status",
+cloudflare-worker/src/index.js:10414:      admin_order_delivered: "/api/v1/admin/orders/{order_id}/delivered",
+cloudflare-worker/src/index.js:10415:      admin_order_return: "/api/v1/admin/orders/{order_id}/return",
+cloudflare-worker/src/index.js:10416:      admin_open_requests: "/api/v1/admin/open-requests",
+cloudflare-worker/src/index.js:10417:      admin_products: "/api/v1/admin/products",
+cloudflare-worker/src/index.js:10418:      admin_product_categories: "/api/v1/admin/product-categories",
+cloudflare-worker/src/index.js:10419:      admin_meeting_points: "/api/v1/admin/meeting-points",
+cloudflare-worker/src/index.js:10420:      admin_customers: "/api/v1/admin/customers",
+cloudflare-worker/src/index.js:10421:      admin_settings: "/api/v1/admin/settings"
+cloudflare-worker/src/index.js:10428:      session_start: "/api/v1/customer/session/start",
+cloudflare-worker/src/index.js:10429:      session_verify: "/api/v1/customer/session/verify",
+cloudflare-worker/src/index.js:10430:      session_logout: "/api/v1/customer/session/logout",
+cloudflare-worker/src/index.js:10431:      me: "/api/v1/customer/me",
+cloudflare-worker/src/index.js:10432:      update_profile: "/api/v1/customer/me",
+cloudflare-worker/src/index.js:10433:      locations: "/api/v1/customer/locations",
+cloudflare-worker/src/index.js:10434:      cart: "/api/v1/customer/cart",
+cloudflare-worker/src/index.js:10435:      cart_items: "/api/v1/customer/cart/items",
+cloudflare-worker/src/index.js:10436:      checkout_address: "/api/v1/customer/checkout/address",
+cloudflare-worker/src/index.js:10437:      checkout_pickup: "/api/v1/customer/checkout/pickup",
+cloudflare-worker/src/index.js:10438:      orders: "/api/v1/customer/orders"
+cloudflare-worker/src/index.js:12326:  const mobileIdentity = makeMobileCustomerIdentity();
+cloudflare-worker/src/index.js:12330:  ).bind(mobileIdentity, username, fullName, preferredLanguage, preferredLanguage).run();
+cloudflare-worker/src/index.js:13720:  if (url.pathname === "/api/v1/admin/login") {
+cloudflare-worker/src/index.js:13724:  if (url.pathname === "/api/v1/admin/logout") {
+cloudflare-worker/src/index.js:13728:  if (url.pathname === "/api/v1/admin/password") {
+cloudflare-worker/src/index.js:13732:  if (url.pathname === "/api/v1/admin/me") {
+cloudflare-worker/src/index.js:13736:  if (url.pathname === "/api/v1/admin/dashboard") {
+cloudflare-worker/src/index.js:13740:  if (url.pathname === "/api/v1/admin/orders") {
+cloudflare-worker/src/index.js:13744:  if (url.pathname === "/api/v1/admin/closed-orders") {
+cloudflare-worker/src/index.js:13748:  if (url.pathname === "/api/v1/admin/customer-app-orders") {
+cloudflare-worker/src/index.js:13752:  const adminV2OrderDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)$/);
+cloudflare-worker/src/index.js:13757:  const adminV2OrderStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/status$/);
+cloudflare-worker/src/index.js:13762:  const adminV2OrderOnTheWayMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/on-the-way$/);
+cloudflare-worker/src/index.js:13767:  const adminV2OrderReadyPickupMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/ready-to-pickup$/);
+cloudflare-worker/src/index.js:13772:  const adminV2OrderCancelMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/cancel$/);
+cloudflare-worker/src/index.js:13777:  const adminV2OrderGroupApproveMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/approve$/);
+cloudflare-worker/src/index.js:13782:  const adminV2OrderGroupRejectMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/groups\/(\d+)\/reject$/);
+cloudflare-worker/src/index.js:13802:  if (url.pathname === "/api/v1/admin/open-requests") {
+cloudflare-worker/src/index.js:13806:  if (url.pathname === "/api/v1/admin/products") {
+cloudflare-worker/src/index.js:13815:  if (url.pathname === "/api/v1/admin/product-categories") {
+cloudflare-worker/src/index.js:13824:  if (url.pathname === "/api/v1/admin/meeting-points") {
+cloudflare-worker/src/index.js:13833:  if (url.pathname === "/api/v1/admin/customers") {
+cloudflare-worker/src/index.js:13847:  if (url.pathname === "/api/v1/admin/settings") {
+cloudflare-worker/src/index.js:13867:  if (url.pathname === "/api/v1/customer/session/start") {
+cloudflare-worker/src/index.js:13871:  if (url.pathname === "/api/v1/customer/session/verify") {
+cloudflare-worker/src/index.js:13875:  if (url.pathname === "/api/v1/customer/session/logout") {
+cloudflare-worker/src/index.js:13879:  if (url.pathname === "/api/v1/customer/me") {
+cloudflare-worker/src/index.js:13883:  if (url.pathname === "/api/v1/customer/locations") {
+cloudflare-worker/src/index.js:13887:  if (url.pathname === "/api/v1/customer/cart") {
+cloudflare-worker/src/index.js:13891:  if (url.pathname === "/api/v1/customer/cart/items") {
+cloudflare-worker/src/index.js:13900:  if (url.pathname === "/api/v1/customer/checkout/address") {
+cloudflare-worker/src/index.js:13904:  if (url.pathname === "/api/v1/customer/checkout/pickup") {
+cloudflare-worker/src/index.js:13908:  if (url.pathname === "/api/v1/customer/orders") {

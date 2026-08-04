@@ -7,7 +7,17 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "migrate:local": "wrangler d1 migrations apply crm-delivery-db --local",
-    "migrate:remote": "wrangler d1 migrations apply crm-delivery-db --remote"
+    "migrate:remote": "wrangler d1 migrations apply crm-delivery-db --remote",
+    "i18n:identity:generate": "node scripts/generate-identity-i18n.mjs",
+    "i18n:identity:check": "node scripts/check-identity-i18n.mjs",
+    "i18n:admin:generate": "node ../scripts/generate_admin_i18n.mjs",
+    "i18n:admin:check": "node ../scripts/check_admin_i18n.mjs",
+    "i18n:check": "npm run i18n:identity:check && npm run i18n:admin:check",
+    "test": "node --test test/**/*.test.js",
+    "test:identity-email": "node --test test/identity-email/*.test.js",
+    "predeploy:identity": "node scripts/identity-predeploy.mjs",
+    "predeploy:identity:remote": "node scripts/identity-predeploy.mjs --remote-prerequisites",
+    "verify:identity:deployed": "node scripts/identity-predeploy.mjs --remote-deployed"
   },
   "devDependencies": {
     "wrangler": "^4.97.0"
@@ -17,5 +27,9 @@
     "workerd@1.20260601.1": true,
     "sharp@0.34.5": true,
     "fsevents@2.3.3": true
+  },
+  "dependencies": {
+    "@noble/hashes": "2.2.0",
+    "@simplewebauthn/server": "13.3.2"
   }
 }

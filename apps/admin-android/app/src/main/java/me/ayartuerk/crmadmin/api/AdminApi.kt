@@ -3,6 +3,7 @@ package me.ayartuerk.crmadmin.api
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import retrofit2.http.DELETE
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PATCH
@@ -35,8 +36,46 @@ interface AdminApi {
     @GET("admin/products")
     suspend fun products(@Header("Authorization") authorization: String): ProductsResponse
 
+    @POST("admin/products")
+    suspend fun createProduct(
+        @Header("Authorization") authorization: String,
+        @Body body: JsonObject
+    ): BasicResponse
+
+    @PATCH("admin/products/{productId}")
+    suspend fun updateProduct(
+        @Header("Authorization") authorization: String,
+        @Path("productId") productId: Long,
+        @Body body: JsonObject
+    ): BasicResponse
+
+    @DELETE("admin/products/{productId}")
+    suspend fun deleteProduct(
+        @Header("Authorization") authorization: String,
+        @Path("productId") productId: Long
+    ): BasicResponse
+
     @GET("admin/product-categories")
     suspend fun productCategories(@Header("Authorization") authorization: String): ProductCategoriesResponse
+
+    @POST("admin/product-categories")
+    suspend fun createProductCategory(
+        @Header("Authorization") authorization: String,
+        @Body body: JsonObject
+    ): BasicResponse
+
+    @PATCH("admin/product-categories/{categoryId}")
+    suspend fun updateProductCategory(
+        @Header("Authorization") authorization: String,
+        @Path("categoryId") categoryId: Long,
+        @Body body: JsonObject
+    ): BasicResponse
+
+    @DELETE("admin/product-categories/{categoryId}")
+    suspend fun deleteProductCategory(
+        @Header("Authorization") authorization: String,
+        @Path("categoryId") categoryId: Long
+    ): BasicResponse
 
     @GET("admin/customers")
     suspend fun customers(@Header("Authorization") authorization: String): CustomersResponse
@@ -72,6 +111,25 @@ interface AdminApi {
 
     @GET("admin/meeting-points")
     suspend fun meetingPoints(@Header("Authorization") authorization: String): MeetingPointsResponse
+
+    @POST("admin/meeting-points")
+    suspend fun createMeetingPoint(
+        @Header("Authorization") authorization: String,
+        @Body body: JsonObject
+    ): BasicResponse
+
+    @PATCH("admin/meeting-points/{pointId}")
+    suspend fun updateMeetingPoint(
+        @Header("Authorization") authorization: String,
+        @Path("pointId") pointId: Long,
+        @Body body: JsonObject
+    ): BasicResponse
+
+    @DELETE("admin/meeting-points/{pointId}")
+    suspend fun deleteMeetingPoint(
+        @Header("Authorization") authorization: String,
+        @Path("pointId") pointId: Long
+    ): BasicResponse
 
     @GET("admin/settings")
     suspend fun settings(@Header("Authorization") authorization: String): SettingsResponse
@@ -339,6 +397,8 @@ data class Product(
     val name: String? = null,
     val description: String? = null,
     val price: Double? = null,
+    @SerialName("price_formatted")
+    val priceFormatted: String? = null,
     val currency: String? = null,
     val unit: String? = null,
     val status: String? = null,
@@ -350,6 +410,7 @@ data class Product(
     val categoryName: String? = null,
     @SerialName("image_url")
     val imageUrl: String? = null,
+    val aliases: List<String> = emptyList(),
     @SerialName("sort_order")
     val sortOrder: Int? = null,
     @SerialName("created_at")
@@ -458,6 +519,8 @@ data class MeetingPoint(
     val address: String? = null,
     @SerialName("maps_url")
     val mapsUrl: String? = null,
+    @SerialName("google_maps_link")
+    val googleMapsLink: String? = null,
     @SerialName("google_maps_url")
     val googleMapsUrl: String? = null,
     val latitude: Double? = null,
@@ -471,4 +534,3 @@ data class MeetingPoint(
     @SerialName("created_at")
     val createdAt: String? = null
 )
-

@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import Foundation
 
 @main
 struct CustomerApp: App {
@@ -13,35 +14,45 @@ struct CustomerApp: App {
 struct CustomerShopView: View {
     private let deviceId = "ios_customer_\(Int(Date().timeIntervalSince1970))"
 
+    @State private var selectedLanguage = defaultSupportedLanguage()
     @State private var accessToken: String?
     @State private var products: [CustomerProduct] = []
     @State private var orders: [CustomerOrderSummary] = []
     @State private var cart: CustomerCart?
-    @State private var message = "Loading shop..."
+    @State private var message = ""
     @State private var isLoading = false
 
     var body: some View {
         NavigationStack {
             List {
-                Section("Status") {
-                    Text(message)
-                    Text("Device: \(deviceId)")
+                Section(t("language_section")) {
+                    Picker(t("language"), selection: $selectedLanguage) {
+                        ForEach(SupportedLanguage.allCases) { language in
+                            Text(language.label).tag(language)
+                        }
+                    }
+                    .pickerStyle(.menu)
                 }
 
-                Section("Cart") {
-                    Text("Status: \(cart?.orderStatus ?? "in_progress")")
-                    Text("Items: \(cart?.itemCount ?? 0)")
-                    Text("Total: \(cart?.totalFormatted ?? "\(cart?.totalAmount ?? 0) \(cart?.currency ?? "EUR")")")
+                Section(t("status_section")) {
+                    Text(message.isEmpty ? t("loading_shop") : message)
+                    Text("\(t("device")): \(deviceId)")
+                }
+
+                Section(t("cart_section")) {
+                    Text("\(t("status")): \(cart?.orderStatus ?? t("in_progress_status"))")
+                    Text("\(t("items")): \(cart?.itemCount ?? 0)")
+                    Text("\(t("total")): \(cart?.totalFormatted ?? "\(cart?.totalAmount ?? 0) \(cart?.currency ?? "EUR")")")
 
                     ForEach(cart?.items ?? []) { item in
                         HStack {
-                            Text("\(item.quantity) × \(item.productName ?? item.name ?? "Product")")
+                            Text("\(item.quantity) × \(item.productName ?? item.name ?? t("product_fallback"))")
                             Spacer()
                             Text("\(item.lineTotal ?? ((item.unitPrice ?? item.priceSnapshot ?? 0) * item.quantity)) \(cart?.currency ?? "EUR")")
                         }
                     }
 
-                    Button("Checkout") {
+                    Button(t("checkout")) {
                         Task {
                             await checkout()
                         }
@@ -49,36 +60,36 @@ struct CustomerShopView: View {
                     .disabled((cart?.items.isEmpty ?? true) || isLoading)
                 }
 
-                Section("Orders") {
+                Section(t("orders_section")) {
                     if orders.isEmpty {
-                        Text("No orders yet")
+                        Text(t("no_orders_yet"))
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(orders) { order in
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(order.publicOrderCode?.isEmpty == false ? order.publicOrderCode! : "Order #\(order.id)")
+                                Text(orderTitle(order))
                                     .font(.headline)
 
-                                Text("Status: \(order.orderStatusLabel ?? order.orderStatus ?? order.status ?? "active")")
+                                Text("\(t("status")): \(order.orderStatusLabel ?? order.orderStatus ?? order.status ?? t("active_status"))")
 
                                 if let location = order.deliveryLocationLabel, !location.isEmpty {
-                                    Text("Location: \(location)")
+                                    Text("\(t("location")): \(location)")
                                 }
 
                                 if let history = order.statusHistory?.first {
-                                    Text("Last update: \(history.newStatus)" + ((history.note?.isEmpty == false) ? " · \(history.note ?? "")" : ""))
+                                    Text("\(t("last_update")): \(history.newStatus)" + ((history.note?.isEmpty == false) ? " · \(history.note ?? "")" : ""))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
 
-                                Text("Total: \(order.totalFormatted ?? "\(order.totalAmount) \(order.currency ?? "EUR")")")
+                                Text("\(t("total")): \(order.totalFormatted ?? "\(order.totalAmount) \(order.currency ?? "EUR")")")
                             }
                             .padding(.vertical, 4)
                         }
                     }
                 }
 
-                Section("Products") {
+                Section(t("products_section")) {
                     ForEach(products) { product in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(product.name)
@@ -91,11 +102,11 @@ struct CustomerShopView: View {
                             }
 
                             if let shopName = product.shopName, !shopName.isEmpty {
-                                Text("Shop: \(shopName)")
+                                Text("\(t("shop")): \(shopName)")
                                     .foregroundStyle(.secondary)
                             }
 
-                            Button("Add to cart") {
+                            Button(t("add_to_cart")) {
                                 Task {
                                     await addToCart(product)
                                 }
@@ -106,8 +117,9 @@ struct CustomerShopView: View {
                     }
                 }
             }
-            .navigationTitle("Customer Shop")
-            .task {
+            .navigationTitle(t("customer_shop_title"))
+            .task(id: selectedLanguage) {
+                accessToken = nil
                 await load()
             }
             .overlay {
@@ -116,6 +128,21 @@ struct CustomerShopView: View {
                 }
             }
         }
+        .environment(\.layoutDirection, selectedLanguage.isRightToLeft ? .rightToLeft : .leftToRight)
+    }
+
+    private func t(_ key: String) -> String {
+        CustomerSharedTexts.text(selectedLanguage.rawValue, key)
+    }
+
+    private func template(_ key: String, _ replacements: [String: String]) -> String {
+        replacements.reduce(t(key)) { partial, pair in
+            partial.replacingOccurrences(of: "{\(pair.key)}", with: pair.value)
+        }
+    }
+
+    private func orderTitle(_ order: CustomerOrderSummary) -> String {
+        order.publicOrderCode?.takeIfNotBlank ?? template("order_number_template", ["id": String(order.id)])
     }
 
     private func ensureSession() async throws -> String {
@@ -129,7 +156,7 @@ struct CustomerShopView: View {
             appVersion: "0.1.0",
             fullName: "iOS Demo Customer",
             username: "ios_customer",
-            language: "en"
+            language: selectedLanguage.rawValue
         )
 
         accessToken = response.session.accessToken
@@ -147,9 +174,9 @@ struct CustomerShopView: View {
             cart = cartResponse.cart
             let ordersResponse = try await CustomerApiClient.getCustomerOrders(accessToken: token)
             orders = ordersResponse.orders
-            message = "Shop loaded"
+            message = t("shop_loaded")
         } catch {
-            message = "Loading failed: \(error.localizedDescription)"
+            message = template("loading_failed_template", ["error": error.localizedDescription])
         }
     }
 
@@ -174,9 +201,9 @@ struct CustomerShopView: View {
             )
             cart = response.cart
             try await refreshOrdersAndCart()
-            message = "Added: \(product.name)"
+            message = template("added_template", ["name": product.name])
         } catch {
-            message = "Add failed: \(error.localizedDescription)"
+            message = template("add_failed_template", ["error": error.localizedDescription])
         }
     }
 
@@ -191,10 +218,27 @@ struct CustomerShopView: View {
                 deliveryAddress: "Berlin",
                 notes: "iOS checkout from catalog"
             )
-            message = "Checkout submitted: \(response.order?.publicOrderCode?.isEmpty == false ? response.order!.publicOrderCode! : response.order.map { "Order #\($0.id)" } ?? "active order")"
+            let orderLabel = response.order?.publicOrderCode?.takeIfNotBlank
+                ?? response.order.map { template("order_number_template", ["id": String($0.id)]) }
+                ?? t("active_order_fallback")
+            message = template("checkout_submitted_template", ["order": orderLabel])
             try await refreshOrdersAndCart()
         } catch {
-            message = "Checkout failed: \(error.localizedDescription)"
+            message = template("checkout_failed_template", ["error": error.localizedDescription])
         }
+    }
+}
+
+private func defaultSupportedLanguage() -> SupportedLanguage {
+    let preferredCode = Locale.preferredLanguages
+        .compactMap { Locale(identifier: $0).language.languageCode?.identifier }
+        .first
+
+    return SupportedLanguage(rawValue: preferredCode ?? "en") ?? .english
+}
+
+private extension String {
+    var takeIfNotBlank: String? {
+        isEmpty ? nil : self
     }
 }

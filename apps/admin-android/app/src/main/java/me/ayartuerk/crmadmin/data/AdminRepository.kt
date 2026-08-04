@@ -79,6 +79,57 @@ class AdminRepository(
         return response.products
     }
 
+    suspend fun createProduct(token: String, name: String, price: Double, categoryId: Long?) {
+        val response = api.createProduct(
+            bearer(token),
+            buildJsonObject {
+                put("name", name)
+                put("price", price)
+                if (categoryId != null) {
+                    put("category_id", categoryId)
+                }
+            }
+        )
+        if (!response.ok) {
+            val message = response.error?.message ?: "Product create failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun updateProduct(
+        token: String,
+        productId: Long,
+        name: String,
+        price: Double,
+        categoryId: Long?,
+        aliases: String,
+        isActive: Boolean
+    ) {
+        val response = api.updateProduct(
+            bearer(token),
+            productId,
+            buildJsonObject {
+                put("name", name)
+                put("price", price)
+                put("category_id", categoryId?.toString() ?: "")
+                put("aliases", aliases)
+                put("is_active", isActive)
+            }
+        )
+        if (!response.ok) {
+            val message = response.error?.message ?: "Product update failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun deleteProduct(token: String, productId: Long) {
+        val response = api.deleteProduct(bearer(token), productId)
+        if (!response.ok) {
+            val message = response.error?.message ?: "Product delete failed"
+            throw IllegalStateException(message)
+        }
+    }
+
     suspend fun productCategories(token: String): List<ProductCategory> {
         val response = api.productCategories(bearer(token))
         if (!response.ok) {
@@ -86,6 +137,42 @@ class AdminRepository(
             throw IllegalStateException(message)
         }
         return response.categories
+    }
+
+    suspend fun createProductCategory(token: String, name: String) {
+        val response = api.createProductCategory(
+            bearer(token),
+            buildJsonObject {
+                put("name", name)
+            }
+        )
+        if (!response.ok) {
+            val message = response.error?.message ?: "Category create failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun updateProductCategory(token: String, categoryId: Long, name: String, isActive: Boolean) {
+        val response = api.updateProductCategory(
+            bearer(token),
+            categoryId,
+            buildJsonObject {
+                put("name", name)
+                put("is_active", isActive)
+            }
+        )
+        if (!response.ok) {
+            val message = response.error?.message ?: "Category update failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun deleteProductCategory(token: String, categoryId: Long) {
+        val response = api.deleteProductCategory(bearer(token), categoryId)
+        if (!response.ok) {
+            val message = response.error?.message ?: "Category delete failed"
+            throw IllegalStateException(message)
+        }
     }
 
     suspend fun customers(token: String): List<Customer> {
@@ -166,6 +253,74 @@ class AdminRepository(
         return response.meetingPoints
     }
 
+    suspend fun createMeetingPoint(
+        token: String,
+        name: String,
+        address: String,
+        googleMapsLink: String,
+        isPreferred: Boolean
+    ) {
+        val response = api.createMeetingPoint(
+            bearer(token),
+            buildJsonObject {
+                put("name", name)
+                put("address", address)
+                put("google_maps_link", googleMapsLink)
+                put("is_default", isPreferred)
+            }
+        )
+        if (!response.ok) {
+            val message = response.error?.message ?: "Meeting point create failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun updateMeetingPoint(
+        token: String,
+        pointId: Long,
+        name: String,
+        address: String,
+        googleMapsLink: String,
+        isActive: Boolean
+    ) {
+        val response = api.updateMeetingPoint(
+            bearer(token),
+            pointId,
+            buildJsonObject {
+                put("name", name)
+                put("address", address)
+                put("google_maps_link", googleMapsLink)
+                put("is_active", isActive)
+            }
+        )
+        if (!response.ok) {
+            val message = response.error?.message ?: "Meeting point update failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun setPreferredMeetingPoint(token: String, pointId: Long) {
+        val response = api.updateMeetingPoint(
+            bearer(token),
+            pointId,
+            buildJsonObject {
+                put("is_default", true)
+            }
+        )
+        if (!response.ok) {
+            val message = response.error?.message ?: "Set preferred meeting point failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun deleteMeetingPoint(token: String, pointId: Long) {
+        val response = api.deleteMeetingPoint(bearer(token), pointId)
+        if (!response.ok) {
+            val message = response.error?.message ?: "Meeting point delete failed"
+            throw IllegalStateException(message)
+        }
+    }
+
     suspend fun settings(token: String): Map<String, String> {
         val response = api.settings(bearer(token))
         if (!response.ok || response.settings == null) {
@@ -175,11 +330,7 @@ class AdminRepository(
         return response.settings.toDisplayMap()
     }
 
-    suspend fun updateAiResponseMode(token: String, mode: String): Map<String, String> {
-        val body = buildJsonObject {
-            put("ai_response_mode", mode)
-        }
-
+    suspend fun updateSettings(token: String, body: JsonObject): Map<String, String> {
         val response = api.updateSettings(bearer(token), body)
         if (!response.ok || response.settings == null) {
             val message = response.error?.message ?: "Settings update failed"

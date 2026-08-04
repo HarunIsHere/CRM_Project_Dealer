@@ -71,6 +71,8 @@ cd cloudflare-worker
 if [ -f package-lock.json ] && [ ! -d node_modules ]; then
   npm ci
 fi
+npm run i18n:identity:check
+npm test
 node --check src/index.js
 npx wrangler deploy --dry-run
 cd ..

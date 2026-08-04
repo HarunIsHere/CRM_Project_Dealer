@@ -1,3 +1,18 @@
+import {
+  getIdentityCapabilities,
+  handleIdentityApi
+} from "./identity/service.js";
+import {
+  processAuthEmailDeadLetterQueue,
+  processAuthEmailQueue,
+  sweepAuthEmailOutbox
+} from "./identity/email/dispatcher.js";
+import {
+  ADMIN_INVITATION_LANDING_ROUTE,
+  handleAdminInvitationLanding
+} from "./identity/staff/invitation-page.js";
+import { getAdminSharedText } from "./i18n/admin-shared.generated.js";
+
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
 const TELEGRAM_MINI_APP_URL = "https://crm-delivery-mini-app.pages.dev";
 
@@ -278,384 +293,16 @@ function redirectResponse(path) {
 }
 
 function getAdminUiText(language = "en") {
-  const lang = safeLang(language);
-  const adminTexts = (typeof ADMIN_TEXTS !== "undefined" && (ADMIN_TEXTS[lang] || ADMIN_TEXTS.en)) || {};
-
+  const normalizedLanguage = safeLang(language);
   return {
-    ...adminTexts,
-    ...i18nAdmin(lang),
-    ...(typeof getProductCategoryUiText === "function" ? getProductCategoryUiText(lang) : {}),
-    ...getAdminGeneralExtraUiText(lang),
-    ...(typeof getAdminOrderUiText === "function" ? getAdminOrderUiText(lang) : {})
+    ...getAdminSharedText(normalizedLanguage),
+    _language: normalizedLanguage
   };
 }
 
 
 function getAdminDashboardUiText(language = "en") {
-  const texts = {
-    en: {
-      title: "CRM Delivery Admin",
-      logout: "Logout",
-      change_password: "Change Password",
-      open_requests: "Open Requests",
-      admin_language: "Admin Language",
-      view_language: "View Language",
-      save_language: "Save Language",
-      notification_settings: "Notification Settings",
-      admin_telegram_chat_id: "Admin Telegram Chat ID",
-      save_notification_receiver: "Save Notification Receiver",
-      working_hours: "Working Hours",
-      enable_working_hours: "Enable working-hours restrictions",
-      timezone: "Timezone",
-      start_time: "Start Time",
-      end_time: "End Time",
-      closed_hours_message_mode: "Closed-hours message mode",
-      auto_message: "Auto message from selected working hours",
-      custom_message: "Custom free-text message",
-      custom_closed_message: "Custom Closed Message",
-      working_hours_help: "Auto mode ignores the custom text and replies using the selected working hours in the customer's language plus English. Custom mode sends the free-text message exactly as written.",
-      save_working_hours: "Save Working Hours",
-      bot_response_mode: "Bot Response Mode",
-      respond_rule_base: "Respond with own rule base",
-      respond_ai: "Respond with AI when rule base cannot answer",
-      ai_project_instructions: "AI Project Instructions",
-      ai_project_placeholder: "Extra business rules for AI fallback.",
-      save_bot_response_mode: "Save Bot Response Mode",
-      products: "Products",
-      id: "ID",
-      name: "Name",
-      price: "Price",
-      aliases: "Aliases",
-      active: "Active",
-      action: "Action",
-      save: "Save",
-      delete: "Delete",
-      add_product: "Add Product",
-      product_name: "Product Name",
-      create_product: "Create Product",
-      meeting_points: "Meeting Points",
-      address: "Address",
-      google_maps: "Google Maps",
-      preferred: "Preferred",
-      open_map: "Open Map",
-      set_preferred: "Set Preferred",
-      add_meeting_point: "Add Meeting Point",
-      search_location: "Search location...",
-      search: "Search",
-      google_maps_link: "Google Maps Link",
-      set_as_preferred: "Set as preferred",
-      create_meeting_point: "Create Meeting Point",
-      ai_counter: "AI API Response Counter",
-      last_hour: "Last Hour",
-      last_24_hours: "Last 24 Hours",
-      last_week: "Last Week",
-      last_month: "Last Month",
-      total: "Total",
-      ai_patterns: "AI Learned Patterns",
-      pattern: "Pattern",
-      intent: "Intent",
-      product: "Product",
-      response: "Response",
-      status: "Status",
-      hits: "Hits",
-      customers: "Customers",
-      full_name: "Full Name",
-      username: "Username",
-      language: "Language",
-      last_seen: "Last Seen",
-      view_history: "View History"
-    },
-    de: {
-      title: "CRM Delivery Admin",
-      logout: "Abmelden",
-      change_password: "Passwort ändern",
-      open_requests: "Offene Anfragen",
-      admin_language: "Admin-Sprache",
-      view_language: "Anzeigesprache",
-      save_language: "Sprache speichern",
-      notification_settings: "Benachrichtigungseinstellungen",
-      admin_telegram_chat_id: "Admin Telegram Chat ID",
-      save_notification_receiver: "Benachrichtigungsempfänger speichern",
-      working_hours: "Arbeitszeiten",
-      enable_working_hours: "Arbeitszeitbeschränkungen aktivieren",
-      timezone: "Zeitzone",
-      start_time: "Startzeit",
-      end_time: "Endzeit",
-      closed_hours_message_mode: "Nachrichtenmodus außerhalb der Arbeitszeit",
-      auto_message: "Automatische Nachricht aus gewählten Arbeitszeiten",
-      custom_message: "Eigene Freitextnachricht",
-      custom_closed_message: "Eigene Geschlossen-Nachricht",
-      working_hours_help: "Der Automodus ignoriert den eigenen Text und antwortet mit den gewählten Arbeitszeiten in der Kundensprache plus Englisch. Der eigene Modus sendet den Freitext exakt wie geschrieben.",
-      save_working_hours: "Arbeitszeiten speichern",
-      bot_response_mode: "Bot-Antwortmodus",
-      respond_rule_base: "Mit eigener Regelbasis antworten",
-      respond_ai: "Mit KI antworten, wenn die Regelbasis nicht antworten kann",
-      ai_project_instructions: "KI-Projektanweisungen",
-      ai_project_placeholder: "Zusätzliche Geschäftsregeln für KI-Fallback.",
-      save_bot_response_mode: "Bot-Antwortmodus speichern",
-      products: "Produkte",
-      id: "ID",
-      name: "Name",
-      price: "Preis",
-      aliases: "Aliase",
-      active: "Aktiv",
-      action: "Aktion",
-      save: "Speichern",
-      delete: "Löschen",
-      add_product: "Produkt hinzufügen",
-      product_name: "Produktname",
-      create_product: "Produkt erstellen",
-      meeting_points: "Treffpunkte",
-      address: "Adresse",
-      google_maps: "Google Maps",
-      preferred: "Bevorzugt",
-      open_map: "Karte öffnen",
-      set_preferred: "Als bevorzugt setzen",
-      add_meeting_point: "Treffpunkt hinzufügen",
-      search_location: "Standort suchen...",
-      search: "Suchen",
-      google_maps_link: "Google Maps Link",
-      set_as_preferred: "Als bevorzugt setzen",
-      create_meeting_point: "Treffpunkt erstellen",
-      ai_counter: "KI-API-Antwortzähler",
-      last_hour: "Letzte Stunde",
-      last_24_hours: "Letzte 24 Stunden",
-      last_week: "Letzte Woche",
-      last_month: "Letzter Monat",
-      total: "Gesamt",
-      ai_patterns: "KI-gelernte Muster",
-      pattern: "Muster",
-      intent: "Absicht",
-      product: "Produkt",
-      response: "Antwort",
-      status: "Status",
-      hits: "Treffer",
-      customers: "Kunden",
-      full_name: "Vollständiger Name",
-      username: "Benutzername",
-      language: "Sprache",
-      last_seen: "Zuletzt gesehen",
-      view_history: "Historie ansehen"
-    },
-    tr: {
-      title: "CRM Delivery Admin",
-      logout: "Çıkış",
-      change_password: "Şifre Değiştir",
-      open_requests: "Açık Talepler",
-      admin_language: "Admin Dili",
-      view_language: "Görüntüleme Dili",
-      save_language: "Dili Kaydet",
-      notification_settings: "Bildirim Ayarları",
-      admin_telegram_chat_id: "Admin Telegram Chat ID",
-      save_notification_receiver: "Bildirim Alıcısını Kaydet",
-      working_hours: "Çalışma Saatleri",
-      enable_working_hours: "Çalışma saati kısıtlamalarını etkinleştir",
-      timezone: "Saat Dilimi",
-      start_time: "Başlangıç Saati",
-      end_time: "Bitiş Saati",
-      closed_hours_message_mode: "Kapalı saat mesaj modu",
-      auto_message: "Seçilen çalışma saatlerinden otomatik mesaj",
-      custom_message: "Özel serbest metin mesajı",
-      custom_closed_message: "Özel kapalı mesajı",
-      working_hours_help: "Otomatik mod özel metni yok sayar ve seçilen çalışma saatlerine göre müşterinin dilinde artı İngilizce yanıt verir. Özel mod serbest metni aynen gönderir.",
-      save_working_hours: "Çalışma Saatlerini Kaydet",
-      bot_response_mode: "Bot Yanıt Modu",
-      respond_rule_base: "Kendi kural sistemiyle yanıtla",
-      respond_ai: "Kural sistemi yanıtlayamazsa AI ile yanıtla",
-      ai_project_instructions: "AI Proje Talimatları",
-      ai_project_placeholder: "AI fallback için ek iş kuralları.",
-      save_bot_response_mode: "Bot Yanıt Modunu Kaydet",
-      products: "Ürünler",
-      id: "ID",
-      name: "Ad",
-      price: "Fiyat",
-      aliases: "Aliaslar",
-      active: "Aktif",
-      action: "İşlem",
-      save: "Kaydet",
-      delete: "Sil",
-      add_product: "Ürün Ekle",
-      product_name: "Ürün Adı",
-      create_product: "Ürün Oluştur",
-      meeting_points: "Buluşma Noktaları",
-      address: "Adres",
-      google_maps: "Google Maps",
-      preferred: "Tercih Edilen",
-      open_map: "Haritayı Aç",
-      set_preferred: "Tercih Edilen Yap",
-      add_meeting_point: "Buluşma Noktası Ekle",
-      search_location: "Konum ara...",
-      search: "Ara",
-      google_maps_link: "Google Maps Link",
-      set_as_preferred: "Tercih edilen olarak ayarla",
-      create_meeting_point: "Buluşma Noktası Oluştur",
-      ai_counter: "AI API Yanıt Sayacı",
-      last_hour: "Son Saat",
-      last_24_hours: "Son 24 Saat",
-      last_week: "Son Hafta",
-      last_month: "Son Ay",
-      total: "Toplam",
-      ai_patterns: "AI Öğrenilen Kalıplar",
-      pattern: "Kalıp",
-      intent: "Niyet",
-      product: "Ürün",
-      response: "Yanıt",
-      status: "Durum",
-      hits: "Hit",
-      customers: "Müşteriler",
-      full_name: "Tam Ad",
-      username: "Kullanıcı Adı",
-      language: "Dil",
-      last_seen: "Son Görülme",
-      view_history: "Geçmişi Gör"
-    },
-    ar: {
-      title: "لوحة إدارة CRM Delivery",
-      logout: "تسجيل الخروج",
-      change_password: "تغيير كلمة المرور",
-      open_requests: "الطلبات المفتوحة",
-      admin_language: "لغة الإدارة",
-      view_language: "لغة العرض",
-      save_language: "حفظ اللغة",
-      notification_settings: "إعدادات الإشعارات",
-      admin_telegram_chat_id: "معرف محادثة تيليجرام للإدارة",
-      save_notification_receiver: "حفظ مستلم الإشعارات",
-      working_hours: "ساعات العمل",
-      enable_working_hours: "تفعيل قيود ساعات العمل",
-      timezone: "المنطقة الزمنية",
-      start_time: "وقت البدء",
-      end_time: "وقت الانتهاء",
-      closed_hours_message_mode: "وضع رسالة خارج ساعات العمل",
-      auto_message: "رسالة تلقائية حسب ساعات العمل المحددة",
-      custom_message: "رسالة نصية مخصصة",
-      custom_closed_message: "رسالة الإغلاق المخصصة",
-      working_hours_help: "الوضع التلقائي يتجاهل النص المخصص ويرد باستخدام ساعات العمل المحددة بلغة العميل بالإضافة إلى الإنجليزية. الوضع المخصص يرسل النص كما هو.",
-      save_working_hours: "حفظ ساعات العمل",
-      bot_response_mode: "وضع رد البوت",
-      respond_rule_base: "الرد بنظام القواعد الخاص",
-      respond_ai: "الرد بالذكاء الاصطناعي عندما لا يستطيع نظام القواعد الإجابة",
-      ai_project_instructions: "تعليمات مشروع الذكاء الاصطناعي",
-      ai_project_placeholder: "قواعد عمل إضافية للذكاء الاصطناعي الاحتياطي.",
-      save_bot_response_mode: "حفظ وضع رد البوت",
-      products: "المنتجات",
-      id: "ID",
-      name: "الاسم",
-      price: "السعر",
-      aliases: "الأسماء البديلة",
-      active: "نشط",
-      action: "إجراء",
-      save: "حفظ",
-      delete: "حذف",
-      add_product: "إضافة منتج",
-      product_name: "اسم المنتج",
-      create_product: "إنشاء منتج",
-      meeting_points: "نقاط اللقاء",
-      address: "العنوان",
-      google_maps: "خرائط Google",
-      preferred: "مفضل",
-      open_map: "فتح الخريطة",
-      set_preferred: "تعيين كمفضل",
-      add_meeting_point: "إضافة نقطة لقاء",
-      search_location: "ابحث عن موقع...",
-      search: "بحث",
-      google_maps_link: "رابط خرائط Google",
-      set_as_preferred: "تعيين كمفضل",
-      create_meeting_point: "إنشاء نقطة لقاء",
-      ai_counter: "عداد ردود API للذكاء الاصطناعي",
-      last_hour: "آخر ساعة",
-      last_24_hours: "آخر 24 ساعة",
-      last_week: "آخر أسبوع",
-      last_month: "آخر شهر",
-      total: "الإجمالي",
-      ai_patterns: "الأنماط المتعلمة بالذكاء الاصطناعي",
-      pattern: "النمط",
-      intent: "القصد",
-      product: "المنتج",
-      response: "الرد",
-      status: "الحالة",
-      hits: "المرات",
-      customers: "العملاء",
-      full_name: "الاسم الكامل",
-      username: "اسم المستخدم",
-      language: "اللغة",
-      last_seen: "آخر ظهور",
-      view_history: "عرض السجل"
-    },
-    ru: {
-      title: "CRM Delivery Admin",
-      logout: "Выйти",
-      change_password: "Изменить пароль",
-      open_requests: "Открытые запросы",
-      admin_language: "Язык администратора",
-      view_language: "Язык интерфейса",
-      save_language: "Сохранить язык",
-      notification_settings: "Настройки уведомлений",
-      admin_telegram_chat_id: "Telegram Chat ID администратора",
-      save_notification_receiver: "Сохранить получателя уведомлений",
-      working_hours: "Рабочие часы",
-      enable_working_hours: "Включить ограничения рабочих часов",
-      timezone: "Часовой пояс",
-      start_time: "Время начала",
-      end_time: "Время окончания",
-      closed_hours_message_mode: "Режим сообщения вне рабочих часов",
-      auto_message: "Автоматическое сообщение по выбранным часам",
-      custom_message: "Пользовательское текстовое сообщение",
-      custom_closed_message: "Пользовательское сообщение закрытия",
-      working_hours_help: "Автоматический режим игнорирует пользовательский текст и отвечает на языке клиента плюс английский. Пользовательский режим отправляет текст точно как написано.",
-      save_working_hours: "Сохранить рабочие часы",
-      bot_response_mode: "Режим ответа бота",
-      respond_rule_base: "Отвечать собственной системой правил",
-      respond_ai: "Отвечать через AI, если правила не смогли ответить",
-      ai_project_instructions: "Инструкции AI проекта",
-      ai_project_placeholder: "Дополнительные бизнес-правила для AI fallback.",
-      save_bot_response_mode: "Сохранить режим ответа бота",
-      products: "Продукты",
-      id: "ID",
-      name: "Имя",
-      price: "Цена",
-      aliases: "Алиасы",
-      active: "Активно",
-      action: "Действие",
-      save: "Сохранить",
-      delete: "Удалить",
-      add_product: "Добавить продукт",
-      product_name: "Название продукта",
-      create_product: "Создать продукт",
-      meeting_points: "Точки встречи",
-      address: "Адрес",
-      google_maps: "Google Maps",
-      preferred: "Предпочтительно",
-      open_map: "Открыть карту",
-      set_preferred: "Сделать предпочтительным",
-      add_meeting_point: "Добавить точку встречи",
-      search_location: "Искать локацию...",
-      search: "Поиск",
-      google_maps_link: "Ссылка Google Maps",
-      set_as_preferred: "Сделать предпочтительным",
-      create_meeting_point: "Создать точку встречи",
-      ai_counter: "Счетчик ответов AI API",
-      last_hour: "Последний час",
-      last_24_hours: "Последние 24 часа",
-      last_week: "Последняя неделя",
-      last_month: "Последний месяц",
-      total: "Всего",
-      ai_patterns: "AI изученные шаблоны",
-      pattern: "Шаблон",
-      intent: "Намерение",
-      product: "Продукт",
-      response: "Ответ",
-      status: "Статус",
-      hits: "Попадания",
-      customers: "Клиенты",
-      full_name: "Полное имя",
-      username: "Имя пользователя",
-      language: "Язык",
-      last_seen: "Последний визит",
-      view_history: "История"
-    }
-  };
-
-  return texts[language] || texts.en;
+  return getAdminUiText(language);
 }
 
 
@@ -685,412 +332,7 @@ function i18nBoolean(value, language = "en") {
 
 
 function i18nAdmin(language = "en") {
-  const base = (
-    typeof getAdminDashboardUiText === "function"
-      ? getAdminDashboardUiText(language)
-      : {}
-  );
-
-  const orderUi = (
-    typeof getAdminOrderUiText === "function"
-      ? getAdminOrderUiText(language)
-      : {}
-  );
-
-  const extra = {
-    en: {
-      save_ai_response_mode: "Save Bot Response Mode",
-      ai_project_instructions: "AI Project Instructions",
-      ai_fallback_mode: "Respond with AI when rule base cannot answer",
-      rule_base_mode: "Respond with own rule base",
-      fulfillment_options_help: "These settings control which location choices are shown to customers after they request a product.",
-      save_fulfillment_options: "Save Fulfillment Options",
-      allow_customer_pickup: "Allow customer pickup from our location",
-      allow_new_customer_location: "Allow delivery to a new customer location",
-      allow_preferred_customer_location: "Allow delivery to preferred customer location",
-      fulfillment_options: "Fulfillment / Location Options",
-      open_map: "Open Map",
-      no_locations: "No customer locations yet.",
-      manual_location: "Manual location",
-      typed_address: "Typed address",
-      telegram_location: "Telegram location",
-      google_maps: "Google Maps",
-      longitude: "Longitude",
-      latitude: "Latitude",
-      location_description: "Location / Description",
-      customer_locations: "Customer Locations",
-      price_max: "Maximum price",
-      price_min: "Minimum price",
-      search_filters: "Search / Filters",
-      clear_filters: "Clear Filters",
-      search_name_username: "Search full name / username",
-      search_product: "Search name / alias",
-      id_filter: "ID",
-      language_filter: "Language",
-      all_languages: "All languages",
-      last_seen_from: "Last seen from",
-      last_seen_to: "Last seen to",
-      active_status: "Active status",
-      all_statuses: "All statuses",
-      active_only: "Active only",
-      inactive_only: "Inactive only",
-      fuzzy_cutoff_note: "Fuzzy match cutoff: 80",
-      general: "General",
-      message_customer: "Message Customer",
-      send: "Send",
-      cancel: "Cancel",
-      back_to_dashboard: "Back to Admin Dashboard",
-      all_done: "All Done",
-      customer: "Customer",
-      customer_detail: "Customer Detail",
-      telegram_id: "Telegram ID",
-      preferred_language: "Preferred Language",
-      blocked: "Blocked",
-      send_reply: "Send Reply",
-      send_reply_to_customer: "Send Reply to Customer",
-      structured_requests: "Structured Requests",
-      conversation_history: "Conversation History",
-      type: "Type",
-      item: "Item",
-      quantity: "Quantity",
-      request_count: "Request Count",
-      text: "Text",
-      created_at: "Created At",
-      latest_text: "Latest Text",
-      latest_created_at: "Latest Created At",
-      direction: "Direction",
-      source: "Source",
-      message: "Message",
-      open_customer: "Open Customer",
-      answer: "Answer",
-      done: "Done",
-      approve: "Approve",
-      reject: "Reject",
-      pending_status: "pending",
-      approved_status: "approved",
-      rejected_status: "rejected",
-      new_status: "new",
-      in_progress_status: "in progress",
-      done_status: "done",
-      true_value: "True",
-      false_value: "False"
-    },
-    de: {
-      save_ai_response_mode: "Bot-Antwortmodus speichern",
-      ai_project_instructions: "KI-Projektanweisungen",
-      ai_fallback_mode: "Mit KI antworten, wenn die Regelbasis nicht antworten kann",
-      rule_base_mode: "Mit eigener Regelbasis antworten",
-      fulfillment_options_help: "Diese Einstellungen steuern, welche Standortoptionen Kunden nach einer Produktanfrage angezeigt werden.",
-      save_fulfillment_options: "Abwicklungsoptionen speichern",
-      allow_customer_pickup: "Abholung durch Kunden an unserem Standort erlauben",
-      allow_new_customer_location: "Lieferung an neuen Kundenstandort erlauben",
-      allow_preferred_customer_location: "Lieferung an bevorzugten Kundenstandort erlauben",
-      fulfillment_options: "Abwicklung / Standortoptionen",
-      open_map: "Karte öffnen",
-      no_locations: "Noch keine Kundenstandorte.",
-      manual_location: "Manueller Standort",
-      typed_address: "Eingegebene Adresse",
-      telegram_location: "Telegram-Standort",
-      google_maps: "Google Maps",
-      longitude: "Längengrad",
-      latitude: "Breitengrad",
-      location_description: "Standort / Beschreibung",
-      customer_locations: "Kundenstandorte",
-      price_max: "Höchstpreis",
-      price_min: "Mindestpreis",
-      search_filters: "Suche / Filter",
-      clear_filters: "Filter löschen",
-      search_name_username: "Vollständigen Namen / Benutzernamen suchen",
-      search_product: "Name / Alias suchen",
-      id_filter: "ID",
-      language_filter: "Sprache",
-      all_languages: "Alle Sprachen",
-      last_seen_from: "Zuletzt gesehen von",
-      last_seen_to: "Zuletzt gesehen bis",
-      active_status: "Aktivstatus",
-      all_statuses: "Alle Status",
-      active_only: "Nur aktiv",
-      inactive_only: "Nur inaktiv",
-      fuzzy_cutoff_note: "Fuzzy-Match-Grenze: 80",
-      general: "Allgemein",
-      message_customer: "Nachricht an Kunden",
-      send: "Senden",
-      cancel: "Abbrechen",
-      back_to_dashboard: "Zurück zum Admin-Dashboard",
-      all_done: "Alle erledigt",
-      customer: "Kunde",
-      customer_detail: "Kundendetails",
-      telegram_id: "Telegram ID",
-      preferred_language: "Bevorzugte Sprache",
-      blocked: "Blockiert",
-      send_reply: "Antwort senden",
-      send_reply_to_customer: "Antwort an Kunden senden",
-      structured_requests: "Strukturierte Anfragen",
-      conversation_history: "Konversationshistorie",
-      type: "Typ",
-      item: "Artikel",
-      quantity: "Menge",
-      request_count: "Anzahl Anfragen",
-      text: "Text",
-      created_at: "Erstellt am",
-      latest_text: "Letzter Text",
-      latest_created_at: "Zuletzt erstellt",
-      direction: "Richtung",
-      source: "Quelle",
-      message: "Nachricht",
-      open_customer: "Kunde öffnen",
-      answer: "Antworten",
-      done: "Erledigt",
-      approve: "Genehmigen",
-      reject: "Ablehnen",
-      pending_status: "ausstehend",
-      approved_status: "genehmigt",
-      rejected_status: "abgelehnt",
-      new_status: "neu",
-      in_progress_status: "in Bearbeitung",
-      done_status: "erledigt",
-      true_value: "Ja",
-      false_value: "Nein"
-    },
-    tr: {
-      save_ai_response_mode: "Bot Cevap Modunu Kaydet",
-      ai_project_instructions: "AI Proje Talimatları",
-      ai_fallback_mode: "Kural tabanı cevap veremezse AI ile cevap ver",
-      rule_base_mode: "Kendi kural tabanı ile cevap ver",
-      fulfillment_options_help: "Bu ayarlar, müşteri ürün istediğinde hangi konum seçeneklerinin gösterileceğini kontrol eder.",
-      save_fulfillment_options: "Teslimat Seçeneklerini Kaydet",
-      allow_customer_pickup: "Müşterinin bizim konumumuzdan teslim almasına izin ver",
-      allow_new_customer_location: "Müşterinin yeni konumuna teslimata izin ver",
-      allow_preferred_customer_location: "Müşterinin tercih edilen konumuna teslimata izin ver",
-      fulfillment_options: "Teslimat / Konum Seçenekleri",
-      open_map: "Haritayı Aç",
-      no_locations: "Henüz müşteri konumu yok.",
-      manual_location: "Manuel konum",
-      typed_address: "Yazılan adres",
-      telegram_location: "Telegram konumu",
-      google_maps: "Google Maps",
-      longitude: "Boylam",
-      latitude: "Enlem",
-      location_description: "Konum / Açıklama",
-      customer_locations: "Müşteri Konumları",
-      price_max: "Maksimum fiyat",
-      price_min: "Minimum fiyat",
-      search_filters: "Arama / Filtreler",
-      clear_filters: "Filtreleri Temizle",
-      search_name_username: "Tam ad / kullanıcı adı ara",
-      search_product: "Ad / takma ad ara",
-      id_filter: "ID",
-      language_filter: "Dil",
-      all_languages: "Tüm diller",
-      last_seen_from: "Son görülme başlangıç",
-      last_seen_to: "Son görülme bitiş",
-      active_status: "Aktiflik durumu",
-      all_statuses: "Tüm durumlar",
-      active_only: "Sadece aktif",
-      inactive_only: "Sadece pasif",
-      fuzzy_cutoff_note: "Fuzzy eşleşme sınırı: 80",
-      general: "Genel",
-      message_customer: "Müşteriye Mesaj",
-      send: "Gönder",
-      cancel: "İptal",
-      back_to_dashboard: "Admin Paneline Geri Dön",
-      all_done: "Tümünü Tamamla",
-      customer: "Müşteri",
-      customer_detail: "Müşteri Detayı",
-      telegram_id: "Telegram ID",
-      preferred_language: "Tercih Edilen Dil",
-      blocked: "Engelli",
-      send_reply: "Yanıt Gönder",
-      send_reply_to_customer: "Müşteriye Yanıt Gönder",
-      structured_requests: "Yapılandırılmış Talepler",
-      conversation_history: "Konuşma Geçmişi",
-      type: "Tip",
-      item: "Ürün",
-      quantity: "Miktar",
-      request_count: "Talep Sayısı",
-      text: "Metin",
-      created_at: "Oluşturulma",
-      latest_text: "Son Metin",
-      latest_created_at: "Son Oluşturulma",
-      direction: "Yön",
-      source: "Kaynak",
-      message: "Mesaj",
-      open_customer: "Müşteriyi Aç",
-      answer: "Cevapla",
-      done: "Tamamlandı",
-      approve: "Onayla",
-      reject: "Reddet",
-      pending_status: "beklemede",
-      approved_status: "onaylandı",
-      rejected_status: "reddedildi",
-      new_status: "yeni",
-      in_progress_status: "işlemde",
-      done_status: "tamamlandı",
-      true_value: "Evet",
-      false_value: "Hayır"
-    },
-    ar: {
-      save_ai_response_mode: "حفظ وضع رد البوت",
-      ai_project_instructions: "تعليمات مشروع الذكاء الاصطناعي",
-      ai_fallback_mode: "الرد بالذكاء الاصطناعي عندما لا تستطيع قاعدة القواعد الإجابة",
-      rule_base_mode: "الرد باستخدام قاعدة القواعد الخاصة",
-      fulfillment_options_help: "تتحكم هذه الإعدادات في خيارات الموقع التي تظهر للعميل بعد طلب منتج.",
-      save_fulfillment_options: "حفظ خيارات التسليم",
-      allow_customer_pickup: "السماح للعميل بالاستلام من موقعنا",
-      allow_new_customer_location: "السماح بالتسليم إلى موقع جديد للعميل",
-      allow_preferred_customer_location: "السماح بالتسليم إلى الموقع المفضل للعميل",
-      fulfillment_options: "خيارات التسليم / الموقع",
-      open_map: "فتح الخريطة",
-      no_locations: "لا توجد مواقع للعملاء بعد.",
-      manual_location: "موقع يدوي",
-      typed_address: "عنوان مكتوب",
-      telegram_location: "موقع Telegram",
-      google_maps: "خرائط Google",
-      longitude: "خط الطول",
-      latitude: "خط العرض",
-      location_description: "الموقع / الوصف",
-      customer_locations: "مواقع العملاء",
-      price_max: "الحد الأقصى للسعر",
-      price_min: "الحد الأدنى للسعر",
-      search_filters: "بحث / فلاتر",
-      clear_filters: "مسح الفلاتر",
-      search_name_username: "البحث في الاسم الكامل / اسم المستخدم",
-      search_product: "البحث في الاسم / الأسماء البديلة",
-      id_filter: "ID",
-      language_filter: "اللغة",
-      all_languages: "كل اللغات",
-      last_seen_from: "آخر ظهور من",
-      last_seen_to: "آخر ظهور إلى",
-      active_status: "حالة النشاط",
-      all_statuses: "كل الحالات",
-      active_only: "النشط فقط",
-      inactive_only: "غير النشط فقط",
-      fuzzy_cutoff_note: "حد المطابقة التقريبية: 80",
-      general: "عام",
-      message_customer: "مراسلة العميل",
-      send: "إرسال",
-      cancel: "إلغاء",
-      back_to_dashboard: "العودة إلى لوحة الإدارة",
-      all_done: "تم الكل",
-      customer: "العميل",
-      customer_detail: "تفاصيل العميل",
-      telegram_id: "معرف تيليجرام",
-      preferred_language: "اللغة المفضلة",
-      blocked: "محظور",
-      send_reply: "إرسال رد",
-      send_reply_to_customer: "إرسال رد إلى العميل",
-      structured_requests: "الطلبات المنظمة",
-      conversation_history: "سجل المحادثة",
-      type: "النوع",
-      item: "العنصر",
-      quantity: "الكمية",
-      request_count: "عدد الطلبات",
-      text: "النص",
-      created_at: "تاريخ الإنشاء",
-      latest_text: "آخر نص",
-      latest_created_at: "آخر إنشاء",
-      direction: "الاتجاه",
-      source: "المصدر",
-      message: "الرسالة",
-      open_customer: "فتح العميل",
-      answer: "رد",
-      done: "تم",
-      approve: "موافقة",
-      reject: "رفض",
-      pending_status: "معلق",
-      approved_status: "موافق عليه",
-      rejected_status: "مرفوض",
-      new_status: "جديد",
-      in_progress_status: "قيد المعالجة",
-      done_status: "تم",
-      true_value: "نعم",
-      false_value: "لا"
-    },
-    ru: {
-      save_ai_response_mode: "Сохранить режим ответа бота",
-      ai_project_instructions: "Инструкции проекта ИИ",
-      ai_fallback_mode: "Отвечать через ИИ, если база правил не может ответить",
-      rule_base_mode: "Отвечать собственной базой правил",
-      fulfillment_options_help: "Эти настройки управляют тем, какие варианты локации показываются клиенту после запроса товара.",
-      save_fulfillment_options: "Сохранить варианты выполнения",
-      allow_customer_pickup: "Разрешить самовывоз из нашей локации",
-      allow_new_customer_location: "Разрешить доставку на новую локацию клиента",
-      allow_preferred_customer_location: "Разрешить доставку на предпочтительную локацию клиента",
-      fulfillment_options: "Выполнение / варианты локации",
-      open_map: "Открыть карту",
-      no_locations: "Локаций клиента пока нет.",
-      manual_location: "Ручное описание",
-      typed_address: "Введённый адрес",
-      telegram_location: "Локация Telegram",
-      google_maps: "Google Maps",
-      longitude: "Долгота",
-      latitude: "Широта",
-      location_description: "Локация / описание",
-      customer_locations: "Локации клиента",
-      price_max: "Максимальная цена",
-      price_min: "Минимальная цена",
-      search_filters: "Поиск / фильтры",
-      clear_filters: "Очистить фильтры",
-      search_name_username: "Искать полное имя / имя пользователя",
-      search_product: "Искать имя / псевдоним",
-      id_filter: "ID",
-      language_filter: "Язык",
-      all_languages: "Все языки",
-      last_seen_from: "Последний визит от",
-      last_seen_to: "Последний визит до",
-      active_status: "Статус активности",
-      all_statuses: "Все статусы",
-      active_only: "Только активные",
-      inactive_only: "Только неактивные",
-      fuzzy_cutoff_note: "Порог fuzzy matching: 80",
-      general: "Общее",
-      message_customer: "Написать клиенту",
-      send: "Отправить",
-      cancel: "Отмена",
-      back_to_dashboard: "Назад к панели администратора",
-      all_done: "Все готово",
-      customer: "Клиент",
-      customer_detail: "Детали клиента",
-      telegram_id: "Telegram ID",
-      preferred_language: "Предпочитаемый язык",
-      blocked: "Заблокирован",
-      send_reply: "Отправить ответ",
-      send_reply_to_customer: "Отправить ответ клиенту",
-      structured_requests: "Структурированные запросы",
-      conversation_history: "История переписки",
-      type: "Тип",
-      item: "Товар",
-      quantity: "Количество",
-      request_count: "Количество запросов",
-      text: "Текст",
-      created_at: "Создано",
-      latest_text: "Последний текст",
-      latest_created_at: "Последнее создание",
-      direction: "Направление",
-      source: "Источник",
-      message: "Сообщение",
-      open_customer: "Открыть клиента",
-      answer: "Ответить",
-      done: "Готово",
-      approve: "Одобрить",
-      reject: "Отклонить",
-      pending_status: "ожидает",
-      approved_status: "одобрено",
-      rejected_status: "отклонено",
-      new_status: "новый",
-      in_progress_status: "в работе",
-      done_status: "готово",
-      true_value: "Да",
-      false_value: "Нет"
-    }
-  };
-
-  return {
-    ...base,
-    ...orderUi,
-    ...(extra[language] || extra.en),
-    _language: language
-  };
+  return getAdminUiText(language);
 }
 
 function i18nStatus(status, language = "en") {
@@ -2088,271 +1330,11 @@ function getSetPreferredLocationKeyboard(locationId) {
 
 
 function getAdminGeneralExtraUiText(language = "en") {
-  const texts = {
-    en: {
-      delivery_cities: "Delivery Cities",
-      delivery_cities_help: "Address suggestions are limited to these cities. Default city is Berlin.",
-      allowed_cities: "Allowed cities",
-      allowed_cities_example: "Enter cities separated by commas. Example: Berlin, Potsdam",
-      save_delivery_cities: "Save Delivery Cities",
-      ai_response_mode_help: "The bot always checks buttons, menu numbers, products, locations, addresses, working hours, and admin commands first. OpenAI is used only if the app cannot handle the message.",
-      ai_project_placeholder: "Extra business rules for AI fallback.",
-      ai_project_context_help: "These instructions are added dynamically to OpenAI calls together with live products, prices, meeting points, working hours, customer history, and app capabilities."
-    },
-    de: {
-      delivery_cities: "Lieferstädte",
-      delivery_cities_help: "Adressvorschläge sind auf diese Städte beschränkt. Standardstadt ist Berlin.",
-      allowed_cities: "Erlaubte Städte",
-      allowed_cities_example: "Städte durch Kommas getrennt eingeben. Beispiel: Berlin, Potsdam",
-      save_delivery_cities: "Lieferstädte speichern",
-      ai_response_mode_help: "Der Bot prüft zuerst Buttons, Menü-Nummern, Produkte, Standorte, Adressen, Arbeitszeiten und Admin-Befehle. OpenAI wird nur verwendet, wenn die App die Nachricht nicht selbst verarbeiten kann.",
-      ai_project_placeholder: "Zusätzliche Geschäftsregeln für AI-Fallback.",
-      ai_project_context_help: "Diese Anweisungen werden dynamisch zu OpenAI-Aufrufen hinzugefügt, zusammen mit Live-Produkten, Preisen, Treffpunkten, Arbeitszeiten, Kundenhistorie und App-Funktionen."
-    },
-    tr: {
-      delivery_cities: "Teslimat Şehirleri",
-      delivery_cities_help: "Adres önerileri bu şehirlerle sınırlıdır. Varsayılan şehir Berlin'dir.",
-      allowed_cities: "İzin verilen şehirler",
-      allowed_cities_example: "Şehirleri virgülle ayırarak girin. Örnek: Berlin, Potsdam",
-      save_delivery_cities: "Teslimat Şehirlerini Kaydet",
-      ai_response_mode_help: "Bot önce butonları, menü numaralarını, ürünleri, konumları, adresleri, çalışma saatlerini ve admin komutlarını kontrol eder. OpenAI yalnızca uygulama mesajı işleyemediğinde kullanılır.",
-      ai_project_placeholder: "AI fallback için ek iş kuralları.",
-      ai_project_context_help: "Bu talimatlar OpenAI çağrılarına canlı ürünler, fiyatlar, buluşma noktaları, çalışma saatleri, müşteri geçmişi ve uygulama özellikleriyle birlikte dinamik olarak eklenir."
-    },
-    ar: {
-      delivery_cities: "مدن التوصيل",
-      delivery_cities_help: "اقتراحات العناوين محدودة بهذه المدن. المدينة الافتراضية هي برلين.",
-      allowed_cities: "المدن المسموح بها",
-      allowed_cities_example: "أدخل المدن مفصولة بفواصل. مثال: Berlin, Potsdam",
-      save_delivery_cities: "حفظ مدن التوصيل",
-      ai_response_mode_help: "يتحقق البوت أولاً من الأزرار، أرقام القائمة، المنتجات، المواقع، العناوين، ساعات العمل، وأوامر الإدارة. يتم استخدام OpenAI فقط إذا لم يتمكن التطبيق من معالجة الرسالة.",
-      ai_project_placeholder: "قواعد عمل إضافية لاستخدام AI fallback.",
-      ai_project_context_help: "تتم إضافة هذه التعليمات ديناميكياً إلى استدعاءات OpenAI مع المنتجات الحية، الأسعار، نقاط اللقاء، ساعات العمل، سجل العميل، وإمكانيات التطبيق."
-    },
-    ru: {
-      delivery_cities: "Города доставки",
-      delivery_cities_help: "Подсказки адресов ограничены этими городами. Город по умолчанию - Берлин.",
-      allowed_cities: "Разрешенные города",
-      allowed_cities_example: "Введите города через запятую. Пример: Berlin, Potsdam",
-      save_delivery_cities: "Сохранить города доставки",
-      ai_response_mode_help: "Бот сначала проверяет кнопки, номера меню, товары, локации, адреса, рабочие часы и админ-команды. OpenAI используется только если приложение не может обработать сообщение.",
-      ai_project_placeholder: "Дополнительные бизнес-правила для AI fallback.",
-      ai_project_context_help: "Эти инструкции динамически добавляются к вызовам OpenAI вместе с текущими товарами, ценами, точками встречи, рабочими часами, историей клиента и возможностями приложения."
-    }
-  };
-
-  const selected = texts[safeLang(language)] || texts.en;
-  const superadminTexts = {
-    en: {
-      superadmin: "Superadmin",
-      admin_management: "Admin Management",
-      create_admin: "Create Admin",
-      username: "Username",
-      password: "Password",
-      role: "Role",
-      active: "Active",
-      inactive: "Inactive",
-      source: "Source",
-      created_at: "Created",
-      last_login_at: "Last Login",
-      activate: "Activate",
-      deactivate: "Deactivate",
-      grant_access: "Grant access",
-      deny_access: "Deny access",
-      delete_credential: "Delete credential",
-      audit_logs: "Website Login and Action Data",
-      action_type: "Action",
-      action_detail: "Details",
-      path: "Path",
-      method: "Method",
-      ip: "IP",
-      user_agent: "User Agent",
-      last_30_days_only: "Only the last 30 days are kept. Older logs are deleted during admin page access."
-    },
-    de: {
-      superadmin: "Superadmin",
-      admin_management: "Admin-Verwaltung",
-      create_admin: "Admin erstellen",
-      username: "Benutzername",
-      password: "Passwort",
-      role: "Rolle",
-      active: "Aktiv",
-      inactive: "Inaktiv",
-      source: "Quelle",
-      created_at: "Erstellt",
-      last_login_at: "Letzte Anmeldung",
-      activate: "Aktivieren",
-      deactivate: "Deaktivieren",
-      grant_access: "Zugriff erlauben",
-      deny_access: "Zugriff entziehen",
-      delete_credential: "Zugangsdaten löschen",
-      audit_logs: "Website-Anmeldungen und Aktionen",
-      action_type: "Aktion",
-      action_detail: "Details",
-      path: "Pfad",
-      method: "Methode",
-      ip: "IP",
-      user_agent: "User Agent",
-      last_30_days_only: "Nur die letzten 30 Tage werden gespeichert. Ältere Logs werden beim Zugriff auf die Admin-Seiten gelöscht."
-    },
-    tr: {
-      superadmin: "Süperadmin",
-      admin_management: "Admin Yönetimi",
-      create_admin: "Admin Oluştur",
-      username: "Kullanıcı adı",
-      password: "Şifre",
-      role: "Rol",
-      active: "Aktif",
-      inactive: "Pasif",
-      source: "Kaynak",
-      created_at: "Oluşturuldu",
-      last_login_at: "Son Giriş",
-      activate: "Aktifleştir",
-      deactivate: "Pasifleştir",
-      grant_access: "Erişim ver",
-      deny_access: "Erişimi kaldır",
-      delete_credential: "Giriş bilgisini sil",
-      audit_logs: "Web Sitesi Giriş ve İşlem Kayıtları",
-      action_type: "İşlem",
-      action_detail: "Detay",
-      path: "Yol",
-      method: "Metot",
-      ip: "IP",
-      user_agent: "User Agent",
-      last_30_days_only: "Sadece son 30 gün saklanır. Eski kayıtlar admin sayfalarına erişimde silinir."
-    },
-    ar: {
-      superadmin: "المشرف الأعلى",
-      admin_management: "إدارة المشرفين",
-      create_admin: "إنشاء مشرف",
-      username: "اسم المستخدم",
-      password: "كلمة المرور",
-      role: "الدور",
-      active: "نشط",
-      inactive: "غير نشط",
-      source: "المصدر",
-      created_at: "تاريخ الإنشاء",
-      last_login_at: "آخر تسجيل دخول",
-      activate: "تفعيل",
-      deactivate: "تعطيل",
-      grant_access: "منح الوصول",
-      deny_access: "إلغاء الوصول",
-      delete_credential: "حذف بيانات الدخول",
-      audit_logs: "بيانات تسجيل الدخول وإجراءات الموقع",
-      action_type: "الإجراء",
-      action_detail: "التفاصيل",
-      path: "المسار",
-      method: "الطريقة",
-      ip: "IP",
-      user_agent: "User Agent",
-      last_30_days_only: "يتم الاحتفاظ بآخر 30 يوماً فقط. يتم حذف السجلات الأقدم عند فتح صفحات الإدارة."
-    },
-    ru: {
-      superadmin: "Суперадмин",
-      admin_management: "Управление админами",
-      create_admin: "Создать админа",
-      username: "Имя пользователя",
-      password: "Пароль",
-      role: "Роль",
-      active: "Активен",
-      inactive: "Неактивен",
-      source: "Источник",
-      created_at: "Создан",
-      last_login_at: "Последний вход",
-      activate: "Активировать",
-      deactivate: "Деактивировать",
-      grant_access: "Дать доступ",
-      deny_access: "Запретить доступ",
-      delete_credential: "Удалить учётные данные",
-      audit_logs: "Входы на сайт и действия",
-      action_type: "Действие",
-      action_detail: "Детали",
-      path: "Путь",
-      method: "Метод",
-      ip: "IP",
-      user_agent: "User Agent",
-      last_30_days_only: "Хранятся только последние 30 дней. Старые записи удаляются при открытии админ-страниц."
-    }
-  };
-
-  return { ...selected, ...(superadminTexts[safeLang(language)] || superadminTexts.en) };
+  return getAdminUiText(language);
 }
 
 function getProductCategoryUiText(language = "en") {
-  const texts = {
-    en: {
-      categories: "Categories",
-      category: "Category",
-      add_category: "Add Category",
-      category_name: "Category Name",
-      create_category: "Create Category",
-      no_category: "No category",
-      all_categories: "All categories",
-      uncategorized: "Uncategorized",
-      active_categories: "Active categories",
-      inactive_categories: "Inactive categories",
-      category_status: "Category status",
-      assign_category: "Assign Category"
-    },
-    de: {
-      categories: "Kategorien",
-      category: "Kategorie",
-      add_category: "Kategorie hinzufügen",
-      category_name: "Kategoriename",
-      create_category: "Kategorie erstellen",
-      no_category: "Keine Kategorie",
-      all_categories: "Alle Kategorien",
-      uncategorized: "Nicht kategorisiert",
-      active_categories: "Aktive Kategorien",
-      inactive_categories: "Inaktive Kategorien",
-      category_status: "Kategoriestatus",
-      assign_category: "Kategorie zuweisen"
-    },
-    tr: {
-      categories: "Kategoriler",
-      category: "Kategori",
-      add_category: "Kategori Ekle",
-      category_name: "Kategori Adı",
-      create_category: "Kategori Oluştur",
-      no_category: "Kategori yok",
-      all_categories: "Tüm kategoriler",
-      uncategorized: "Kategorisiz",
-      active_categories: "Aktif kategoriler",
-      inactive_categories: "Pasif kategoriler",
-      category_status: "Kategori durumu",
-      assign_category: "Kategori Ata"
-    },
-    ar: {
-      categories: "الفئات",
-      category: "الفئة",
-      add_category: "إضافة فئة",
-      category_name: "اسم الفئة",
-      create_category: "إنشاء فئة",
-      no_category: "بدون فئة",
-      all_categories: "كل الفئات",
-      uncategorized: "غير مصنف",
-      active_categories: "الفئات النشطة",
-      inactive_categories: "الفئات غير النشطة",
-      category_status: "حالة الفئة",
-      assign_category: "تعيين الفئة"
-    },
-    ru: {
-      categories: "Категории",
-      category: "Категория",
-      add_category: "Добавить категорию",
-      category_name: "Название категории",
-      create_category: "Создать категорию",
-      no_category: "Без категории",
-      all_categories: "Все категории",
-      uncategorized: "Без категории",
-      active_categories: "Активные категории",
-      inactive_categories: "Неактивные категории",
-      category_status: "Статус категории",
-      assign_category: "Назначить категорию"
-    }
-  };
-
-  return texts[safeLang(language)] || texts.en;
+  return getAdminUiText(language);
 }
 
 async function getActiveProducts(env) {
@@ -4751,13 +3733,45 @@ async function logAdminAction(env, request, session, actionType, actionDetail = 
 
 async function getAdminUsersForSuperadmin(env) {
   const rows = await env.DB.prepare(
-    "SELECT id, username, role, is_active, created_at, last_login_at FROM admin_users ORDER BY username"
+    `SELECT
+       id,
+       username,
+       username_normalized,
+       role,
+       is_active,
+       is_protected,
+       auth_account_id,
+       created_at,
+       last_login_at
+     FROM admin_users
+     ORDER BY username`
   ).all();
 
-  const envAdmins = [];
+  const databaseAdmins = (rows.results || []).map((row) => {
+    const normalizedUsername = String(
+      row.username_normalized || row.username || ""
+    ).trim().toLowerCase();
+    const reconciledEnvironmentAccount = (
+      normalizedUsername === String(env.SUPERADMIN_USERNAME || "").trim().toLowerCase()
+      || normalizedUsername === String(env.ADMIN_USERNAME || "").trim().toLowerCase()
+    );
 
-  if (env.SUPERADMIN_USERNAME) {
-    envAdmins.push({
+    return {
+      ...row,
+      source: reconciledEnvironmentAccount ? "db/env" : "db",
+      protected: Number(row.is_protected) === 1
+    };
+  });
+  const databaseUsernames = new Set(databaseAdmins.map((admin) => (
+    String(admin.username_normalized || admin.username || "").trim().toLowerCase()
+  )));
+  const environmentAdmins = [];
+
+  if (
+    env.SUPERADMIN_USERNAME
+    && !databaseUsernames.has(String(env.SUPERADMIN_USERNAME).trim().toLowerCase())
+  ) {
+    environmentAdmins.push({
       id: "env-superadmin",
       username: env.SUPERADMIN_USERNAME,
       role: "superadmin",
@@ -4769,8 +3783,11 @@ async function getAdminUsersForSuperadmin(env) {
     });
   }
 
-  if (env.ADMIN_USERNAME) {
-    envAdmins.push({
+  if (
+    env.ADMIN_USERNAME
+    && !databaseUsernames.has(String(env.ADMIN_USERNAME).trim().toLowerCase())
+  ) {
+    environmentAdmins.push({
       id: "env-admin",
       username: env.ADMIN_USERNAME,
       role: "admin",
@@ -4782,14 +3799,9 @@ async function getAdminUsersForSuperadmin(env) {
     });
   }
 
-  return [
-    ...envAdmins,
-    ...(rows.results || []).map((row) => ({
-      ...row,
-      source: "db",
-      protected: false
-    }))
-  ];
+  return [...environmentAdmins, ...databaseAdmins].sort((left, right) => (
+    String(left.username).localeCompare(String(right.username))
+  ));
 }
 
 async function getAdminAuditLogs(env) {
@@ -5059,7 +4071,11 @@ function renderAdminDashboard(data, section = "dashboard") {
   `).join("");
 
   const productCategoryRows = (data.productCategories || []).map((category) => `
-    <tr>
+    <tr
+      data-category-id="${category.id}"
+      data-category-name="${escapeHtml(category.name)}"
+      data-category-active="${category.is_active ? "active" : "inactive"}"
+    >
       <form action="/admin/product-categories/${category.id}/update" method="post">
         <td>${category.id}</td>
         <td><input type="text" name="name" value="${escapeHtml(category.name)}" required></td>
@@ -5384,54 +4400,34 @@ ${section === "products" ? `
     white-space: normal;
   }
 }
+
+.products-link-grid-force {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.products-list-header-force {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 18px;
+}
+
+@media (max-width: 640px) {
+  .products-link-grid-force {
+    grid-template-columns: 1fr;
+  }
+
+  .products-list-header-force {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 </style>
 
 <div class="products-top-layout-force">
-  <section class="products-panel-force">
-    <h3>${ui.search_filters}</h3>
-
-    <div class="products-field-force">
-      <label for="product-search-id">${ui.id_filter}</label>
-      <input type="text" id="product-search-id" oninput="filterProductsTable()">
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-search-text">${ui.search_product}</label>
-      <input type="text" id="product-search-text" oninput="filterProductsTable()">
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-price-min">${ui.price_min}</label>
-      <input type="number" step="0.01" id="product-price-min" oninput="filterProductsTable()">
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-price-max">${ui.price_max}</label>
-      <input type="number" step="0.01" id="product-price-max" oninput="filterProductsTable()">
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-search-active">${ui.active_status}</label>
-      <select id="product-search-active" onchange="filterProductsTable()">
-        <option value="">${ui.all_statuses}</option>
-        <option value="active">${ui.active_only}</option>
-        <option value="inactive">${ui.inactive_only}</option>
-      </select>
-    </div>
-
-    <div class="products-field-force">
-      <label for="product-search-category">${ui.category}</label>
-      <select id="product-search-category" onchange="filterProductsTable()">
-        <option value="">${ui.all_categories}</option>
-        <option value="__none__">${ui.uncategorized}</option>
-        ${(data.productCategories || []).map((category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`).join("")}
-      </select>
-    </div>
-
-    <p>${ui.fuzzy_cutoff_note}</p>
-    <button type="button" onclick="clearProductsFilter()">${ui.clear_filters}</button>
-  </section>
-
   <section class="products-panel-force">
     <h3>${ui.add_product}</h3>
 
@@ -5456,18 +4452,7 @@ ${section === "products" ? `
       <button type="submit">${ui.create_product}</button>
     </form>
   </section>
-</div>
 
-<table id="products-table" border="1" cellpadding="10">
-  <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.price}</th><th>${ui.category}</th><th>${ui.aliases}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
-  ${productRows}
-</table>
-
-<hr>
-
-<h2>${ui.categories}</h2>
-
-<div class="products-top-layout-force">
   <section class="products-panel-force">
     <h3>${ui.add_category}</h3>
 
@@ -5480,16 +4465,243 @@ ${section === "products" ? `
       <button type="submit">${ui.create_category}</button>
     </form>
   </section>
-
-  <section class="products-panel-force">
-    <h3>${ui.categories}</h3>
-
-    <table border="1" cellpadding="10">
-      <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
-      ${productCategoryRows}
-    </table>
-  </section>
 </div>
+
+<div class="products-panel-force">
+  <div class="products-link-grid-force">
+    <a href="/admin/products/list"><button type="button">${ui.list_products}</button></a>
+    <a href="/admin/product-categories/list"><button type="button">${ui.list_categories}</button></a>
+  </div>
+</div>
+
+<hr>
+` : ""}
+${section === "product_list" ? `
+<h2>${ui.product_list}</h2>
+
+<style>
+.products-top-layout-force {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(320px, 420px);
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+  margin: 12px 0 18px;
+}
+
+.products-panel-force {
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 14px 42px rgba(15, 23, 42, 0.06);
+  box-sizing: border-box;
+}
+
+.products-field-force {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.products-field-force label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.products-field-force input,
+.products-field-force select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.products-list-header-force {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 18px;
+}
+
+@media (max-width: 900px) {
+  .products-top-layout-force {
+    grid-template-columns: 1fr;
+  }
+
+  .products-field-force {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .products-field-force label {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .products-list-header-force {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+</style>
+
+<div class="products-list-header-force">
+  <div></div>
+  <a href="/admin/products"><button type="button">${ui.back_to_products}</button></a>
+</div>
+
+<section class="products-panel-force">
+  <h3>${ui.search_filters}</h3>
+
+  <div class="products-field-force">
+    <label for="product-search-id">${ui.id_filter}</label>
+    <input type="text" id="product-search-id" oninput="filterProductsTable()">
+  </div>
+
+  <div class="products-field-force">
+    <label for="product-search-text">${ui.search_product}</label>
+    <input type="text" id="product-search-text" oninput="filterProductsTable()">
+  </div>
+
+  <div class="products-field-force">
+    <label for="product-price-min">${ui.price_min}</label>
+    <input type="number" step="0.01" id="product-price-min" oninput="filterProductsTable()">
+  </div>
+
+  <div class="products-field-force">
+    <label for="product-price-max">${ui.price_max}</label>
+    <input type="number" step="0.01" id="product-price-max" oninput="filterProductsTable()">
+  </div>
+
+  <div class="products-field-force">
+    <label for="product-search-active">${ui.active_status}</label>
+    <select id="product-search-active" onchange="filterProductsTable()">
+      <option value="">${ui.all_statuses}</option>
+      <option value="active">${ui.active_only}</option>
+      <option value="inactive">${ui.inactive_only}</option>
+    </select>
+  </div>
+
+  <div class="products-field-force">
+    <label for="product-search-category">${ui.category}</label>
+    <select id="product-search-category" onchange="filterProductsTable()">
+      <option value="">${ui.all_categories}</option>
+      <option value="__none__">${ui.uncategorized}</option>
+      ${(data.productCategories || []).map((category) => `<option value="${category.id}">${escapeHtml(category.name)}</option>`).join("")}
+    </select>
+  </div>
+
+  <p>${ui.fuzzy_cutoff_note}</p>
+  <button type="button" onclick="clearProductsFilter()">${ui.clear_filters}</button>
+</section>
+
+<table id="products-table" border="1" cellpadding="10">
+  <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.price}</th><th>${ui.category}</th><th>${ui.aliases}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
+  ${productRows}
+</table>
+
+<hr>
+` : ""}
+${section === "product_categories" ? `
+<h2>${ui.category_list}</h2>
+
+<style>
+.products-panel-force {
+  background: #ffffff;
+  border: 1px solid #d7dee8;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 14px 42px rgba(15, 23, 42, 0.06);
+  box-sizing: border-box;
+}
+
+.products-field-force {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.products-field-force label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.products-field-force input,
+.products-field-force select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.products-list-header-force {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 18px;
+}
+
+@media (max-width: 900px) {
+  .products-field-force {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .products-field-force label {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .products-list-header-force {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+</style>
+
+<div class="products-list-header-force">
+  <div></div>
+  <a href="/admin/products"><button type="button">${ui.back_to_products}</button></a>
+</div>
+
+<section class="products-panel-force">
+  <h3>${ui.search_filters}</h3>
+
+  <div class="products-field-force">
+    <label for="category-search-id">${ui.id_filter}</label>
+    <input type="text" id="category-search-id" oninput="filterCategoryTable()">
+  </div>
+
+  <div class="products-field-force">
+    <label for="category-search-text">${ui.search_category}</label>
+    <input type="text" id="category-search-text" oninput="filterCategoryTable()">
+  </div>
+
+  <div class="products-field-force">
+    <label for="category-search-active">${ui.active_status}</label>
+    <select id="category-search-active" onchange="filterCategoryTable()">
+      <option value="">${ui.all_statuses}</option>
+      <option value="active">${ui.active_only}</option>
+      <option value="inactive">${ui.inactive_only}</option>
+    </select>
+  </div>
+
+  <button type="button" onclick="clearCategoryFilter()">${ui.clear_filters}</button>
+</section>
+
+<section class="products-panel-force">
+  <table id="product-categories-table" border="1" cellpadding="10">
+    <tr><th>${ui.id}</th><th>${ui.name}</th><th>${ui.active}</th><th>${ui.action}</th></tr>
+    ${productCategoryRows}
+  </table>
+</section>
 
 <hr>
 ` : ""}
@@ -5919,6 +5131,42 @@ function clearProductsFilter() {
   filterProductsTable();
 }
 
+function filterCategoryTable() {
+  const idFilter = normalizeSearchText(document.getElementById("category-search-id")?.value || "");
+  const textFilter = normalizeSearchText(document.getElementById("category-search-text")?.value || "");
+  const activeFilter = document.getElementById("category-search-active")?.value || "";
+
+  document.querySelectorAll("#product-categories-table tr[data-category-id]").forEach((row) => {
+    const id = normalizeSearchText(row.dataset.categoryId || "");
+    const name = normalizeSearchText(row.dataset.categoryName || "");
+    const active = row.dataset.categoryActive || "";
+
+    const idMatches = !idFilter || id.includes(idFilter);
+    const textMatches =
+      !textFilter
+      || name.includes(textFilter)
+      || fuzzyIncludes(name, textFilter);
+    const activeMatches = !activeFilter || active === activeFilter;
+
+    row.style.display = idMatches && textMatches && activeMatches ? "" : "none";
+  });
+}
+
+function clearCategoryFilter() {
+  const fields = [
+    "category-search-id",
+    "category-search-text",
+    "category-search-active"
+  ];
+
+  for (const id of fields) {
+    const field = document.getElementById(id);
+    if (field) field.value = "";
+  }
+
+  filterCategoryTable();
+}
+
 function filterCustomersTable() {
   const table = document.getElementById("customers-table");
 
@@ -6121,525 +5369,7 @@ async function getOrdersContext(env, closed = false) {
 }
 
 function getAdminOrderUiText(language = "en") {
-  const texts = {
-    en: {
-      orders: "Orders",
-      closed_orders: "Closed Orders",
-      open_orders: "Open Orders",
-      ai_info: "AI Info",
-      details: "Details",
-      action: "Action",
-      actions: "Actions",
-      order: "Order",
-      customer: "Customer",
-      status: "Status",
-      items: "Items",
-      total: "Total",
-      location: "Location",
-      created_updated: "Created / Updated",
-      fulfillment: "Fulfillment",
-      delivery: "Delivery",
-      pickup: "Pickup",
-      open_map: "Open map",
-      no_orders_found: "No orders found.",
-      optional_admin_note: "Optional admin note",
-      on_the_way: "On the way",
-      delivered: "Delivered",
-      not_delivered: "Not delivered",
-      ready_to_pick_up: "Ready to pick up",
-      picked_up_delivered: "Picked up / delivered",
-      cancel: "Cancel",
-      update: "Update",
-      return_not_delivered: "Return as not delivered",
-      no_action_cancelled: "No action for cancelled order.",
-      no_lifecycle_action_cancelled: "No lifecycle action for cancelled order.",
-      no_available_action: "No available action.",
-      order_not_found: "Order not found",
-      back_to_orders: "Back to orders",
-      summary: "Summary",
-      code: "Code",
-      order_status: "Order status",
-      delivery_status: "Delivery status",
-      pickup_status: "Pickup status",
-      admin_note: "Admin note",
-      customer_name: "Name",
-      username: "Username",
-      telegram: "Telegram",
-      language: "Language",
-      groups_and_items: "Groups and Items",
-      no_delivery_location: "No delivery location.",
-      product: "Product",
-      qty: "Qty",
-      unit: "Unit",
-      item_status: "Item Status",
-      admin_decision: "Admin Decision",
-      note: "Note",
-      no_items: "No items.",
-      no_item_groups: "No item groups.",
-      group: "Group",
-      requires_admin_approval: "Requires admin approval",
-      approve_group: "Approve group",
-      reject_group: "Reject group",
-      reject_note: "Reject note",
-      yes: "Yes",
-      no: "No",
-      status_submitted: "Submitted",
-      status_preparing: "Preparing",
-      status_scheduled_for_next_online_order: "Scheduled",
-      status_cancelled: "Cancelled",
-      status_closed: "Closed",
-      status_delivered: "Delivered",
-      status_not_delivered: "Not delivered",
-      status_on_the_way: "On the way",
-      status_ready_to_pickup: "Ready to pick up",
-      status_picked_up: "Picked up",
-      status_waiting_ready_to_pickup: "Waiting for pickup readiness",
-      status_pending_admin_approval: "Pending admin approval",
-      status_approved: "Approved",
-      status_rejected: "Rejected",
-      group_type_initial_checkout: "Initial checkout",
-      group_type_admin_addition: "Admin addition",
-      group_type_customer_addition: "Customer addition",
-      fulfillment_pickup: "Pickup",
-      fulfillment_delivery: "Delivery",
-      language_en: "English",
-      language_de: "German",
-      language_tr: "Turkish",
-      language_ar: "Arabic",
-      language_ru: "Russian",
-      note_marked_delivered_admin_web: "Marked delivered from admin web",
-      note_marked_on_the_way_admin_web: "Marked on the way from admin web",
-      note_marked_ready_pickup_admin_web: "Marked ready to pick up from admin web",
-      note_marked_not_delivered_admin_web: "Marked not delivered from admin web",
-      note_cancelled_admin_web: "Cancelled from admin web",
-      note_updated_admin_web: "Updated from admin web",
-      status_history: "Status History",
-      from_status: "From",
-      to_status: "To",
-      changed_by: "Changed by",
-      changed_at: "Changed at",
-      no_status_history: "No status history yet.",
-      status_pickup_ready_to_pickup: "Pickup ready",
-      status_delivery_on_the_way: "Delivery on the way",
-      actor_admin_web: "Admin web",
-      actor_legacy_admin_route: "Admin web",
-      actor_telegram_bot: "Telegram bot"
-    },
-    de: {
-      orders: "Bestellungen",
-      closed_orders: "Geschlossene Bestellungen",
-      open_orders: "Offene Bestellungen",
-      ai_info: "KI-Info",
-      details: "Details",
-      action: "Aktion",
-      actions: "Aktionen",
-      order: "Bestellung",
-      customer: "Kunde",
-      status: "Status",
-      items: "Artikel",
-      total: "Gesamt",
-      location: "Standort",
-      created_updated: "Erstellt / Aktualisiert",
-      fulfillment: "Abwicklung",
-      delivery: "Lieferung",
-      pickup: "Abholung",
-      open_map: "Karte öffnen",
-      no_orders_found: "Keine Bestellungen gefunden.",
-      optional_admin_note: "Optionale Admin-Notiz",
-      on_the_way: "Unterwegs",
-      delivered: "Geliefert",
-      not_delivered: "Nicht geliefert",
-      ready_to_pick_up: "Bereit zur Abholung",
-      picked_up_delivered: "Abgeholt / geliefert",
-      cancel: "Abbrechen",
-      update: "Aktualisieren",
-      return_not_delivered: "Als nicht geliefert zurücksetzen",
-      no_action_cancelled: "Keine Aktion für stornierte Bestellung.",
-      no_lifecycle_action_cancelled: "Keine Lifecycle-Aktion für stornierte Bestellung.",
-      no_available_action: "Keine verfügbare Aktion.",
-      order_not_found: "Bestellung nicht gefunden",
-      back_to_orders: "Zurück zu Bestellungen",
-      summary: "Zusammenfassung",
-      code: "Code",
-      order_status: "Bestellstatus",
-      delivery_status: "Lieferstatus",
-      pickup_status: "Abholstatus",
-      admin_note: "Admin-Notiz",
-      customer_name: "Name",
-      username: "Benutzername",
-      telegram: "Telegram",
-      language: "Sprache",
-      groups_and_items: "Gruppen und Artikel",
-      no_delivery_location: "Kein Lieferstandort.",
-      product: "Produkt",
-      qty: "Menge",
-      unit: "Einheit",
-      item_status: "Artikelstatus",
-      admin_decision: "Admin-Entscheidung",
-      note: "Notiz",
-      no_items: "Keine Artikel.",
-      no_item_groups: "Keine Artikelgruppen.",
-      group: "Gruppe",
-      requires_admin_approval: "Admin-Freigabe erforderlich",
-      approve_group: "Gruppe genehmigen",
-      reject_group: "Gruppe ablehnen",
-      reject_note: "Ablehnungsnotiz",
-      yes: "Ja",
-      no: "Nein",
-      status_submitted: "Eingereicht",
-      status_preparing: "In Vorbereitung",
-      status_scheduled_for_next_online_order: "Geplant",
-      status_cancelled: "Storniert",
-      status_closed: "Geschlossen",
-      status_delivered: "Geliefert",
-      status_not_delivered: "Nicht geliefert",
-      status_on_the_way: "Unterwegs",
-      status_ready_to_pickup: "Bereit zur Abholung",
-      status_picked_up: "Abgeholt",
-      status_waiting_ready_to_pickup: "Wartet auf Abholbereitschaft",
-      status_pending_admin_approval: "Wartet auf Admin-Freigabe",
-      status_approved: "Genehmigt",
-      status_rejected: "Abgelehnt",
-      group_type_initial_checkout: "Erster Checkout",
-      group_type_admin_addition: "Admin-Ergänzung",
-      group_type_customer_addition: "Kundenergänzung",
-      fulfillment_pickup: "Abholung",
-      fulfillment_delivery: "Lieferung",
-      language_en: "Englisch",
-      language_de: "Deutsch",
-      language_tr: "Türkisch",
-      language_ar: "Arabisch",
-      language_ru: "Russisch",
-      note_marked_delivered_admin_web: "Von Admin-Web als geliefert markiert",
-      note_marked_on_the_way_admin_web: "Von Admin-Web als unterwegs markiert",
-      note_marked_ready_pickup_admin_web: "Von Admin-Web als abholbereit markiert",
-      note_marked_not_delivered_admin_web: "Von Admin-Web als nicht geliefert markiert",
-      note_cancelled_admin_web: "Von Admin-Web storniert",
-      note_updated_admin_web: "Von Admin-Web aktualisiert",
-      status_history: "Statushistorie",
-      from_status: "Von",
-      to_status: "Zu",
-      changed_by: "Geändert von",
-      changed_at: "Geändert am",
-      no_status_history: "Noch keine Statushistorie.",
-      status_pickup_ready_to_pickup: "Abholung bereit",
-      status_delivery_on_the_way: "Lieferung unterwegs",
-      actor_admin_web: "Admin-Web",
-      actor_legacy_admin_route: "Admin-Web",
-      actor_telegram_bot: "Telegram-Bot"
-    },
-    tr: {
-      orders: "Siparişler",
-      closed_orders: "Kapalı Siparişler",
-      open_orders: "Açık Siparişler",
-      ai_info: "AI Bilgisi",
-      details: "Detaylar",
-      action: "İşlem",
-      actions: "İşlemler",
-      order: "Sipariş",
-      customer: "Müşteri",
-      status: "Durum",
-      items: "Ürünler",
-      total: "Toplam",
-      location: "Konum",
-      created_updated: "Oluşturuldu / Güncellendi",
-      fulfillment: "Teslimat türü",
-      delivery: "Teslimat",
-      pickup: "Teslim alma",
-      open_map: "Haritayı aç",
-      no_orders_found: "Sipariş bulunamadı.",
-      optional_admin_note: "İsteğe bağlı admin notu",
-      on_the_way: "Yolda",
-      delivered: "Teslim edildi",
-      not_delivered: "Teslim edilmedi",
-      ready_to_pick_up: "Teslim almaya hazır",
-      picked_up_delivered: "Teslim alındı / teslim edildi",
-      cancel: "İptal",
-      update: "Güncelle",
-      return_not_delivered: "Teslim edilmedi olarak geri al",
-      no_action_cancelled: "İptal edilen sipariş için işlem yok.",
-      no_lifecycle_action_cancelled: "İptal edilen sipariş için lifecycle işlemi yok.",
-      no_available_action: "Uygun işlem yok.",
-      order_not_found: "Sipariş bulunamadı",
-      back_to_orders: "Siparişlere dön",
-      summary: "Özet",
-      code: "Kod",
-      order_status: "Sipariş durumu",
-      delivery_status: "Teslimat durumu",
-      pickup_status: "Teslim alma durumu",
-      admin_note: "Admin notu",
-      customer_name: "İsim",
-      username: "Kullanıcı adı",
-      telegram: "Telegram",
-      language: "Dil",
-      groups_and_items: "Gruplar ve ürünler",
-      no_delivery_location: "Teslimat konumu yok.",
-      product: "Ürün",
-      qty: "Adet",
-      unit: "Birim",
-      item_status: "Ürün durumu",
-      admin_decision: "Admin kararı",
-      note: "Not",
-      no_items: "Ürün yok.",
-      no_item_groups: "Ürün grubu yok.",
-      group: "Grup",
-      requires_admin_approval: "Admin onayı gerekli",
-      approve_group: "Grubu onayla",
-      reject_group: "Grubu reddet",
-      reject_note: "Red notu",
-      yes: "Evet",
-      no: "Hayır",
-      status_submitted: "Gönderildi",
-      status_preparing: "Hazırlanıyor",
-      status_scheduled_for_next_online_order: "Planlandı",
-      status_cancelled: "İptal edildi",
-      status_closed: "Kapalı",
-      status_delivered: "Teslim edildi",
-      status_not_delivered: "Teslim edilmedi",
-      status_on_the_way: "Yolda",
-      status_ready_to_pickup: "Teslim almaya hazır",
-      status_picked_up: "Teslim alındı",
-      status_waiting_ready_to_pickup: "Teslim almaya hazır olmayı bekliyor",
-      status_pending_admin_approval: "Admin onayı bekliyor",
-      status_approved: "Onaylandı",
-      status_rejected: "Reddedildi",
-      group_type_initial_checkout: "İlk checkout",
-      group_type_admin_addition: "Admin eklemesi",
-      group_type_customer_addition: "Müşteri eklemesi",
-      fulfillment_pickup: "Teslim alma",
-      fulfillment_delivery: "Teslimat",
-      language_en: "İngilizce",
-      language_de: "Almanca",
-      language_tr: "Türkçe",
-      language_ar: "Arapça",
-      language_ru: "Rusça",
-      note_marked_delivered_admin_web: "Admin web tarafından teslim edildi olarak işaretlendi",
-      note_marked_on_the_way_admin_web: "Admin web tarafından yolda olarak işaretlendi",
-      note_marked_ready_pickup_admin_web: "Admin web tarafından teslim almaya hazır olarak işaretlendi",
-      note_marked_not_delivered_admin_web: "Admin web tarafından teslim edilmedi olarak işaretlendi",
-      note_cancelled_admin_web: "Admin web tarafından iptal edildi",
-      note_updated_admin_web: "Admin web tarafından güncellendi",
-      status_history: "Durum geçmişi",
-      from_status: "Önceki",
-      to_status: "Yeni",
-      changed_by: "Değiştiren",
-      changed_at: "Değiştirilme zamanı",
-      no_status_history: "Henüz durum geçmişi yok.",
-      status_pickup_ready_to_pickup: "Teslim alma hazır",
-      status_delivery_on_the_way: "Teslimat yolda",
-      actor_admin_web: "Admin web",
-      actor_legacy_admin_route: "Admin web",
-      actor_telegram_bot: "Telegram botu"
-    },
-    ar: {
-      orders: "الطلبات",
-      closed_orders: "الطلبات المغلقة",
-      open_orders: "الطلبات المفتوحة",
-      ai_info: "معلومات الذكاء الاصطناعي",
-      details: "التفاصيل",
-      action: "الإجراء",
-      actions: "الإجراءات",
-      order: "الطلب",
-      customer: "العميل",
-      status: "الحالة",
-      items: "العناصر",
-      total: "المجموع",
-      location: "الموقع",
-      created_updated: "تم الإنشاء / التحديث",
-      fulfillment: "طريقة التنفيذ",
-      delivery: "التوصيل",
-      pickup: "الاستلام",
-      open_map: "فتح الخريطة",
-      no_orders_found: "لا توجد طلبات.",
-      optional_admin_note: "ملاحظة إدارية اختيارية",
-      on_the_way: "في الطريق",
-      delivered: "تم التسليم",
-      not_delivered: "لم يتم التسليم",
-      ready_to_pick_up: "جاهز للاستلام",
-      picked_up_delivered: "تم الاستلام / التسليم",
-      cancel: "إلغاء",
-      update: "تحديث",
-      return_not_delivered: "إرجاع كغير مُسلّم",
-      no_action_cancelled: "لا يوجد إجراء للطلب الملغي.",
-      no_lifecycle_action_cancelled: "لا يوجد إجراء دورة حياة للطلب الملغي.",
-      no_available_action: "لا يوجد إجراء متاح.",
-      order_not_found: "الطلب غير موجود",
-      back_to_orders: "العودة إلى الطلبات",
-      summary: "الملخص",
-      code: "الكود",
-      order_status: "حالة الطلب",
-      delivery_status: "حالة التوصيل",
-      pickup_status: "حالة الاستلام",
-      admin_note: "ملاحظة الإدارة",
-      customer_name: "الاسم",
-      username: "اسم المستخدم",
-      telegram: "Telegram",
-      language: "اللغة",
-      groups_and_items: "المجموعات والعناصر",
-      no_delivery_location: "لا يوجد موقع توصيل.",
-      product: "المنتج",
-      qty: "الكمية",
-      unit: "الوحدة",
-      item_status: "حالة العنصر",
-      admin_decision: "قرار الإدارة",
-      note: "ملاحظة",
-      no_items: "لا توجد عناصر.",
-      no_item_groups: "لا توجد مجموعات عناصر.",
-      group: "المجموعة",
-      requires_admin_approval: "يتطلب موافقة الإدارة",
-      approve_group: "الموافقة على المجموعة",
-      reject_group: "رفض المجموعة",
-      reject_note: "ملاحظة الرفض",
-      yes: "نعم",
-      no: "لا",
-      status_submitted: "تم الإرسال",
-      status_preparing: "قيد التحضير",
-      status_scheduled_for_next_online_order: "مجدول",
-      status_cancelled: "ملغي",
-      status_closed: "مغلق",
-      status_delivered: "تم التسليم",
-      status_not_delivered: "لم يتم التسليم",
-      status_on_the_way: "في الطريق",
-      status_ready_to_pickup: "جاهز للاستلام",
-      status_picked_up: "تم الاستلام",
-      status_waiting_ready_to_pickup: "بانتظار الجاهزية للاستلام",
-      status_pending_admin_approval: "بانتظار موافقة الإدارة",
-      status_approved: "تمت الموافقة",
-      status_rejected: "مرفوض",
-      group_type_initial_checkout: "الدفع الأولي",
-      group_type_admin_addition: "إضافة الإدارة",
-      group_type_customer_addition: "إضافة العميل",
-      fulfillment_pickup: "استلام",
-      fulfillment_delivery: "توصيل",
-      language_en: "الإنجليزية",
-      language_de: "الألمانية",
-      language_tr: "التركية",
-      language_ar: "العربية",
-      language_ru: "الروسية",
-      note_marked_delivered_admin_web: "تم تحديده كمُسلّم من لوحة الإدارة",
-      note_marked_on_the_way_admin_web: "تم تحديده كقيد التوصيل من لوحة الإدارة",
-      note_marked_ready_pickup_admin_web: "تم تحديده كجاهز للاستلام من لوحة الإدارة",
-      note_marked_not_delivered_admin_web: "تم تحديده كغير مُسلّم من لوحة الإدارة",
-      note_cancelled_admin_web: "تم إلغاؤه من لوحة الإدارة",
-      note_updated_admin_web: "تم تحديثه من لوحة الإدارة",
-      status_history: "سجل الحالة",
-      from_status: "من",
-      to_status: "إلى",
-      changed_by: "تم التغيير بواسطة",
-      changed_at: "وقت التغيير",
-      no_status_history: "لا يوجد سجل حالة بعد.",
-      status_pickup_ready_to_pickup: "الاستلام جاهز",
-      status_delivery_on_the_way: "التوصيل في الطريق",
-      actor_admin_web: "لوحة الإدارة",
-      actor_legacy_admin_route: "لوحة الإدارة",
-      actor_telegram_bot: "بوت Telegram"
-    },
-    ru: {
-      orders: "Заказы",
-      closed_orders: "Закрытые заказы",
-      open_orders: "Открытые заказы",
-      ai_info: "AI Info",
-      details: "Детали",
-      action: "Действие",
-      actions: "Действия",
-      order: "Заказ",
-      customer: "Клиент",
-      status: "Статус",
-      items: "Товары",
-      total: "Итого",
-      location: "Локация",
-      created_updated: "Создан / обновлен",
-      fulfillment: "Выполнение",
-      delivery: "Доставка",
-      pickup: "Самовывоз",
-      open_map: "Открыть карту",
-      no_orders_found: "Заказы не найдены.",
-      optional_admin_note: "Необязательная заметка админа",
-      on_the_way: "В пути",
-      delivered: "Доставлено",
-      not_delivered: "Не доставлено",
-      ready_to_pick_up: "Готов к самовывозу",
-      picked_up_delivered: "Получено / доставлено",
-      cancel: "Отмена",
-      update: "Обновить",
-      return_not_delivered: "Вернуть как не доставлено",
-      no_action_cancelled: "Нет действия для отмененного заказа.",
-      no_lifecycle_action_cancelled: "Нет lifecycle-действия для отмененного заказа.",
-      no_available_action: "Нет доступного действия.",
-      order_not_found: "Заказ не найден",
-      back_to_orders: "Назад к заказам",
-      summary: "Сводка",
-      code: "Код",
-      order_status: "Статус заказа",
-      delivery_status: "Статус доставки",
-      pickup_status: "Статус самовывоза",
-      admin_note: "Заметка админа",
-      customer_name: "Имя",
-      username: "Имя пользователя",
-      telegram: "Telegram",
-      language: "Язык",
-      groups_and_items: "Группы и товары",
-      no_delivery_location: "Нет локации доставки.",
-      product: "Товар",
-      qty: "Кол-во",
-      unit: "Цена",
-      item_status: "Статус товара",
-      admin_decision: "Решение админа",
-      note: "Заметка",
-      no_items: "Нет товаров.",
-      no_item_groups: "Нет групп товаров.",
-      group: "Группа",
-      requires_admin_approval: "Требуется одобрение админа",
-      approve_group: "Одобрить группу",
-      reject_group: "Отклонить группу",
-      reject_note: "Заметка отклонения",
-      yes: "Да",
-      no: "Нет",
-      status_submitted: "Отправлен",
-      status_preparing: "Готовится",
-      status_scheduled_for_next_online_order: "Запланирован",
-      status_cancelled: "Отменен",
-      status_closed: "Закрыт",
-      status_delivered: "Доставлен",
-      status_not_delivered: "Не доставлен",
-      status_on_the_way: "В пути",
-      status_ready_to_pickup: "Готов к самовывозу",
-      status_picked_up: "Получен",
-      status_waiting_ready_to_pickup: "Ожидает готовности к самовывозу",
-      status_pending_admin_approval: "Ожидает одобрения админа",
-      status_approved: "Одобрено",
-      status_rejected: "Отклонено",
-      group_type_initial_checkout: "Первичный checkout",
-      group_type_admin_addition: "Добавление админом",
-      group_type_customer_addition: "Добавление клиентом",
-      fulfillment_pickup: "Самовывоз",
-      fulfillment_delivery: "Доставка",
-      language_en: "Английский",
-      language_de: "Немецкий",
-      language_tr: "Турецкий",
-      language_ar: "Арабский",
-      language_ru: "Русский",
-      note_marked_delivered_admin_web: "Отмечено как доставленное через админ-панель",
-      note_marked_on_the_way_admin_web: "Отмечено как в пути через админ-панель",
-      note_marked_ready_pickup_admin_web: "Отмечено как готовое к самовывозу через админ-панель",
-      note_marked_not_delivered_admin_web: "Отмечено как не доставленное через админ-панель",
-      note_cancelled_admin_web: "Отменено через админ-панель",
-      note_updated_admin_web: "Обновлено через админ-панель",
-      status_history: "История статусов",
-      from_status: "От",
-      to_status: "К",
-      changed_by: "Кем изменено",
-      changed_at: "Когда изменено",
-      no_status_history: "Истории статусов пока нет.",
-      status_pickup_ready_to_pickup: "Самовывоз готов",
-      status_delivery_on_the_way: "Доставка в пути",
-      actor_admin_web: "Админ-панель",
-      actor_legacy_admin_route: "Админ-панель",
-      actor_telegram_bot: "Telegram-бот"
-    }
-  };
-
-  return texts[safeLang(language)] || texts.en;
+  return getAdminUiText(language);
 }
 
 
@@ -7584,6 +6314,18 @@ async function handleAdminProductsPage(env, session = null) {
   return htmlResponse(renderAdminDashboard(data, "products"));
 }
 
+async function handleAdminProductListPage(env, session = null) {
+  const data = await getAdminData(env);
+  data.session = session;
+  return htmlResponse(renderAdminDashboard(data, "product_list"));
+}
+
+async function handleAdminProductCategoriesPage(env, session = null) {
+  const data = await getAdminData(env);
+  data.session = session;
+  return htmlResponse(renderAdminDashboard(data, "product_categories"));
+}
+
 async function handleAdminMeetingPointsPage(env, session = null) {
   const data = await getAdminData(env);
   data.session = session;
@@ -7734,6 +6476,22 @@ async function handleSuperadminCreateAdmin(request, env, session) {
 
   if (!username || !password) return redirectResponse("/admin/superadmin");
 
+  const normalizedUsername = username.toLowerCase();
+  const protectedAccount = await env.DB.prepare(`
+    SELECT id
+    FROM admin_users
+    WHERE username_normalized = ?
+      AND is_protected = 1
+    LIMIT 1
+  `).bind(normalizedUsername).first();
+  if (
+    protectedAccount
+    || normalizedUsername === String(env.ADMIN_USERNAME || "").trim().toLowerCase()
+    || normalizedUsername === String(env.SUPERADMIN_USERNAME || "").trim().toLowerCase()
+  ) {
+    return redirectResponse("/admin/superadmin");
+  }
+
   await env.DB.prepare(
     `
     INSERT INTO admin_users (username, password_hash, role, is_active)
@@ -7753,6 +6511,7 @@ async function handleSuperadminToggleAdmin(request, env, session, adminId) {
   const admin = await env.DB.prepare("SELECT * FROM admin_users WHERE id = ?").bind(adminId).first();
   if (!admin) return redirectResponse("/admin/superadmin");
   if (admin.username === session?.username) return redirectResponse("/admin/superadmin");
+  if (Number(admin.is_protected) === 1) return redirectResponse("/admin/superadmin");
 
   const activeSuperadminCount = await env.DB.prepare(
     "SELECT COUNT(*) AS count FROM admin_users WHERE role = 'superadmin' AND is_active = 1"
@@ -7781,6 +6540,7 @@ async function handleSuperadminDeleteAdmin(request, env, session, adminId) {
   const admin = await env.DB.prepare("SELECT * FROM admin_users WHERE id = ?").bind(adminId).first();
   if (!admin) return redirectResponse("/admin/superadmin");
   if (admin.username === session?.username) return redirectResponse("/admin/superadmin");
+  if (Number(admin.is_protected) === 1) return redirectResponse("/admin/superadmin");
 
   const activeSuperadminCount = await env.DB.prepare(
     "SELECT COUNT(*) AS count FROM admin_users WHERE role = 'superadmin' AND is_active = 1"
@@ -7841,7 +6601,7 @@ async function handleUpdateProduct(request, env, productId) {
     }
   }
 
-  return redirectResponse("/admin/products");
+  return redirectResponse("/admin/products/list");
 }
 
 async function handleDeleteProduct(env, productId) {
@@ -7853,7 +6613,7 @@ async function handleDeleteProduct(env, productId) {
     "DELETE FROM products WHERE id = ?"
   ).bind(productId).run();
 
-  return redirectResponse("/admin/products");
+  return redirectResponse("/admin/products/list");
 }
 
 async function handleCreateProductCategory(request, env) {
@@ -7880,7 +6640,7 @@ async function handleUpdateProductCategory(request, env, categoryId) {
     ).bind(name, isActive, categoryId).run();
   }
 
-  return redirectResponse("/admin/products");
+  return redirectResponse("/admin/product-categories/list");
 }
 
 async function handleDeleteProductCategory(env, categoryId) {
@@ -7892,7 +6652,7 @@ async function handleDeleteProductCategory(env, categoryId) {
     "DELETE FROM product_categories WHERE id = ?"
   ).bind(categoryId).run();
 
-  return redirectResponse("/admin/products");
+  return redirectResponse("/admin/product-categories/list");
 }
 
 async function handleCreateMeetingPoint(request, env) {
@@ -10388,7 +9148,7 @@ async function getApiAdminSession(request, env) {
   };
 }
 
-function getApiCapabilities() {
+function getApiCapabilities(env) {
   return {
     app_name: APP_CAPABILITIES.app_name,
     runtime: APP_CAPABILITIES.runtime,
@@ -10444,6 +9204,7 @@ function getApiCapabilities() {
       android_separate_webhook: false,
       android_separate_database: false
     },
+    identity: getIdentityCapabilities(env),
     roadmap_stage: "phase_1_api_foundation"
   };
 }
@@ -13803,7 +12564,7 @@ async function handleApiV1(request, env) {
 
   if (url.pathname === "/api/v1/capabilities" && request.method === "GET") {
     return apiOk({
-      capabilities: getApiCapabilities()
+      capabilities: getApiCapabilities(env)
     });
   }
 
@@ -14029,8 +12790,11 @@ async function handleHealth() {
   return jsonResponse({ app: "CRM Delivery Worker", status: "ok" });
 }
 
-async function routeRequest(request, env) {
+async function routeRequest(request, env, ctx) {
   const url = new URL(request.url);
+
+  const identityResponse = await handleIdentityApi(request, env, ctx);
+  if (identityResponse) return identityResponse;
 
   if (request.method === "OPTIONS" && url.pathname.startsWith("/api/v1/")) {
     return apiCorsPreflight();
@@ -14055,6 +12819,13 @@ async function routeRequest(request, env) {
 
   if (url.pathname === "/" || url.pathname === "") {
     return jsonResponse({ status: "running", app: "CRM Delivery" });
+  }
+
+  if (
+    url.pathname === ADMIN_INVITATION_LANDING_ROUTE
+    && getIdentityCapabilities(env).staff_bootstrap_enrollment === true
+  ) {
+    return handleAdminInvitationLanding(request);
   }
 
   if (url.pathname === "/admin/login" && request.method === "GET") return handleLoginPage();
@@ -14103,6 +12874,8 @@ async function routeRequest(request, env) {
     return handleSuperadminDeleteAdmin(request, env, adminSession, Number(superadminDeleteAdmin[1]));
   }
   if ((url.pathname === "/admin/products" || url.pathname === "/admin/products/") && request.method === "GET") return handleAdminProductsPage(env, adminSession);
+  if ((url.pathname === "/admin/products/list" || url.pathname === "/admin/products/list/") && request.method === "GET") return handleAdminProductListPage(env, adminSession);
+  if ((url.pathname === "/admin/product-categories/list" || url.pathname === "/admin/product-categories/list/") && request.method === "GET") return handleAdminProductCategoriesPage(env, adminSession);
   if ((url.pathname === "/admin/meeting-points" || url.pathname === "/admin/meeting-points/") && request.method === "GET") return handleAdminMeetingPointsPage(env, adminSession);
   if ((url.pathname === "/admin/ai" || url.pathname === "/admin/ai/") && request.method === "GET") return handleAdminAiPage(env, adminSession);
   if ((url.pathname === "/admin/customers" || url.pathname === "/admin/customers/") && request.method === "GET") return handleAdminCustomersPage(env, adminSession);
@@ -14192,7 +12965,25 @@ async function routeRequest(request, env) {
 }
 
 export default {
-  async fetch(request, env) {
-    return routeRequest(request, env);
+  async fetch(request, env, ctx) {
+    return routeRequest(request, env, ctx);
+  },
+
+  async queue(batch, env) {
+    if (batch?.queue === "crm-auth-email-outbox-dlq") {
+      await processAuthEmailDeadLetterQueue(batch);
+      return;
+    }
+    await processAuthEmailQueue(batch, env);
+  },
+
+  async scheduled(_controller, env, ctx) {
+    const configuredLimit = Number(
+      env.CRM_AUTH_EMAIL_OUTBOX_DISPATCH_BATCH_SIZE || 10
+    );
+    const limit = Number.isSafeInteger(configuredLimit)
+      ? Math.max(1, Math.min(configuredLimit, 100))
+      : 10;
+    ctx.waitUntil(sweepAuthEmailOutbox(env, { limit }));
   }
 };

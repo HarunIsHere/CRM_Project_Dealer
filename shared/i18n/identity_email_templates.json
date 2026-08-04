@@ -1,0 +1,1108 @@
+{
+  "schema_version": 1,
+  "supported_locales": ["en", "de", "tr", "ar", "ru"],
+  "brand": {
+    "name": "CRM Delivery",
+    "sender_name": "CRM Delivery Security",
+    "sender_email": "security@auth.ayartuerk.me",
+    "first_party_origin": "https://crm.ayartuerk.me"
+  },
+  "templates": {
+    "auth.staff.invitation.v1": {
+      "kind": "challenge",
+      "realm": "staff",
+      "layout": "link",
+      "variables": {
+        "username": "username",
+        "role": "staff_role",
+        "action_url": "first_party_auth_url",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.staff.enrollment.verify_email.v1": {
+      "kind": "challenge",
+      "realm": "staff",
+      "layout": "link_code",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "manual_code": "email_code",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.staff.enrollment.resume.v1": {
+      "kind": "challenge",
+      "realm": "staff",
+      "layout": "link_code",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "manual_code": "email_code",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.staff.recovery.start.v1": {
+      "kind": "challenge",
+      "realm": "staff",
+      "layout": "link_code",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "manual_code": "email_code",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.customer.email_enrollment.verify.v1": {
+      "kind": "challenge",
+      "realm": "customer",
+      "layout": "link_code",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "manual_code": "email_code",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.customer.sign_in.v1": {
+      "kind": "challenge",
+      "realm": "customer",
+      "layout": "link_code",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "manual_code": "email_code",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.customer.recovery.start.v1": {
+      "kind": "challenge",
+      "realm": "customer",
+      "layout": "link_code",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "manual_code": "email_code",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.customer.step_up.email.v1": {
+      "kind": "challenge",
+      "realm": "customer",
+      "layout": "code",
+      "variables": {
+        "manual_code": "email_code",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.staff.email_change.verify_new.v1": {
+      "kind": "challenge",
+      "realm": "staff",
+      "layout": "link",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.staff.email_change.review_old.v1": {
+      "kind": "challenge",
+      "realm": "staff",
+      "layout": "link",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.customer.email_change.verify_new.v1": {
+      "kind": "challenge",
+      "realm": "customer",
+      "layout": "link",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.customer.email_change.review_old.v1": {
+      "kind": "challenge",
+      "realm": "customer",
+      "layout": "link",
+      "variables": {
+        "action_url": "first_party_auth_url",
+        "expires_at": "rfc3339_timestamp"
+      }
+    },
+    "auth.staff.recovery.completed.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.customer.recovery.completed.v1": {
+      "kind": "notification",
+      "realm": "customer",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.staff.email_change.completed_old.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.staff.email_change.completed_new.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.customer.email_change.completed_old.v1": {
+      "kind": "notification",
+      "realm": "customer",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.customer.email_change.completed_new.v1": {
+      "kind": "notification",
+      "realm": "customer",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.staff.email_change.cancelled_new.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.customer.email_change.cancelled_new.v1": {
+      "kind": "notification",
+      "realm": "customer",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.staff.password.changed.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.staff.passkey.removed.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.staff.recovery_codes.changed.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.staff.break_glass.started.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    },
+    "auth.staff.break_glass.completed.v1": {
+      "kind": "notification",
+      "realm": "staff",
+      "layout": "notification",
+      "variables": { "event_time": "rfc3339_timestamp" }
+    }
+  },
+  "translations": {
+    "en": {
+      "direction": "ltr",
+      "shared": {
+        "code_label": "Verification code",
+        "code_help": "Enter this eight-digit code on the device where you started the request.",
+        "link_fallback": "If the button does not work, use this secure link:",
+        "expires_at": "This request expires at {expires_at}.",
+        "ignore": "If you did not request this, you can ignore this email.",
+        "security_notice": "Never share this link or code with anyone.",
+        "event_time": "Time: {event_time}",
+        "not_you": "If this was not you, contact the system owner immediately.",
+        "support_notice": "Do not reply to this email or share security codes.",
+        "footer": "This transactional security email was sent by CRM Delivery.",
+        "role_admin": "Admin",
+        "role_superadmin": "Superadmin"
+      },
+      "templates": {
+        "auth.staff.invitation.v1": {
+          "subject": "You are invited to CRM Delivery",
+          "preheader": "Set up your {role} account for username {username}.",
+          "heading": "Complete your staff account",
+          "intro": "You were invited as {role} with username {username}.",
+          "cta": "Accept invitation"
+        },
+        "auth.staff.enrollment.verify_email.v1": {
+          "subject": "Verify your staff email",
+          "preheader": "Verify this address to continue secure account setup.",
+          "heading": "Verify your email",
+          "intro": "Confirm this email address to continue setting up your staff account.",
+          "cta": "Verify email"
+        },
+        "auth.staff.enrollment.resume.v1": {
+          "subject": "Resume your CRM Delivery enrollment",
+          "preheader": "Continue the restricted staff enrollment process.",
+          "heading": "Resume staff enrollment",
+          "intro": "Use the secure link or code to resume your unfinished account setup.",
+          "cta": "Resume enrollment"
+        },
+        "auth.staff.recovery.start.v1": {
+          "subject": "Continue your staff account recovery",
+          "preheader": "Email verification is the first recovery step; a second proof is still required.",
+          "heading": "Verify your recovery request",
+          "intro": "Verify your email first. You will still need a bound passkey or an unused recovery code.",
+          "cta": "Continue recovery"
+        },
+        "auth.customer.email_enrollment.verify.v1": {
+          "subject": "Verify your CRM Delivery email",
+          "preheader": "Add verified email access to your customer account.",
+          "heading": "Verify your email",
+          "intro": "Confirm this address to enable secure cross-device access and account recovery.",
+          "cta": "Verify email"
+        },
+        "auth.customer.sign_in.v1": {
+          "subject": "Sign in to CRM Delivery",
+          "preheader": "Use this secure link or code to sign in.",
+          "heading": "Sign in securely",
+          "intro": "Use the link or code below to continue signing in to your customer account.",
+          "cta": "Sign in"
+        },
+        "auth.customer.recovery.start.v1": {
+          "subject": "Recover your CRM Delivery account",
+          "preheader": "Use this secure link or code to recover account access.",
+          "heading": "Recover your account",
+          "intro": "Complete this recovery only if you lost access or suspect compromise. Other sessions will be signed out after completion.",
+          "cta": "Continue recovery"
+        },
+        "auth.customer.step_up.email.v1": {
+          "subject": "Your CRM Delivery verification code",
+          "preheader": "Use this code to confirm a sensitive action.",
+          "heading": "Confirm it is you",
+          "intro": "Enter the verification code to continue the security-sensitive action."
+        },
+        "auth.staff.email_change.verify_new.v1": {
+          "subject": "Verify your new staff recovery email",
+          "preheader": "The current address remains active until the change is approved.",
+          "heading": "Verify the new address",
+          "intro": "Confirm that you control this new staff recovery email address.",
+          "cta": "Verify new address"
+        },
+        "auth.staff.email_change.review_old.v1": {
+          "subject": "Review a staff recovery email change",
+          "preheader": "Approve or cancel the requested recovery email change.",
+          "heading": "Review recovery email change",
+          "intro": "A new recovery email was requested for your staff account. Review the request before it can become active.",
+          "cta": "Review email change"
+        },
+        "auth.customer.email_change.verify_new.v1": {
+          "subject": "Verify your new CRM Delivery email",
+          "preheader": "Confirm the new address for your customer account.",
+          "heading": "Verify the new address",
+          "intro": "Confirm that you control this new customer recovery email address.",
+          "cta": "Verify new address"
+        },
+        "auth.customer.email_change.review_old.v1": {
+          "subject": "Review your CRM Delivery email change",
+          "preheader": "Approve or cancel the requested recovery email change.",
+          "heading": "Review recovery email change",
+          "intro": "A new recovery email was requested for your customer account. Review the request before it can become active.",
+          "cta": "Review email change"
+        },
+        "auth.staff.recovery.completed.v1": {
+          "subject": "Staff account recovery completed",
+          "preheader": "Your password was replaced and all sessions were revoked.",
+          "heading": "Your staff account was recovered",
+          "intro": "Recovery completed at {event_time}. Your password changed, all sessions were signed out, and a fresh normal login is required."
+        },
+        "auth.customer.recovery.completed.v1": {
+          "subject": "Customer account recovery completed",
+          "preheader": "Account access was recovered and other sessions were revoked.",
+          "heading": "Your account was recovered",
+          "intro": "Recovery completed at {event_time}. Other sessions and outstanding recovery requests were revoked."
+        },
+        "auth.staff.email_change.completed_old.v1": {
+          "subject": "Staff recovery email changed",
+          "preheader": "This address is no longer the primary recovery destination.",
+          "heading": "Recovery email changed",
+          "intro": "The staff recovery email changed at {event_time}. This address is no longer primary, and all sessions were signed out."
+        },
+        "auth.staff.email_change.completed_new.v1": {
+          "subject": "Your new staff recovery email is active",
+          "preheader": "This address is now the verified primary recovery destination.",
+          "heading": "New recovery email activated",
+          "intro": "This address became the primary staff recovery email at {event_time}. All sessions were signed out."
+        },
+        "auth.customer.email_change.completed_old.v1": {
+          "subject": "CRM Delivery recovery email changed",
+          "preheader": "This address is no longer the primary recovery destination.",
+          "heading": "Recovery email changed",
+          "intro": "The customer recovery email changed at {event_time}. This address is no longer primary, and all sessions were signed out."
+        },
+        "auth.customer.email_change.completed_new.v1": {
+          "subject": "Your new CRM Delivery recovery email is active",
+          "preheader": "This address is now the verified primary recovery destination.",
+          "heading": "New recovery email activated",
+          "intro": "This address became the primary customer recovery email at {event_time}. All sessions were signed out."
+        },
+        "auth.staff.email_change.cancelled_new.v1": {
+          "subject": "Staff recovery email change cancelled",
+          "preheader": "The requested change to this address was cancelled.",
+          "heading": "Email change cancelled",
+          "intro": "The request to use this address for staff recovery was cancelled at {event_time}. The existing recovery address remains unchanged."
+        },
+        "auth.customer.email_change.cancelled_new.v1": {
+          "subject": "CRM Delivery email change cancelled",
+          "preheader": "The requested change to this address was cancelled.",
+          "heading": "Email change cancelled",
+          "intro": "The request to use this address for customer recovery was cancelled at {event_time}. The existing recovery address remains unchanged."
+        },
+        "auth.staff.password.changed.v1": {
+          "subject": "Your staff password was changed",
+          "preheader": "All staff sessions were signed out.",
+          "heading": "Password changed",
+          "intro": "Your staff password changed at {event_time}. All sessions were signed out and a fresh login is required."
+        },
+        "auth.staff.passkey.removed.v1": {
+          "subject": "A staff passkey was removed",
+          "preheader": "A passkey was removed and all staff sessions were signed out.",
+          "heading": "Passkey removed",
+          "intro": "A passkey was removed from your staff account at {event_time}. All sessions were signed out."
+        },
+        "auth.staff.recovery_codes.changed.v1": {
+          "subject": "Your staff recovery codes were replaced",
+          "preheader": "Previous recovery codes are no longer valid.",
+          "heading": "Recovery codes changed",
+          "intro": "A new recovery-code set was activated at {event_time}. Previous codes are invalid and all sessions were signed out."
+        },
+        "auth.staff.break_glass.started.v1": {
+          "subject": "Emergency Superadmin recovery started",
+          "preheader": "An owner-controlled emergency recovery process has started.",
+          "heading": "Emergency recovery started",
+          "intro": "An owner-controlled Superadmin recovery process started at {event_time}. No password has been changed yet."
+        },
+        "auth.staff.break_glass.completed.v1": {
+          "subject": "Emergency Superadmin recovery completed",
+          "preheader": "Emergency recovery changed credentials and revoked all sessions.",
+          "heading": "Emergency recovery completed",
+          "intro": "The owner-controlled Superadmin recovery process completed at {event_time}. Credentials were replaced and all sessions were signed out."
+        }
+      }
+    },
+    "de": {
+      "direction": "ltr",
+      "shared": {
+        "code_label": "Bestätigungscode",
+        "code_help": "Geben Sie diesen achtstelligen Code auf dem Gerät ein, auf dem Sie die Anfrage gestartet haben.",
+        "link_fallback": "Falls die Schaltfläche nicht funktioniert, verwenden Sie diesen sicheren Link:",
+        "expires_at": "Diese Anfrage läuft am {expires_at} ab.",
+        "ignore": "Wenn Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren.",
+        "security_notice": "Teilen Sie diesen Link oder Code niemals mit anderen.",
+        "event_time": "Zeitpunkt: {event_time}",
+        "not_you": "Wenn Sie dies nicht waren, wenden Sie sich sofort an den Systeminhaber.",
+        "support_notice": "Antworten Sie nicht auf diese E-Mail und geben Sie keine Sicherheitscodes weiter.",
+        "footer": "Diese transaktionale Sicherheits-E-Mail wurde von CRM Delivery gesendet.",
+        "role_admin": "Administrator",
+        "role_superadmin": "Superadministrator"
+      },
+      "templates": {
+        "auth.staff.invitation.v1": {
+          "subject": "Sie wurden zu CRM Delivery eingeladen",
+          "preheader": "Richten Sie Ihr {role}-Konto mit dem Benutzernamen {username} ein.",
+          "heading": "Mitarbeiterkonto fertig einrichten",
+          "intro": "Sie wurden als {role} mit dem Benutzernamen {username} eingeladen.",
+          "cta": "Einladung annehmen"
+        },
+        "auth.staff.enrollment.verify_email.v1": {
+          "subject": "Bestätigen Sie Ihre Mitarbeiter-E-Mail-Adresse",
+          "preheader": "Bestätigen Sie diese Adresse, um die sichere Kontoeinrichtung fortzusetzen.",
+          "heading": "E-Mail-Adresse bestätigen",
+          "intro": "Bestätigen Sie diese E-Mail-Adresse, um die Einrichtung Ihres Mitarbeiterkontos fortzusetzen.",
+          "cta": "E-Mail bestätigen"
+        },
+        "auth.staff.enrollment.resume.v1": {
+          "subject": "CRM-Delivery-Registrierung fortsetzen",
+          "preheader": "Setzen Sie die eingeschränkte Mitarbeiterregistrierung fort.",
+          "heading": "Mitarbeiterregistrierung fortsetzen",
+          "intro": "Verwenden Sie den sicheren Link oder Code, um Ihre unvollständige Kontoeinrichtung fortzusetzen.",
+          "cta": "Registrierung fortsetzen"
+        },
+        "auth.staff.recovery.start.v1": {
+          "subject": "Wiederherstellung Ihres Mitarbeiterkontos fortsetzen",
+          "preheader": "Die E-Mail-Bestätigung ist der erste Schritt; ein zweiter Nachweis bleibt erforderlich.",
+          "heading": "Wiederherstellungsanfrage bestätigen",
+          "intro": "Bestätigen Sie zuerst Ihre E-Mail-Adresse. Danach benötigen Sie weiterhin einen gebundenen Passkey oder einen unbenutzten Wiederherstellungscode.",
+          "cta": "Wiederherstellung fortsetzen"
+        },
+        "auth.customer.email_enrollment.verify.v1": {
+          "subject": "Bestätigen Sie Ihre CRM-Delivery-E-Mail-Adresse",
+          "preheader": "Fügen Sie Ihrem Kundenkonto einen bestätigten E-Mail-Zugang hinzu.",
+          "heading": "E-Mail-Adresse bestätigen",
+          "intro": "Bestätigen Sie diese Adresse, um sicheren geräteübergreifenden Zugriff und Kontowiederherstellung zu aktivieren.",
+          "cta": "E-Mail bestätigen"
+        },
+        "auth.customer.sign_in.v1": {
+          "subject": "Bei CRM Delivery anmelden",
+          "preheader": "Verwenden Sie diesen sicheren Link oder Code zur Anmeldung.",
+          "heading": "Sicher anmelden",
+          "intro": "Verwenden Sie den Link oder Code unten, um sich bei Ihrem Kundenkonto anzumelden.",
+          "cta": "Anmelden"
+        },
+        "auth.customer.recovery.start.v1": {
+          "subject": "CRM-Delivery-Konto wiederherstellen",
+          "preheader": "Verwenden Sie diesen sicheren Link oder Code, um den Kontozugriff wiederherzustellen.",
+          "heading": "Konto wiederherstellen",
+          "intro": "Schließen Sie diese Wiederherstellung nur ab, wenn Sie den Zugriff verloren haben oder einen Missbrauch vermuten. Andere Sitzungen werden danach abgemeldet.",
+          "cta": "Wiederherstellung fortsetzen"
+        },
+        "auth.customer.step_up.email.v1": {
+          "subject": "Ihr CRM-Delivery-Bestätigungscode",
+          "preheader": "Verwenden Sie diesen Code, um eine sensible Aktion zu bestätigen.",
+          "heading": "Identität bestätigen",
+          "intro": "Geben Sie den Bestätigungscode ein, um die sicherheitsrelevante Aktion fortzusetzen."
+        },
+        "auth.staff.email_change.verify_new.v1": {
+          "subject": "Neue Mitarbeiter-Wiederherstellungsadresse bestätigen",
+          "preheader": "Die aktuelle Adresse bleibt aktiv, bis die Änderung genehmigt wird.",
+          "heading": "Neue Adresse bestätigen",
+          "intro": "Bestätigen Sie, dass Sie diese neue Mitarbeiter-Wiederherstellungsadresse kontrollieren.",
+          "cta": "Neue Adresse bestätigen"
+        },
+        "auth.staff.email_change.review_old.v1": {
+          "subject": "Änderung der Mitarbeiter-Wiederherstellungsadresse prüfen",
+          "preheader": "Genehmigen oder stornieren Sie die angeforderte Änderung.",
+          "heading": "Änderung der Wiederherstellungsadresse prüfen",
+          "intro": "Für Ihr Mitarbeiterkonto wurde eine neue Wiederherstellungsadresse angefordert. Prüfen Sie die Anfrage, bevor sie aktiv werden kann.",
+          "cta": "E-Mail-Änderung prüfen"
+        },
+        "auth.customer.email_change.verify_new.v1": {
+          "subject": "Neue CRM-Delivery-E-Mail-Adresse bestätigen",
+          "preheader": "Bestätigen Sie die neue Adresse für Ihr Kundenkonto.",
+          "heading": "Neue Adresse bestätigen",
+          "intro": "Bestätigen Sie, dass Sie diese neue Kunden-Wiederherstellungsadresse kontrollieren.",
+          "cta": "Neue Adresse bestätigen"
+        },
+        "auth.customer.email_change.review_old.v1": {
+          "subject": "CRM-Delivery-E-Mail-Änderung prüfen",
+          "preheader": "Genehmigen oder stornieren Sie die angeforderte Änderung.",
+          "heading": "Änderung der Wiederherstellungsadresse prüfen",
+          "intro": "Für Ihr Kundenkonto wurde eine neue Wiederherstellungsadresse angefordert. Prüfen Sie die Anfrage, bevor sie aktiv werden kann.",
+          "cta": "E-Mail-Änderung prüfen"
+        },
+        "auth.staff.recovery.completed.v1": {
+          "subject": "Mitarbeiterkonto wiederhergestellt",
+          "preheader": "Ihr Passwort wurde ersetzt und alle Sitzungen wurden widerrufen.",
+          "heading": "Ihr Mitarbeiterkonto wurde wiederhergestellt",
+          "intro": "Die Wiederherstellung wurde am {event_time} abgeschlossen. Ihr Passwort wurde geändert, alle Sitzungen wurden abgemeldet und eine neue normale Anmeldung ist erforderlich."
+        },
+        "auth.customer.recovery.completed.v1": {
+          "subject": "Kundenkonto wiederhergestellt",
+          "preheader": "Der Kontozugriff wurde wiederhergestellt und andere Sitzungen wurden widerrufen.",
+          "heading": "Ihr Konto wurde wiederhergestellt",
+          "intro": "Die Wiederherstellung wurde am {event_time} abgeschlossen. Andere Sitzungen und offene Wiederherstellungsanfragen wurden widerrufen."
+        },
+        "auth.staff.email_change.completed_old.v1": {
+          "subject": "Mitarbeiter-Wiederherstellungsadresse geändert",
+          "preheader": "Diese Adresse ist nicht mehr das primäre Wiederherstellungsziel.",
+          "heading": "Wiederherstellungsadresse geändert",
+          "intro": "Die Mitarbeiter-Wiederherstellungsadresse wurde am {event_time} geändert. Diese Adresse ist nicht mehr primär und alle Sitzungen wurden abgemeldet."
+        },
+        "auth.staff.email_change.completed_new.v1": {
+          "subject": "Ihre neue Mitarbeiter-Wiederherstellungsadresse ist aktiv",
+          "preheader": "Diese Adresse ist jetzt das bestätigte primäre Wiederherstellungsziel.",
+          "heading": "Neue Wiederherstellungsadresse aktiviert",
+          "intro": "Diese Adresse wurde am {event_time} zur primären Mitarbeiter-Wiederherstellungsadresse. Alle Sitzungen wurden abgemeldet."
+        },
+        "auth.customer.email_change.completed_old.v1": {
+          "subject": "CRM-Delivery-Wiederherstellungsadresse geändert",
+          "preheader": "Diese Adresse ist nicht mehr das primäre Wiederherstellungsziel.",
+          "heading": "Wiederherstellungsadresse geändert",
+          "intro": "Die Kunden-Wiederherstellungsadresse wurde am {event_time} geändert. Diese Adresse ist nicht mehr primär und alle Sitzungen wurden abgemeldet."
+        },
+        "auth.customer.email_change.completed_new.v1": {
+          "subject": "Ihre neue CRM-Delivery-Wiederherstellungsadresse ist aktiv",
+          "preheader": "Diese Adresse ist jetzt das bestätigte primäre Wiederherstellungsziel.",
+          "heading": "Neue Wiederherstellungsadresse aktiviert",
+          "intro": "Diese Adresse wurde am {event_time} zur primären Kunden-Wiederherstellungsadresse. Alle Sitzungen wurden abgemeldet."
+        },
+        "auth.staff.email_change.cancelled_new.v1": {
+          "subject": "Änderung der Mitarbeiter-Wiederherstellungsadresse storniert",
+          "preheader": "Die angeforderte Änderung zu dieser Adresse wurde storniert.",
+          "heading": "E-Mail-Änderung storniert",
+          "intro": "Die Anfrage, diese Adresse für die Mitarbeiter-Wiederherstellung zu verwenden, wurde am {event_time} storniert. Die bestehende Wiederherstellungsadresse bleibt unverändert."
+        },
+        "auth.customer.email_change.cancelled_new.v1": {
+          "subject": "CRM-Delivery-E-Mail-Änderung storniert",
+          "preheader": "Die angeforderte Änderung zu dieser Adresse wurde storniert.",
+          "heading": "E-Mail-Änderung storniert",
+          "intro": "Die Anfrage, diese Adresse für die Kunden-Wiederherstellung zu verwenden, wurde am {event_time} storniert. Die bestehende Wiederherstellungsadresse bleibt unverändert."
+        },
+        "auth.staff.password.changed.v1": {
+          "subject": "Ihr Mitarbeiterpasswort wurde geändert",
+          "preheader": "Alle Mitarbeitersitzungen wurden abgemeldet.",
+          "heading": "Passwort geändert",
+          "intro": "Ihr Mitarbeiterpasswort wurde am {event_time} geändert. Alle Sitzungen wurden abgemeldet und eine neue Anmeldung ist erforderlich."
+        },
+        "auth.staff.passkey.removed.v1": {
+          "subject": "Ein Mitarbeiter-Passkey wurde entfernt",
+          "preheader": "Ein Passkey wurde entfernt und alle Mitarbeitersitzungen wurden abgemeldet.",
+          "heading": "Passkey entfernt",
+          "intro": "Am {event_time} wurde ein Passkey aus Ihrem Mitarbeiterkonto entfernt. Alle Sitzungen wurden abgemeldet."
+        },
+        "auth.staff.recovery_codes.changed.v1": {
+          "subject": "Ihre Mitarbeiter-Wiederherstellungscodes wurden ersetzt",
+          "preheader": "Frühere Wiederherstellungscodes sind nicht mehr gültig.",
+          "heading": "Wiederherstellungscodes geändert",
+          "intro": "Am {event_time} wurde ein neuer Satz Wiederherstellungscodes aktiviert. Frühere Codes sind ungültig und alle Sitzungen wurden abgemeldet."
+        },
+        "auth.staff.break_glass.started.v1": {
+          "subject": "Notfallwiederherstellung für Superadmin gestartet",
+          "preheader": "Ein vom Eigentümer kontrollierter Notfallprozess wurde gestartet.",
+          "heading": "Notfallwiederherstellung gestartet",
+          "intro": "Am {event_time} wurde eine vom Eigentümer kontrollierte Superadmin-Wiederherstellung gestartet. Es wurde noch kein Passwort geändert."
+        },
+        "auth.staff.break_glass.completed.v1": {
+          "subject": "Notfallwiederherstellung für Superadmin abgeschlossen",
+          "preheader": "Die Notfallwiederherstellung hat Anmeldedaten ersetzt und alle Sitzungen widerrufen.",
+          "heading": "Notfallwiederherstellung abgeschlossen",
+          "intro": "Die vom Eigentümer kontrollierte Superadmin-Wiederherstellung wurde am {event_time} abgeschlossen. Anmeldedaten wurden ersetzt und alle Sitzungen abgemeldet."
+        }
+      }
+    },
+    "tr": {
+      "direction": "ltr",
+      "shared": {
+        "code_label": "Doğrulama kodu",
+        "code_help": "Bu sekiz haneli kodu isteği başlattığınız cihazda girin.",
+        "link_fallback": "Düğme çalışmazsa bu güvenli bağlantıyı kullanın:",
+        "expires_at": "Bu isteğin süresi {expires_at} tarihinde dolar.",
+        "ignore": "Bu isteği siz yapmadıysanız bu e-postayı yok sayabilirsiniz.",
+        "security_notice": "Bu bağlantıyı veya kodu hiç kimseyle paylaşmayın.",
+        "event_time": "Zaman: {event_time}",
+        "not_you": "Bu işlemi siz yapmadıysanız derhal sistem sahibiyle iletişime geçin.",
+        "support_notice": "Bu e-postayı yanıtlamayın ve güvenlik kodlarını paylaşmayın.",
+        "footer": "Bu işlemsel güvenlik e-postası CRM Delivery tarafından gönderildi.",
+        "role_admin": "Yönetici",
+        "role_superadmin": "Süper yönetici"
+      },
+      "templates": {
+        "auth.staff.invitation.v1": {
+          "subject": "CRM Delivery'ye davet edildiniz",
+          "preheader": "{username} kullanıcı adlı {role} hesabınızı kurun.",
+          "heading": "Personel hesabınızı tamamlayın",
+          "intro": "{username} kullanıcı adıyla {role} olarak davet edildiniz.",
+          "cta": "Daveti kabul et"
+        },
+        "auth.staff.enrollment.verify_email.v1": {
+          "subject": "Personel e-posta adresinizi doğrulayın",
+          "preheader": "Güvenli hesap kurulumuna devam etmek için bu adresi doğrulayın.",
+          "heading": "E-posta adresinizi doğrulayın",
+          "intro": "Personel hesabınızın kurulumuna devam etmek için bu e-posta adresini doğrulayın.",
+          "cta": "E-postayı doğrula"
+        },
+        "auth.staff.enrollment.resume.v1": {
+          "subject": "CRM Delivery kaydınıza devam edin",
+          "preheader": "Kısıtlı personel kayıt sürecine devam edin.",
+          "heading": "Personel kaydına devam edin",
+          "intro": "Tamamlanmamış hesap kurulumunuza devam etmek için güvenli bağlantıyı veya kodu kullanın.",
+          "cta": "Kayda devam et"
+        },
+        "auth.staff.recovery.start.v1": {
+          "subject": "Personel hesabı kurtarmaya devam edin",
+          "preheader": "E-posta doğrulaması ilk adımdır; ikinci bir kanıt yine gereklidir.",
+          "heading": "Kurtarma isteğinizi doğrulayın",
+          "intro": "Önce e-posta adresinizi doğrulayın. Ardından bağlı bir geçiş anahtarı veya kullanılmamış bir kurtarma kodu gerekir.",
+          "cta": "Kurtarmaya devam et"
+        },
+        "auth.customer.email_enrollment.verify.v1": {
+          "subject": "CRM Delivery e-posta adresinizi doğrulayın",
+          "preheader": "Müşteri hesabınıza doğrulanmış e-posta erişimi ekleyin.",
+          "heading": "E-posta adresinizi doğrulayın",
+          "intro": "Güvenli cihazlar arası erişimi ve hesap kurtarmayı etkinleştirmek için bu adresi doğrulayın.",
+          "cta": "E-postayı doğrula"
+        },
+        "auth.customer.sign_in.v1": {
+          "subject": "CRM Delivery'de oturum açın",
+          "preheader": "Oturum açmak için bu güvenli bağlantıyı veya kodu kullanın.",
+          "heading": "Güvenli şekilde oturum açın",
+          "intro": "Müşteri hesabınızda oturum açmaya devam etmek için aşağıdaki bağlantıyı veya kodu kullanın.",
+          "cta": "Oturum aç"
+        },
+        "auth.customer.recovery.start.v1": {
+          "subject": "CRM Delivery hesabınızı kurtarın",
+          "preheader": "Hesap erişimini kurtarmak için bu güvenli bağlantıyı veya kodu kullanın.",
+          "heading": "Hesabınızı kurtarın",
+          "intro": "Bu kurtarmayı yalnızca erişimi kaybettiyseniz veya hesabın ele geçirildiğinden şüpheleniyorsanız tamamlayın. Tamamlandığında diğer oturumlar kapatılır.",
+          "cta": "Kurtarmaya devam et"
+        },
+        "auth.customer.step_up.email.v1": {
+          "subject": "CRM Delivery doğrulama kodunuz",
+          "preheader": "Hassas bir işlemi onaylamak için bu kodu kullanın.",
+          "heading": "Kimliğinizi doğrulayın",
+          "intro": "Güvenlik açısından hassas işleme devam etmek için doğrulama kodunu girin."
+        },
+        "auth.staff.email_change.verify_new.v1": {
+          "subject": "Yeni personel kurtarma e-postanızı doğrulayın",
+          "preheader": "Değişiklik onaylanana kadar mevcut adres etkin kalır.",
+          "heading": "Yeni adresi doğrulayın",
+          "intro": "Bu yeni personel kurtarma e-posta adresini kontrol ettiğinizi doğrulayın.",
+          "cta": "Yeni adresi doğrula"
+        },
+        "auth.staff.email_change.review_old.v1": {
+          "subject": "Personel kurtarma e-postası değişikliğini inceleyin",
+          "preheader": "İstenen kurtarma e-postası değişikliğini onaylayın veya iptal edin.",
+          "heading": "Kurtarma e-postası değişikliğini inceleyin",
+          "intro": "Personel hesabınız için yeni bir kurtarma e-postası istendi. Etkinleşmeden önce isteği inceleyin.",
+          "cta": "E-posta değişikliğini incele"
+        },
+        "auth.customer.email_change.verify_new.v1": {
+          "subject": "Yeni CRM Delivery e-postanızı doğrulayın",
+          "preheader": "Müşteri hesabınız için yeni adresi doğrulayın.",
+          "heading": "Yeni adresi doğrulayın",
+          "intro": "Bu yeni müşteri kurtarma e-posta adresini kontrol ettiğinizi doğrulayın.",
+          "cta": "Yeni adresi doğrula"
+        },
+        "auth.customer.email_change.review_old.v1": {
+          "subject": "CRM Delivery e-posta değişikliğinizi inceleyin",
+          "preheader": "İstenen kurtarma e-postası değişikliğini onaylayın veya iptal edin.",
+          "heading": "Kurtarma e-postası değişikliğini inceleyin",
+          "intro": "Müşteri hesabınız için yeni bir kurtarma e-postası istendi. Etkinleşmeden önce isteği inceleyin.",
+          "cta": "E-posta değişikliğini incele"
+        },
+        "auth.staff.recovery.completed.v1": {
+          "subject": "Personel hesabı kurtarma tamamlandı",
+          "preheader": "Parolanız değiştirildi ve tüm oturumlar iptal edildi.",
+          "heading": "Personel hesabınız kurtarıldı",
+          "intro": "Kurtarma {event_time} tarihinde tamamlandı. Parolanız değiştirildi, tüm oturumlar kapatıldı ve normal şekilde yeniden oturum açmanız gerekiyor."
+        },
+        "auth.customer.recovery.completed.v1": {
+          "subject": "Müşteri hesabı kurtarma tamamlandı",
+          "preheader": "Hesap erişimi kurtarıldı ve diğer oturumlar iptal edildi.",
+          "heading": "Hesabınız kurtarıldı",
+          "intro": "Kurtarma {event_time} tarihinde tamamlandı. Diğer oturumlar ve bekleyen kurtarma istekleri iptal edildi."
+        },
+        "auth.staff.email_change.completed_old.v1": {
+          "subject": "Personel kurtarma e-postası değiştirildi",
+          "preheader": "Bu adres artık birincil kurtarma hedefi değildir.",
+          "heading": "Kurtarma e-postası değiştirildi",
+          "intro": "Personel kurtarma e-postası {event_time} tarihinde değiştirildi. Bu adres artık birincil değildir ve tüm oturumlar kapatıldı."
+        },
+        "auth.staff.email_change.completed_new.v1": {
+          "subject": "Yeni personel kurtarma e-postanız etkin",
+          "preheader": "Bu adres artık doğrulanmış birincil kurtarma hedefidir.",
+          "heading": "Yeni kurtarma e-postası etkinleştirildi",
+          "intro": "Bu adres {event_time} tarihinde birincil personel kurtarma e-postası oldu. Tüm oturumlar kapatıldı."
+        },
+        "auth.customer.email_change.completed_old.v1": {
+          "subject": "CRM Delivery kurtarma e-postası değiştirildi",
+          "preheader": "Bu adres artık birincil kurtarma hedefi değildir.",
+          "heading": "Kurtarma e-postası değiştirildi",
+          "intro": "Müşteri kurtarma e-postası {event_time} tarihinde değiştirildi. Bu adres artık birincil değildir ve tüm oturumlar kapatıldı."
+        },
+        "auth.customer.email_change.completed_new.v1": {
+          "subject": "Yeni CRM Delivery kurtarma e-postanız etkin",
+          "preheader": "Bu adres artık doğrulanmış birincil kurtarma hedefidir.",
+          "heading": "Yeni kurtarma e-postası etkinleştirildi",
+          "intro": "Bu adres {event_time} tarihinde birincil müşteri kurtarma e-postası oldu. Tüm oturumlar kapatıldı."
+        },
+        "auth.staff.email_change.cancelled_new.v1": {
+          "subject": "Personel kurtarma e-postası değişikliği iptal edildi",
+          "preheader": "Bu adrese yönelik istenen değişiklik iptal edildi.",
+          "heading": "E-posta değişikliği iptal edildi",
+          "intro": "Bu adresi personel kurtarma için kullanma isteği {event_time} tarihinde iptal edildi. Mevcut kurtarma adresi değişmedi."
+        },
+        "auth.customer.email_change.cancelled_new.v1": {
+          "subject": "CRM Delivery e-posta değişikliği iptal edildi",
+          "preheader": "Bu adrese yönelik istenen değişiklik iptal edildi.",
+          "heading": "E-posta değişikliği iptal edildi",
+          "intro": "Bu adresi müşteri kurtarma için kullanma isteği {event_time} tarihinde iptal edildi. Mevcut kurtarma adresi değişmedi."
+        },
+        "auth.staff.password.changed.v1": {
+          "subject": "Personel parolanız değiştirildi",
+          "preheader": "Tüm personel oturumları kapatıldı.",
+          "heading": "Parola değiştirildi",
+          "intro": "Personel parolanız {event_time} tarihinde değiştirildi. Tüm oturumlar kapatıldı ve yeniden oturum açmanız gerekiyor."
+        },
+        "auth.staff.passkey.removed.v1": {
+          "subject": "Bir personel geçiş anahtarı kaldırıldı",
+          "preheader": "Bir geçiş anahtarı kaldırıldı ve tüm personel oturumları kapatıldı.",
+          "heading": "Geçiş anahtarı kaldırıldı",
+          "intro": "{event_time} tarihinde personel hesabınızdan bir geçiş anahtarı kaldırıldı. Tüm oturumlar kapatıldı."
+        },
+        "auth.staff.recovery_codes.changed.v1": {
+          "subject": "Personel kurtarma kodlarınız değiştirildi",
+          "preheader": "Önceki kurtarma kodları artık geçerli değildir.",
+          "heading": "Kurtarma kodları değiştirildi",
+          "intro": "{event_time} tarihinde yeni bir kurtarma kodu seti etkinleştirildi. Önceki kodlar geçersizdir ve tüm oturumlar kapatıldı."
+        },
+        "auth.staff.break_glass.started.v1": {
+          "subject": "Acil Süper Yönetici kurtarması başlatıldı",
+          "preheader": "Sistem sahibinin yönettiği acil kurtarma süreci başladı.",
+          "heading": "Acil kurtarma başlatıldı",
+          "intro": "Sistem sahibinin yönettiği Süper Yönetici kurtarma süreci {event_time} tarihinde başladı. Henüz hiçbir parola değiştirilmedi."
+        },
+        "auth.staff.break_glass.completed.v1": {
+          "subject": "Acil Süper Yönetici kurtarması tamamlandı",
+          "preheader": "Acil kurtarma kimlik bilgilerini değiştirdi ve tüm oturumları iptal etti.",
+          "heading": "Acil kurtarma tamamlandı",
+          "intro": "Sistem sahibinin yönettiği Süper Yönetici kurtarma süreci {event_time} tarihinde tamamlandı. Kimlik bilgileri değiştirildi ve tüm oturumlar kapatıldı."
+        }
+      }
+    },
+    "ar": {
+      "direction": "rtl",
+      "shared": {
+        "code_label": "رمز التحقق",
+        "code_help": "أدخل هذا الرمز المكوّن من ثمانية أرقام على الجهاز الذي بدأت منه الطلب.",
+        "link_fallback": "إذا لم يعمل الزر، فاستخدم هذا الرابط الآمن:",
+        "expires_at": "تنتهي صلاحية هذا الطلب في {expires_at}.",
+        "ignore": "إذا لم تطلب ذلك، يمكنك تجاهل هذا البريد الإلكتروني.",
+        "security_notice": "لا تشارك هذا الرابط أو الرمز مع أي شخص.",
+        "event_time": "الوقت: {event_time}",
+        "not_you": "إذا لم تكن أنت من قام بذلك، فتواصل فورًا مع مالك النظام.",
+        "support_notice": "لا ترد على هذا البريد الإلكتروني ولا تشارك رموز الأمان.",
+        "footer": "أرسلت CRM Delivery رسالة الأمان الخاصة بالمعاملة هذه.",
+        "role_admin": "مسؤول",
+        "role_superadmin": "مسؤول أعلى"
+      },
+      "templates": {
+        "auth.staff.invitation.v1": {
+          "subject": "تمت دعوتك إلى CRM Delivery",
+          "preheader": "أكمل إعداد حساب {role} باسم المستخدم {username}.",
+          "heading": "أكمل إعداد حساب الموظف",
+          "intro": "تمت دعوتك بصفة {role} وباسم المستخدم {username}.",
+          "cta": "قبول الدعوة"
+        },
+        "auth.staff.enrollment.verify_email.v1": {
+          "subject": "تحقق من بريد الموظف الإلكتروني",
+          "preheader": "تحقق من هذا العنوان لمتابعة إعداد الحساب الآمن.",
+          "heading": "تحقق من بريدك الإلكتروني",
+          "intro": "أكد هذا العنوان لمتابعة إعداد حساب الموظف الخاص بك.",
+          "cta": "التحقق من البريد"
+        },
+        "auth.staff.enrollment.resume.v1": {
+          "subject": "تابع التسجيل في CRM Delivery",
+          "preheader": "تابع عملية تسجيل الموظف المقيّدة.",
+          "heading": "متابعة تسجيل الموظف",
+          "intro": "استخدم الرابط الآمن أو الرمز لمتابعة إعداد حسابك غير المكتمل.",
+          "cta": "متابعة التسجيل"
+        },
+        "auth.staff.recovery.start.v1": {
+          "subject": "تابع استرداد حساب الموظف",
+          "preheader": "التحقق من البريد هو الخطوة الأولى؛ ولا يزال يلزم إثبات ثانٍ.",
+          "heading": "تحقق من طلب الاسترداد",
+          "intro": "تحقق من بريدك أولًا. ستظل بحاجة إلى مفتاح مرور مرتبط أو رمز استرداد غير مستخدم.",
+          "cta": "متابعة الاسترداد"
+        },
+        "auth.customer.email_enrollment.verify.v1": {
+          "subject": "تحقق من بريد CRM Delivery الإلكتروني",
+          "preheader": "أضف وصولًا موثّقًا بالبريد إلى حساب العميل.",
+          "heading": "تحقق من بريدك الإلكتروني",
+          "intro": "أكد هذا العنوان لتفعيل الوصول الآمن عبر الأجهزة واسترداد الحساب.",
+          "cta": "التحقق من البريد"
+        },
+        "auth.customer.sign_in.v1": {
+          "subject": "تسجيل الدخول إلى CRM Delivery",
+          "preheader": "استخدم هذا الرابط الآمن أو الرمز لتسجيل الدخول.",
+          "heading": "سجّل الدخول بأمان",
+          "intro": "استخدم الرابط أو الرمز أدناه لمتابعة تسجيل الدخول إلى حساب العميل.",
+          "cta": "تسجيل الدخول"
+        },
+        "auth.customer.recovery.start.v1": {
+          "subject": "استرد حساب CRM Delivery",
+          "preheader": "استخدم هذا الرابط الآمن أو الرمز لاسترداد الوصول إلى الحساب.",
+          "heading": "استرد حسابك",
+          "intro": "أكمل الاسترداد فقط إذا فقدت الوصول أو اشتبهت في اختراق الحساب. سيتم تسجيل خروج الجلسات الأخرى بعد الإكمال.",
+          "cta": "متابعة الاسترداد"
+        },
+        "auth.customer.step_up.email.v1": {
+          "subject": "رمز التحقق من CRM Delivery",
+          "preheader": "استخدم هذا الرمز لتأكيد إجراء حساس.",
+          "heading": "أكد هويتك",
+          "intro": "أدخل رمز التحقق لمتابعة الإجراء الحساس أمنيًا."
+        },
+        "auth.staff.email_change.verify_new.v1": {
+          "subject": "تحقق من بريد استرداد الموظف الجديد",
+          "preheader": "يبقى العنوان الحالي فعالًا حتى تتم الموافقة على التغيير.",
+          "heading": "تحقق من العنوان الجديد",
+          "intro": "أكد أنك تتحكم في عنوان استرداد الموظف الجديد هذا.",
+          "cta": "التحقق من العنوان الجديد"
+        },
+        "auth.staff.email_change.review_old.v1": {
+          "subject": "راجع تغيير بريد استرداد الموظف",
+          "preheader": "وافق على تغيير بريد الاسترداد المطلوب أو ألغِه.",
+          "heading": "مراجعة تغيير بريد الاسترداد",
+          "intro": "تم طلب بريد استرداد جديد لحساب الموظف. راجع الطلب قبل أن يصبح فعالًا.",
+          "cta": "مراجعة تغيير البريد"
+        },
+        "auth.customer.email_change.verify_new.v1": {
+          "subject": "تحقق من بريد CRM Delivery الجديد",
+          "preheader": "أكد العنوان الجديد لحساب العميل.",
+          "heading": "تحقق من العنوان الجديد",
+          "intro": "أكد أنك تتحكم في عنوان استرداد العميل الجديد هذا.",
+          "cta": "التحقق من العنوان الجديد"
+        },
+        "auth.customer.email_change.review_old.v1": {
+          "subject": "راجع تغيير بريد CRM Delivery",
+          "preheader": "وافق على تغيير بريد الاسترداد المطلوب أو ألغِه.",
+          "heading": "مراجعة تغيير بريد الاسترداد",
+          "intro": "تم طلب بريد استرداد جديد لحساب العميل. راجع الطلب قبل أن يصبح فعالًا.",
+          "cta": "مراجعة تغيير البريد"
+        },
+        "auth.staff.recovery.completed.v1": {
+          "subject": "اكتمل استرداد حساب الموظف",
+          "preheader": "تم استبدال كلمة المرور وإلغاء جميع الجلسات.",
+          "heading": "تم استرداد حساب الموظف",
+          "intro": "اكتمل الاسترداد في {event_time}. تم تغيير كلمة المرور وتسجيل خروج جميع الجلسات، ويلزم تسجيل دخول عادي جديد."
+        },
+        "auth.customer.recovery.completed.v1": {
+          "subject": "اكتمل استرداد حساب العميل",
+          "preheader": "تم استرداد الوصول إلى الحساب وإلغاء الجلسات الأخرى.",
+          "heading": "تم استرداد حسابك",
+          "intro": "اكتمل الاسترداد في {event_time}. تم إلغاء الجلسات الأخرى وطلبات الاسترداد المعلقة."
+        },
+        "auth.staff.email_change.completed_old.v1": {
+          "subject": "تم تغيير بريد استرداد الموظف",
+          "preheader": "لم يعد هذا العنوان وجهة الاسترداد الأساسية.",
+          "heading": "تم تغيير بريد الاسترداد",
+          "intro": "تم تغيير بريد استرداد الموظف في {event_time}. لم يعد هذا العنوان أساسيًا وتم تسجيل خروج جميع الجلسات."
+        },
+        "auth.staff.email_change.completed_new.v1": {
+          "subject": "بريد استرداد الموظف الجديد فعال الآن",
+          "preheader": "أصبح هذا العنوان وجهة الاسترداد الأساسية الموثّقة.",
+          "heading": "تم تفعيل بريد الاسترداد الجديد",
+          "intro": "أصبح هذا العنوان بريد استرداد الموظف الأساسي في {event_time}. تم تسجيل خروج جميع الجلسات."
+        },
+        "auth.customer.email_change.completed_old.v1": {
+          "subject": "تم تغيير بريد استرداد CRM Delivery",
+          "preheader": "لم يعد هذا العنوان وجهة الاسترداد الأساسية.",
+          "heading": "تم تغيير بريد الاسترداد",
+          "intro": "تم تغيير بريد استرداد العميل في {event_time}. لم يعد هذا العنوان أساسيًا وتم تسجيل خروج جميع الجلسات."
+        },
+        "auth.customer.email_change.completed_new.v1": {
+          "subject": "بريد استرداد CRM Delivery الجديد فعال الآن",
+          "preheader": "أصبح هذا العنوان وجهة الاسترداد الأساسية الموثّقة.",
+          "heading": "تم تفعيل بريد الاسترداد الجديد",
+          "intro": "أصبح هذا العنوان بريد استرداد العميل الأساسي في {event_time}. تم تسجيل خروج جميع الجلسات."
+        },
+        "auth.staff.email_change.cancelled_new.v1": {
+          "subject": "تم إلغاء تغيير بريد استرداد الموظف",
+          "preheader": "تم إلغاء التغيير المطلوب إلى هذا العنوان.",
+          "heading": "تم إلغاء تغيير البريد",
+          "intro": "تم إلغاء طلب استخدام هذا العنوان لاسترداد حساب الموظف في {event_time}. يبقى عنوان الاسترداد الحالي دون تغيير."
+        },
+        "auth.customer.email_change.cancelled_new.v1": {
+          "subject": "تم إلغاء تغيير بريد CRM Delivery",
+          "preheader": "تم إلغاء التغيير المطلوب إلى هذا العنوان.",
+          "heading": "تم إلغاء تغيير البريد",
+          "intro": "تم إلغاء طلب استخدام هذا العنوان لاسترداد حساب العميل في {event_time}. يبقى عنوان الاسترداد الحالي دون تغيير."
+        },
+        "auth.staff.password.changed.v1": {
+          "subject": "تم تغيير كلمة مرور الموظف",
+          "preheader": "تم تسجيل خروج جميع جلسات الموظف.",
+          "heading": "تم تغيير كلمة المرور",
+          "intro": "تم تغيير كلمة مرور الموظف في {event_time}. تم تسجيل خروج جميع الجلسات ويلزم تسجيل الدخول من جديد."
+        },
+        "auth.staff.passkey.removed.v1": {
+          "subject": "تمت إزالة مفتاح مرور للموظف",
+          "preheader": "تمت إزالة مفتاح مرور وتسجيل خروج جميع جلسات الموظف.",
+          "heading": "تمت إزالة مفتاح المرور",
+          "intro": "تمت إزالة مفتاح مرور من حساب الموظف في {event_time}. تم تسجيل خروج جميع الجلسات."
+        },
+        "auth.staff.recovery_codes.changed.v1": {
+          "subject": "تم استبدال رموز استرداد الموظف",
+          "preheader": "لم تعد رموز الاسترداد السابقة صالحة.",
+          "heading": "تم تغيير رموز الاسترداد",
+          "intro": "تم تفعيل مجموعة جديدة من رموز الاسترداد في {event_time}. الرموز السابقة غير صالحة وتم تسجيل خروج جميع الجلسات."
+        },
+        "auth.staff.break_glass.started.v1": {
+          "subject": "بدأ استرداد طارئ للمسؤول الأعلى",
+          "preheader": "بدأت عملية استرداد طارئة يتحكم بها مالك النظام.",
+          "heading": "بدأ الاسترداد الطارئ",
+          "intro": "بدأت عملية استرداد للمسؤول الأعلى يتحكم بها مالك النظام في {event_time}. لم يتم تغيير أي كلمة مرور بعد."
+        },
+        "auth.staff.break_glass.completed.v1": {
+          "subject": "اكتمل الاسترداد الطارئ للمسؤول الأعلى",
+          "preheader": "غيّر الاسترداد الطارئ بيانات الاعتماد وألغى جميع الجلسات.",
+          "heading": "اكتمل الاسترداد الطارئ",
+          "intro": "اكتملت عملية استرداد المسؤول الأعلى التي يتحكم بها مالك النظام في {event_time}. تم استبدال بيانات الاعتماد وتسجيل خروج جميع الجلسات."
+        }
+      }
+    },
+    "ru": {
+      "direction": "ltr",
+      "shared": {
+        "code_label": "Код подтверждения",
+        "code_help": "Введите этот восьмизначный код на устройстве, где вы начали запрос.",
+        "link_fallback": "Если кнопка не работает, используйте эту безопасную ссылку:",
+        "expires_at": "Срок действия запроса истекает {expires_at}.",
+        "ignore": "Если вы этого не запрашивали, проигнорируйте письмо.",
+        "security_notice": "Никому не сообщайте эту ссылку или код.",
+        "event_time": "Время: {event_time}",
+        "not_you": "Если это были не вы, немедленно свяжитесь с владельцем системы.",
+        "support_notice": "Не отвечайте на это письмо и не сообщайте коды безопасности.",
+        "footer": "Это транзакционное письмо безопасности отправлено CRM Delivery.",
+        "role_admin": "Администратор",
+        "role_superadmin": "Суперадминистратор"
+      },
+      "templates": {
+        "auth.staff.invitation.v1": {
+          "subject": "Вас пригласили в CRM Delivery",
+          "preheader": "Настройте учетную запись {role} с именем пользователя {username}.",
+          "heading": "Завершите настройку учетной записи сотрудника",
+          "intro": "Вы приглашены как {role} с именем пользователя {username}.",
+          "cta": "Принять приглашение"
+        },
+        "auth.staff.enrollment.verify_email.v1": {
+          "subject": "Подтвердите рабочий адрес электронной почты",
+          "preheader": "Подтвердите адрес, чтобы продолжить безопасную настройку учетной записи.",
+          "heading": "Подтвердите адрес электронной почты",
+          "intro": "Подтвердите этот адрес, чтобы продолжить настройку учетной записи сотрудника.",
+          "cta": "Подтвердить адрес"
+        },
+        "auth.staff.enrollment.resume.v1": {
+          "subject": "Продолжите регистрацию в CRM Delivery",
+          "preheader": "Продолжите ограниченный процесс регистрации сотрудника.",
+          "heading": "Продолжить регистрацию сотрудника",
+          "intro": "Используйте безопасную ссылку или код, чтобы продолжить незавершенную настройку учетной записи.",
+          "cta": "Продолжить регистрацию"
+        },
+        "auth.staff.recovery.start.v1": {
+          "subject": "Продолжите восстановление учетной записи сотрудника",
+          "preheader": "Подтверждение почты — первый шаг; по-прежнему требуется второе доказательство.",
+          "heading": "Подтвердите запрос на восстановление",
+          "intro": "Сначала подтвердите адрес электронной почты. Затем потребуется привязанный ключ доступа или неиспользованный код восстановления.",
+          "cta": "Продолжить восстановление"
+        },
+        "auth.customer.email_enrollment.verify.v1": {
+          "subject": "Подтвердите адрес электронной почты CRM Delivery",
+          "preheader": "Добавьте подтвержденный доступ по почте к учетной записи клиента.",
+          "heading": "Подтвердите адрес электронной почты",
+          "intro": "Подтвердите этот адрес, чтобы включить безопасный доступ с разных устройств и восстановление учетной записи.",
+          "cta": "Подтвердить адрес"
+        },
+        "auth.customer.sign_in.v1": {
+          "subject": "Вход в CRM Delivery",
+          "preheader": "Используйте безопасную ссылку или код для входа.",
+          "heading": "Безопасный вход",
+          "intro": "Используйте ссылку или код ниже, чтобы продолжить вход в учетную запись клиента.",
+          "cta": "Войти"
+        },
+        "auth.customer.recovery.start.v1": {
+          "subject": "Восстановите учетную запись CRM Delivery",
+          "preheader": "Используйте безопасную ссылку или код для восстановления доступа.",
+          "heading": "Восстановите учетную запись",
+          "intro": "Завершайте восстановление только при потере доступа или подозрении на взлом. После завершения другие сеансы будут закрыты.",
+          "cta": "Продолжить восстановление"
+        },
+        "auth.customer.step_up.email.v1": {
+          "subject": "Код подтверждения CRM Delivery",
+          "preheader": "Используйте этот код для подтверждения чувствительного действия.",
+          "heading": "Подтвердите, что это вы",
+          "intro": "Введите код подтверждения, чтобы продолжить действие, важное для безопасности."
+        },
+        "auth.staff.email_change.verify_new.v1": {
+          "subject": "Подтвердите новый рабочий адрес восстановления",
+          "preheader": "Текущий адрес остается активным до одобрения изменения.",
+          "heading": "Подтвердите новый адрес",
+          "intro": "Подтвердите, что вы контролируете новый адрес восстановления сотрудника.",
+          "cta": "Подтвердить новый адрес"
+        },
+        "auth.staff.email_change.review_old.v1": {
+          "subject": "Проверьте изменение рабочего адреса восстановления",
+          "preheader": "Одобрите или отмените запрошенное изменение.",
+          "heading": "Проверка изменения адреса восстановления",
+          "intro": "Для учетной записи сотрудника запрошен новый адрес восстановления. Проверьте запрос до его активации.",
+          "cta": "Проверить изменение"
+        },
+        "auth.customer.email_change.verify_new.v1": {
+          "subject": "Подтвердите новый адрес CRM Delivery",
+          "preheader": "Подтвердите новый адрес для учетной записи клиента.",
+          "heading": "Подтвердите новый адрес",
+          "intro": "Подтвердите, что вы контролируете новый адрес восстановления клиента.",
+          "cta": "Подтвердить новый адрес"
+        },
+        "auth.customer.email_change.review_old.v1": {
+          "subject": "Проверьте изменение адреса CRM Delivery",
+          "preheader": "Одобрите или отмените запрошенное изменение.",
+          "heading": "Проверка изменения адреса восстановления",
+          "intro": "Для учетной записи клиента запрошен новый адрес восстановления. Проверьте запрос до его активации.",
+          "cta": "Проверить изменение"
+        },
+        "auth.staff.recovery.completed.v1": {
+          "subject": "Восстановление учетной записи сотрудника завершено",
+          "preheader": "Пароль заменен, все сеансы отозваны.",
+          "heading": "Учетная запись сотрудника восстановлена",
+          "intro": "Восстановление завершено {event_time}. Пароль изменен, все сеансы закрыты, требуется новый обычный вход."
+        },
+        "auth.customer.recovery.completed.v1": {
+          "subject": "Восстановление учетной записи клиента завершено",
+          "preheader": "Доступ восстановлен, другие сеансы отозваны.",
+          "heading": "Учетная запись восстановлена",
+          "intro": "Восстановление завершено {event_time}. Другие сеансы и ожидающие запросы на восстановление отозваны."
+        },
+        "auth.staff.email_change.completed_old.v1": {
+          "subject": "Рабочий адрес восстановления изменен",
+          "preheader": "Этот адрес больше не является основным для восстановления.",
+          "heading": "Адрес восстановления изменен",
+          "intro": "Рабочий адрес восстановления изменен {event_time}. Этот адрес больше не основной, все сеансы закрыты."
+        },
+        "auth.staff.email_change.completed_new.v1": {
+          "subject": "Новый рабочий адрес восстановления активен",
+          "preheader": "Теперь это подтвержденный основной адрес восстановления.",
+          "heading": "Новый адрес восстановления активирован",
+          "intro": "Этот адрес стал основным рабочим адресом восстановления {event_time}. Все сеансы закрыты."
+        },
+        "auth.customer.email_change.completed_old.v1": {
+          "subject": "Адрес восстановления CRM Delivery изменен",
+          "preheader": "Этот адрес больше не является основным для восстановления.",
+          "heading": "Адрес восстановления изменен",
+          "intro": "Адрес восстановления клиента изменен {event_time}. Этот адрес больше не основной, все сеансы закрыты."
+        },
+        "auth.customer.email_change.completed_new.v1": {
+          "subject": "Новый адрес восстановления CRM Delivery активен",
+          "preheader": "Теперь это подтвержденный основной адрес восстановления.",
+          "heading": "Новый адрес восстановления активирован",
+          "intro": "Этот адрес стал основным адресом восстановления клиента {event_time}. Все сеансы закрыты."
+        },
+        "auth.staff.email_change.cancelled_new.v1": {
+          "subject": "Изменение рабочего адреса восстановления отменено",
+          "preheader": "Запрошенное изменение на этот адрес отменено.",
+          "heading": "Изменение адреса отменено",
+          "intro": "Запрос на использование этого адреса для восстановления сотрудника отменен {event_time}. Текущий адрес восстановления не изменился."
+        },
+        "auth.customer.email_change.cancelled_new.v1": {
+          "subject": "Изменение адреса CRM Delivery отменено",
+          "preheader": "Запрошенное изменение на этот адрес отменено.",
+          "heading": "Изменение адреса отменено",
+          "intro": "Запрос на использование этого адреса для восстановления клиента отменен {event_time}. Текущий адрес восстановления не изменился."
+        },
+        "auth.staff.password.changed.v1": {
+          "subject": "Ваш рабочий пароль изменен",
+          "preheader": "Все рабочие сеансы закрыты.",
+          "heading": "Пароль изменен",
+          "intro": "Ваш рабочий пароль изменен {event_time}. Все сеансы закрыты, требуется новый вход."
+        },
+        "auth.staff.passkey.removed.v1": {
+          "subject": "Ключ доступа сотрудника удален",
+          "preheader": "Ключ доступа удален, все рабочие сеансы закрыты.",
+          "heading": "Ключ доступа удален",
+          "intro": "Ключ доступа удален из учетной записи сотрудника {event_time}. Все сеансы закрыты."
+        },
+        "auth.staff.recovery_codes.changed.v1": {
+          "subject": "Коды восстановления сотрудника заменены",
+          "preheader": "Предыдущие коды восстановления больше не действуют.",
+          "heading": "Коды восстановления изменены",
+          "intro": "Новый набор кодов восстановления активирован {event_time}. Предыдущие коды недействительны, все сеансы закрыты."
+        },
+        "auth.staff.break_glass.started.v1": {
+          "subject": "Запущено экстренное восстановление Суперадминистратора",
+          "preheader": "Начат контролируемый владельцем экстренный процесс восстановления.",
+          "heading": "Экстренное восстановление начато",
+          "intro": "Контролируемое владельцем восстановление Суперадминистратора начато {event_time}. Пароль пока не изменен."
+        },
+        "auth.staff.break_glass.completed.v1": {
+          "subject": "Экстренное восстановление Суперадминистратора завершено",
+          "preheader": "Учетные данные заменены, все сеансы отозваны.",
+          "heading": "Экстренное восстановление завершено",
+          "intro": "Контролируемое владельцем восстановление Суперадминистратора завершено {event_time}. Учетные данные заменены, все сеансы закрыты."
+        }
+      }
+    }
+  }
+}

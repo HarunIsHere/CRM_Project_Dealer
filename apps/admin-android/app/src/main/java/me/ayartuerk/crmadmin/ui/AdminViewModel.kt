@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import me.ayartuerk.crmadmin.api.ApiClient
 import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
@@ -26,6 +28,8 @@ enum class AdminScreen {
     ORDERS,
     ORDER_DETAIL,
     PRODUCTS,
+    PRODUCT_LIST,
+    CATEGORY_LIST,
     CUSTOMERS,
     CUSTOMER_DETAIL,
     OPEN_REQUESTS,
@@ -54,6 +58,8 @@ data class AdminUiState(
     val openRequests: List<OpenRequest> = emptyList(),
     val lastOpenRequestAction: String? = null,
     val meetingPoints: List<MeetingPoint> = emptyList(),
+    val lastMeetingPointAction: String? = null,
+    val lastProductAction: String? = null,
     val settings: Map<String, String> = emptyMap(),
     val lastSettingsAction: String? = null,
     val error: String? = null
@@ -89,7 +95,8 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                     _state.value = AdminUiState(loading = false, loggedIn = false)
                 }
             }.onFailure {
-                _state.value = AdminUiState(loading = false, loggedIn = false, error = it.message)
+                tokenStore.clearToken()
+                _state.value = AdminUiState(loading = false, loggedIn = false)
             }
         }
     }
@@ -184,7 +191,29 @@ fun showDashboard() {
     }
 
     fun showProducts() {
-        _state.value = _state.value.copy(screen = AdminScreen.PRODUCTS, selectedOrder = null)
+        _state.value = _state.value.copy(
+            screen = AdminScreen.PRODUCTS,
+            selectedOrder = null,
+            lastProductAction = null
+        )
+        loadProducts()
+    }
+
+    fun showProductList() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.PRODUCT_LIST,
+            selectedOrder = null,
+            lastProductAction = null
+        )
+        loadProducts()
+    }
+
+    fun showCategoryList() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.CATEGORY_LIST,
+            selectedOrder = null,
+            lastProductAction = null
+        )
         loadProducts()
     }
 
@@ -192,7 +221,7 @@ fun showDashboard() {
         val token = _state.value.token ?: return
 
         viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+            _state.value = _state.value.copy(loading = true, error = null, lastProductAction = null)
 
             runCatching {
                 val categories = repository.productCategories(token)
@@ -206,6 +235,157 @@ fun showDashboard() {
                 )
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Products failed")
+            }
+        }
+    }
+
+    fun createProduct(name: String, price: Double, categoryId: Long?) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastProductAction = null)
+
+            runCatching {
+                repository.createProduct(token, name, price, categoryId)
+                val categories = repository.productCategories(token)
+                val products = repository.products(token)
+                categories to products
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    categories = result.first,
+                    products = result.second,
+                    lastProductAction = "Product created"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Product create failed")
+            }
+        }
+    }
+
+    fun updateProduct(
+        productId: Long,
+        name: String,
+        price: Double,
+        categoryId: Long?,
+        aliases: String,
+        isActive: Boolean
+    ) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastProductAction = null)
+
+            runCatching {
+                repository.updateProduct(token, productId, name, price, categoryId, aliases, isActive)
+                val categories = repository.productCategories(token)
+                val products = repository.products(token)
+                categories to products
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    categories = result.first,
+                    products = result.second,
+                    lastProductAction = "Product updated"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Product update failed")
+            }
+        }
+    }
+
+    fun deleteProduct(productId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastProductAction = null)
+
+            runCatching {
+                repository.deleteProduct(token, productId)
+                val categories = repository.productCategories(token)
+                val products = repository.products(token)
+                categories to products
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    categories = result.first,
+                    products = result.second,
+                    lastProductAction = "Product deleted"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Product delete failed")
+            }
+        }
+    }
+
+    fun createProductCategory(name: String) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastProductAction = null)
+
+            runCatching {
+                repository.createProductCategory(token, name)
+                val categories = repository.productCategories(token)
+                val products = repository.products(token)
+                categories to products
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    categories = result.first,
+                    products = result.second,
+                    lastProductAction = "Category created"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Category create failed")
+            }
+        }
+    }
+
+    fun updateProductCategory(categoryId: Long, name: String, isActive: Boolean) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastProductAction = null)
+
+            runCatching {
+                repository.updateProductCategory(token, categoryId, name, isActive)
+                val categories = repository.productCategories(token)
+                val products = repository.products(token)
+                categories to products
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    categories = result.first,
+                    products = result.second,
+                    lastProductAction = "Category updated"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Category update failed")
+            }
+        }
+    }
+
+    fun deleteProductCategory(categoryId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastProductAction = null)
+
+            runCatching {
+                repository.deleteProductCategory(token, categoryId)
+                val categories = repository.productCategories(token)
+                val products = repository.products(token)
+                categories to products
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    categories = result.first,
+                    products = result.second,
+                    lastProductAction = "Category deleted"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Category delete failed")
             }
         }
     }
@@ -361,7 +541,8 @@ fun showDashboard() {
         _state.value = _state.value.copy(
             screen = AdminScreen.MEETING_POINTS,
             selectedOrder = null,
-            selectedCustomer = null
+            selectedCustomer = null,
+            lastMeetingPointAction = null
         )
         loadMeetingPoints()
     }
@@ -382,6 +563,96 @@ fun showDashboard() {
         }
     }
 
+    fun createMeetingPoint(name: String, address: String, googleMapsLink: String, isPreferred: Boolean) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastMeetingPointAction = null)
+
+            runCatching {
+                repository.createMeetingPoint(token, name, address, googleMapsLink, isPreferred)
+                repository.meetingPoints(token)
+            }.onSuccess { meetingPoints ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    meetingPoints = meetingPoints,
+                    lastMeetingPointAction = "Meeting point created"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting point create failed")
+            }
+        }
+    }
+
+    fun updateMeetingPoint(
+        pointId: Long,
+        name: String,
+        address: String,
+        googleMapsLink: String,
+        isActive: Boolean
+    ) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastMeetingPointAction = null)
+
+            runCatching {
+                repository.updateMeetingPoint(token, pointId, name, address, googleMapsLink, isActive)
+                repository.meetingPoints(token)
+            }.onSuccess { meetingPoints ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    meetingPoints = meetingPoints,
+                    lastMeetingPointAction = "Meeting point updated"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting point update failed")
+            }
+        }
+    }
+
+    fun setPreferredMeetingPoint(pointId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastMeetingPointAction = null)
+
+            runCatching {
+                repository.setPreferredMeetingPoint(token, pointId)
+                repository.meetingPoints(token)
+            }.onSuccess { meetingPoints ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    meetingPoints = meetingPoints,
+                    lastMeetingPointAction = "Preferred meeting point updated"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Set preferred meeting point failed")
+            }
+        }
+    }
+
+    fun deleteMeetingPoint(pointId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastMeetingPointAction = null)
+
+            runCatching {
+                repository.deleteMeetingPoint(token, pointId)
+                repository.meetingPoints(token)
+            }.onSuccess { meetingPoints ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    meetingPoints = meetingPoints,
+                    lastMeetingPointAction = "Meeting point deleted"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting point delete failed")
+            }
+        }
+    }
+
     fun showMore() {
         _state.value = _state.value.copy(
             screen = AdminScreen.MORE,
@@ -391,12 +662,7 @@ fun showDashboard() {
     }
 
     fun showSettings() {
-        _state.value = _state.value.copy(
-            screen = AdminScreen.SETTINGS,
-            selectedOrder = null,
-            selectedCustomer = null
-        )
-        loadSettings()
+        showGeneral()
     }
 
     fun loadSettings() {
@@ -415,22 +681,136 @@ fun showDashboard() {
         }
     }
 
-    fun updateAiResponseMode(mode: String) {
+    fun updateSettingsValue(key: String, value: String) {
         val token = _state.value.token ?: return
 
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null, lastSettingsAction = null)
 
             runCatching {
-                repository.updateAiResponseMode(token, mode)
+                val body = buildJsonObject { put(key, value) }
+                repository.updateSettings(token, body)
+            }.onSuccess { settings ->
+                val action = when (key) {
+                    "admin_view_language" -> "Admin language updated"
+                    "admin_telegram_chat_id" -> "Notification settings updated"
+                    "ai_response_mode" -> "Bot response mode updated"
+                    else -> "$key updated"
+                }
+                _state.value = _state.value.copy(
+                    loading = false,
+                    settings = settings,
+                    lastSettingsAction = action
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Settings update failed")
+            }
+        }
+    }
+
+    fun updateAdminLanguage(language: String) {
+        updateSettingsValue("admin_view_language", language)
+    }
+
+    fun updateNotificationChatId(chatId: String) {
+        updateSettingsValue("admin_telegram_chat_id", chatId)
+    }
+
+    fun updateWorkingHours(enabled: Boolean, timezone: String, start: String, end: String, messageMode: String, closedMessage: String) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastSettingsAction = null)
+
+            runCatching {
+                val body = buildJsonObject {
+                    put("working_hours_enabled", if (enabled) "on" else "off")
+                    put("working_hours_timezone", timezone)
+                    put("working_hours_start", start)
+                    put("working_hours_end", end)
+                    put("working_hours_message_mode", messageMode)
+                    put("working_hours_closed_message", closedMessage)
+                }
+                repository.updateSettings(token, body)
             }.onSuccess { settings ->
                 _state.value = _state.value.copy(
                     loading = false,
                     settings = settings,
-                    lastSettingsAction = "ai_response_mode updated to $mode"
+                    lastSettingsAction = "Working hours updated"
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Settings update failed")
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Working hours update failed")
+            }
+        }
+    }
+
+    fun updateFulfillmentOptions(allowPreferred: Boolean, allowNew: Boolean, allowPickup: Boolean) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastSettingsAction = null)
+
+            runCatching {
+                val body = buildJsonObject {
+                    put("allow_preferred_customer_location", if (allowPreferred) "on" else "off")
+                    put("allow_new_customer_location", if (allowNew) "on" else "off")
+                    put("allow_customer_pickup", if (allowPickup) "on" else "off")
+                }
+                repository.updateSettings(token, body)
+            }.onSuccess { settings ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    settings = settings,
+                    lastSettingsAction = "Fulfillment options updated"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Fulfillment options update failed")
+            }
+        }
+    }
+
+    fun updateDeliveryCities(cities: String) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastSettingsAction = null)
+
+            runCatching {
+                val body = buildJsonObject { put("allowed_delivery_cities", cities) }
+                repository.updateSettings(token, body)
+            }.onSuccess { settings ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    settings = settings,
+                    lastSettingsAction = "Delivery cities updated"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "Delivery cities update failed")
+            }
+        }
+    }
+
+    fun updateAiResponseMode(mode: String) {
+        updateSettingsValue("ai_response_mode", mode)
+    }
+
+    fun updateAiInstructions(instructions: String) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastSettingsAction = null)
+
+            runCatching {
+                val body = buildJsonObject { put("ai_custom_instructions", instructions) }
+                repository.updateSettings(token, body)
+            }.onSuccess { settings ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    settings = settings,
+                    lastSettingsAction = "AI instructions updated"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "AI instructions update failed")
             }
         }
     }
