@@ -12794,16 +12794,17 @@ async function handleHealth() {
 async function routeRequest(request, env, ctx) {
   const url = new URL(request.url);
 
-  const identityResponse = await handleIdentityApi(request, env, ctx);
-  if (identityResponse) return identityResponse;
-
   if (request.method === "OPTIONS" && url.pathname.startsWith("/api/v1/")) {
     return apiCorsPreflight();
   }
 
   if (url.pathname === "/health") return handleHealth();
 
-  if (url.pathname.startsWith("/api/v1/")) return handleApiV1(request, env);
+  if (url.pathname.startsWith("/api/v1/")) {
+    const identityResponse = await handleIdentityApi(request, env, ctx);
+    if (identityResponse) return identityResponse;
+    return handleApiV1(request, env);
+  }
 
   if (url.pathname === "/static/admin.css") {
     return new Response(ADMIN_CSS, { headers: { "content-type": "text/css; charset=utf-8" } });
