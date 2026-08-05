@@ -282,3 +282,231 @@ Operational implication
 
 - The next AI should begin from the recovery/backend slice, not re-audit the whole repository.
 - Its first responsibility is to verify gate coherence, deployment readiness, and live-path interaction with the still-active legacy web admin flow.
+
+## 🎯 Global Refactoring Roadmap & Non-Negotiable Principles
+- **One Backend Identity Route Registry**
+- **One Backend Feature Gate Registry**
+- **One Backend Transport Validator**
+- **One Backend Session Resolver**
+- **One Backend Response Schema**
+- *Rule:* All client surfaces (Web, Android, iOS, Telegram) must only render and submit; zero business logic duplication is allowed.
+
+
+I’m converting the roadmap into a client-by-client execution sequence tied directly to the confirmed Worker and contract files.
+
+## Step 2 — Concrete client-by-client implementation sequence
+
+The architectural target remains fixed:
+
+- the Worker identity slice is the single source of truth,
+- every client sends the same request shapes and consumes the same response semantics,
+- client code keeps only UX and transport glue,
+- no client redefines auth/session rules independently.
+
+---
+
+## Priority 0 — Backend contract hardening first
+
+These are the backend files that must become the canonical reference before any client refactor begins.
+
+### 1) Central identity route registry
+- service.js
+  - Make this the only route registry for identity entrypoints.
+  - Ensure every auth/recovery/session route is routed through one stable mapping.
+  - Keep the feature gate lookup and handler selection in this file only.
+
+### 2) Capability matrix
+- config.js
+  - Keep all rollout gates in one place.
+  - Remove any client-side readiness checks or hidden fallback conditions.
+  - Treat the feature matrix as the approval source for:
+    - staff recovery,
+    - customer email/session capabilities,
+    - Telegram init-data verification.
+
+### 3) Session transport rules
+- transport.js
+  - Centralize cookie, CSRF, bearer, and origin enforcement here.
+  - Web, Android, iOS, and Telegram must all conform to this transport contract.
+
+### 4) Recovery HTTP handlers
+- recovery-http.js
+  - This becomes the authoritative recovery implementation.
+  - All admin recovery request/response semantics must be defined here and consumed by clients as-is.
+
+### 5) Shared identity error and protocol normalization
+- http.js
+- protocol.js
+  - Require one common identity error envelope and one common protocol validation path.
+
+> This is the “single backend truth” layer. No client surface should be allowed to drift from it.
+
+---
+
+## Priority 1 — Web Admin sequence
+
+### Target files
+- index.js
+- service.js
+- http.js
+
+### Refactor tasks
+1. Replace legacy duplicated admin auth flow branches in index.js with calls into the centralized identity handlers.
+2. Keep web admin UI rendering in index.js, but remove any “special” auth/recovery rules from the page layer.
+3. Enforce that the browser-facing web admin flow uses the same session transport and cookie scope rules defined in transport.js.
+4. Ensure all reset/start/verify/password/logout browser responses return the same JSON schema and error shape from http.js.
+5. The web admin should become a pure consumer of the identity slice, not a parallel implementation.
+
+### Web deliverable
+- Web Admin login, forgot-password, reset-password, and change-password all use the same backend identity rules as every other surface.
+
+---
+
+## Priority 2 — Android sequence
+
+### Target files
+- AdminApi.kt
+- AdminApi.kt for request and response models
+- recovery-http.js
+
+### Refactor tasks
+1. Make the Android admin API layer consume only the canonical Worker recovery route names:
+   - start
+   - verify
+   - password
+   - logout
+
+2. Remove any local Android-only assumptions about:
+   - response envelope shape,
+   - challenge format,
+   - session cookie semantics,
+   - success/error mapping.
+
+3. Update the Android request model to match the Worker contract exactly.
+   - If the Worker changes the contract, the Android request model must change only as a direct translation layer.
+
+4. Ensure Android never performs its own session validation or recovery policy decisions.
+   - All validation should be backend-side in recovery-http.js.
+
+### Android deliverable
+- Android gets the same admin identity behavior and data schema as the Worker, with no second source of truth.
+
+---
+
+## Priority 3 — iOS sequence
+
+### Target files
+- ApiModels.swift
+- AdminIdentityApiClient.swift
+- recovery-http.js
+
+### Refactor tasks
+1. Make the iOS shared model layer a strict mirror of the backend contract defined in recovery-http.js.
+2. Keep the shared Swift models in ApiModels.swift synchronized with the Worker response envelope:
+   - request body keys,
+   - response fields,
+   - state transitions,
+   - error payload shape.
+3. Restrict the iOS client API wrapper in AdminIdentityApiClient.swift to:
+   - endpoint wiring,
+   - HTTP transport,
+   - local UX plumbing.
+4. Remove any iOS-side custom logic that tries to infer recovery state or transport semantics.
+
+### iOS deliverable
+- iOS performs no backend rule derivation; it only transmits and renders canonical Worker truth.
+
+---
+
+## Priority 4 — Telegram sequence
+
+### Target files
+- main.ts
+- api.ts
+- index.js
+- index.js
+- index.js
+
+### Refactor tasks
+1. Telegram Mini App:
+   - Keep Telegram identity extraction in main.ts.
+   - Keep the request wrappers in api.ts.
+   - But move all actual auth/session decision-making to the Worker customer session endpoints in index.js.
+
+2. Customer session flow:
+   - Mini App must use only the Worker-owned routes for:
+     - customer session start,
+     - verify,
+     - logout,
+     - me,
+     - locations,
+     - cart and checkout.
+
+3. Telegram webhook bot:
+   - Keep the bot webhook entry in index.js.
+   - Keep its secret-token verification in index.js.
+   - Keep bot message routing as a Worker-owned bot transport layer, not a parallel auth layer.
+
+4. Enforce a strict separation:
+   - Telegram bot webhook traffic remains bot transport.
+   - Telegram Mini App customer session remains customer identity transport.
+   - Staff recovery remains its own identity slice under recovery-http.js.
+
+### Telegram deliverable
+- Telegram bot and Telegram Mini App stay isolated from the staff recovery slice, while both still consume the same centralized Worker source-of-truth where the route semantics are concerned.
+
+---
+
+## Priority 5 — Contract alignment pass across all clients
+
+### Target files
+- AdminApi.kt
+- ApiModels.swift
+- AdminIdentityApiClient.swift
+- api.ts
+- index.js
+
+### Refactor tasks
+1. Normalize naming and status fields across all requests and responses.
+2. Standardize the error object structure so every client receives the same actionable failure payload.
+3. Make Android, iOS, and Telegram clients reflect only Worker-issued state, never local state invented from partial data.
+
+---
+
+## Recommended rollout order
+
+1. Backend canonical routing and gate layer  
+   - service.js  
+   - config.js  
+   - transport.js
+
+2. Staff recovery contract ownership  
+   - recovery-http.js
+
+3. Web Admin consumer alignment  
+   - index.js
+
+4. Android contract consumer alignment  
+   - AdminApi.kt
+
+5. iOS contract consumer alignment  
+   - ApiModels.swift  
+   - AdminIdentityApiClient.swift
+
+6. Telegram Mini App session alignment  
+   - main.ts  
+   - api.ts
+
+---
+
+## Final rule for the whole program
+
+Every client must be reduced to this formula:
+
+- gather user input,
+- call the stable Worker route,
+- render the Worker response,
+- cache tokens only for convenience,
+- never invent auth/session semantics.
+
+That is the cleanest path to making the Web, Android, iOS, and Telegram layers completely align with the centralized Worker identity core.
