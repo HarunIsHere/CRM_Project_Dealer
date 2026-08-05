@@ -97,9 +97,9 @@ export function getIdentityCapabilities(env) {
     customer_android: false,
     customer_ios: false
   };
-  const staffEnrollment = false;
-  const staffPasskeys = false;
-  const staffRecovery = false;
+  const staffEnrollment = true;
+  const staffPasskeys = true;
+  const staffRecovery = true;
 
   return {
     contract_version: 1,
