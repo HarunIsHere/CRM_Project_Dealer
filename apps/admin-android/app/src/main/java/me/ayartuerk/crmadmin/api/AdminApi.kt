@@ -12,6 +12,27 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface AdminApi {
+    @POST("api/v1/admin/auth/recovery/start")
+    suspend fun startIdentityRecovery(
+        @Body body: AdminIdentityRecoveryStartRequest
+    ): AdminIdentityRecoveryStartResponse
+
+    @POST("api/v1/admin/auth/recovery/verify")
+    suspend fun verifyIdentityRecovery(
+        @Body body: AdminIdentityRecoveryVerifyRequest
+    ): AdminIdentityRecoveryVerifyResponse
+
+    @PUT("api/v1/admin/auth/recovery/password")
+    suspend fun completeIdentityRecovery(
+        @Header("X-CSRF-Token") csrfToken: String,
+        @Body body: AdminIdentityRecoveryPasswordRequest
+    ): AdminIdentityRecoveryPasswordResponse
+
+    @POST("api/v1/admin/auth/recovery/logout")
+    suspend fun logoutIdentityRecovery(
+        @Header("X-CSRF-Token") csrfToken: String
+    ): BasicResponse
+
     @POST("admin/login")
     suspend fun login(@Body body: LoginRequest): LoginResponse
 
@@ -145,6 +166,84 @@ interface AdminApi {
 data class LoginRequest(
     val username: String,
     val password: String
+)
+
+@Serializable
+data class AdminIdentityRecoveryStartRequest(
+    val username: String
+)
+
+@Serializable
+data class AdminIdentityRecoveryVerifyRequest(
+    val token: String? = null,
+    val username: String? = null,
+    @SerialName("manual_code")
+    val manualCode: String? = null,
+    @SerialName("session_transport")
+    val sessionTransport: String = "cookie",
+    @SerialName("client_platform")
+    val clientPlatform: String = "admin_web",
+    @SerialName("app_version")
+    val appVersion: String? = null
+)
+
+@Serializable
+data class AdminIdentityRecoveryPasswordRequest(
+    @SerialName("new_password")
+    val newPassword: String,
+    @SerialName("confirm_password")
+    val confirmPassword: String? = null
+)
+
+@Serializable
+data class AdminIdentityRecoveryStartResponse(
+    val ok: Boolean = false,
+    @SerialName("request_id")
+    val requestId: String? = null,
+    val accepted: Boolean = false,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class AdminIdentityRecoveryVerifyResponse(
+    val ok: Boolean = false,
+    @SerialName("request_id")
+    val requestId: String? = null,
+    val recovery: AdminIdentityRecoveryState? = null,
+    val session: AdminIdentityRecoverySession? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class AdminIdentityRecoveryPasswordResponse(
+    val ok: Boolean = false,
+    @SerialName("request_id")
+    val requestId: String? = null,
+    @SerialName("password_changed")
+    val passwordChanged: Boolean = false,
+    @SerialName("login_required")
+    val loginRequired: Boolean = false,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class AdminIdentityRecoveryState(
+    val stage: String? = null,
+    @SerialName("email_verified")
+    val emailVerified: Boolean = false,
+    @SerialName("password_set")
+    val passwordSet: Boolean = false
+)
+
+@Serializable
+data class AdminIdentityRecoverySession(
+    val id: String? = null,
+    val scope: String? = null,
+    val transport: String? = null,
+    @SerialName("expires_at")
+    val expiresAt: String? = null,
+    @SerialName("csrf_token")
+    val csrfToken: String? = null
 )
 
 @Serializable

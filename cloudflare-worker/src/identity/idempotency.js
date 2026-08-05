@@ -10,6 +10,7 @@ const ID_32 = /^[0-9a-f]{32}$/;
 const REALMS = new Set(["customer", "staff"]);
 const MAX_SECRET_RESPONSE_TTL_SECONDS = 10 * 60;
 const MAX_RECEIPT_TTL_SECONDS = 24 * 60 * 60;
+const MAX_EXPIRED_IDEMPOTENCY_SWEEP_LIMIT = 1000;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
@@ -400,19 +401,16 @@ export async function reserveIdempotencyKey(
     results = await database.batch([
       database.prepare(`
         DELETE FROM auth_idempotency_keys
-        WHERE realm = ?
-          AND operation = ?
-          AND hash_key_version = ?
-          AND subject_scope_hash = ?
-          AND key_hash = ?
-          AND datetime(expires_at) <= datetime(?)
+        WHERE id IN (
+          SELECT id
+          FROM auth_idempotency_keys
+          WHERE datetime(expires_at) <= datetime(?)
+          ORDER BY expires_at
+          LIMIT ?
+        )
       `).bind(
-        context.realm,
-        context.operation,
-        context.hashKeyVersion,
-        context.subjectScopeHash,
-        context.keyHash,
-        createdAt
+        createdAt,
+        MAX_EXPIRED_IDEMPOTENCY_SWEEP_LIMIT
       ),
       database.prepare(`
         INSERT OR IGNORE INTO auth_idempotency_keys (
@@ -568,6 +566,43 @@ export async function completeIdempotencyKey(env, reservation, response) {
     throw new IdempotencyError("E_IDEMPOTENCY_COMPLETION_CONFLICT");
   }
   return true;
+}
+
+export async function sweepExpiredIdempotencyKeys(
+  env,
+  {
+    now = new Date(),
+    limit = MAX_EXPIRED_IDEMPOTENCY_SWEEP_LIMIT
+  } = {}
+) {
+  const database = requireDatabase(env);
+  const sweepAt = isoTimestamp(now);
+  const boundedLimit = positiveInteger(limit);
+  if (
+    !boundedLimit
+    || boundedLimit > MAX_EXPIRED_IDEMPOTENCY_SWEEP_LIMIT
+  ) {
+    throw new IdempotencyError("E_IDEMPOTENCY_SWEEP_LIMIT_INVALID");
+  }
+  let result;
+  try {
+    result = await database.prepare(`
+      DELETE FROM auth_idempotency_keys
+      WHERE id IN (
+        SELECT id
+        FROM auth_idempotency_keys
+        WHERE datetime(expires_at) <= datetime(?)
+        ORDER BY expires_at
+        LIMIT ?
+      )
+    `).bind(
+      sweepAt,
+      boundedLimit
+    ).run();
+  } catch {
+    throw new IdempotencyError("E_IDEMPOTENCY_PERSISTENCE_FAILED");
+  }
+  return changedRows(result);
 }
 
 export async function releaseIdempotencyReservation(env, reservationValue) {

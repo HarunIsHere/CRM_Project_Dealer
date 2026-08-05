@@ -1,5 +1,142 @@
 import Foundation
 
+public struct BasicApiResponse: Codable, Sendable {
+    public let ok: Bool
+    public let error: ApiErrorEnvelope?
+}
+
+public struct ApiErrorEnvelope: Codable, Sendable {
+    public let code: String?
+    public let message: String?
+}
+
+public struct AdminIdentityRecoveryStartRequest: Codable, Sendable {
+    public let username: String
+}
+
+public struct AdminIdentityRecoveryVerifyRequest: Codable, Sendable {
+    public let token: String?
+    public let username: String?
+    public let manualCode: String?
+    public let sessionTransport: String
+    public let clientPlatform: String
+    public let appVersion: String?
+
+    public init(
+        token: String? = nil,
+        username: String? = nil,
+        manualCode: String? = nil,
+        sessionTransport: String = "cookie",
+        clientPlatform: String = "admin_web",
+        appVersion: String? = nil
+    ) {
+        self.token = token
+        self.username = username
+        self.manualCode = manualCode
+        self.sessionTransport = sessionTransport
+        self.clientPlatform = clientPlatform
+        self.appVersion = appVersion
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case token
+        case username
+        case manualCode = "manual_code"
+        case sessionTransport = "session_transport"
+        case clientPlatform = "client_platform"
+        case appVersion = "app_version"
+    }
+}
+
+public struct AdminIdentityRecoveryPasswordRequest: Codable, Sendable {
+    public let newPassword: String
+    public let confirmPassword: String?
+
+    public init(newPassword: String, confirmPassword: String? = nil) {
+        self.newPassword = newPassword
+        self.confirmPassword = confirmPassword
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case newPassword = "new_password"
+        case confirmPassword = "confirm_password"
+    }
+}
+
+public struct AdminIdentityRecoveryStartResponse: Codable, Sendable {
+    public let ok: Bool
+    public let requestId: String?
+    public let accepted: Bool?
+    public let error: ApiErrorEnvelope?
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case requestId = "request_id"
+        case accepted
+        case error
+    }
+}
+
+public struct AdminIdentityRecoveryVerifyResponse: Codable, Sendable {
+    public let ok: Bool
+    public let requestId: String?
+    public let recovery: AdminIdentityRecoveryState?
+    public let session: AdminIdentityRecoverySession?
+    public let error: ApiErrorEnvelope?
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case requestId = "request_id"
+        case recovery
+        case session
+        case error
+    }
+}
+
+public struct AdminIdentityRecoveryPasswordResponse: Codable, Sendable {
+    public let ok: Bool
+    public let requestId: String?
+    public let passwordChanged: Bool?
+    public let loginRequired: Bool?
+    public let error: ApiErrorEnvelope?
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case requestId = "request_id"
+        case passwordChanged = "password_changed"
+        case loginRequired = "login_required"
+        case error
+    }
+}
+
+public struct AdminIdentityRecoveryState: Codable, Sendable {
+    public let stage: String?
+    public let emailVerified: Bool?
+    public let passwordSet: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case stage
+        case emailVerified = "email_verified"
+        case passwordSet = "password_set"
+    }
+}
+
+public struct AdminIdentityRecoverySession: Codable, Sendable {
+    public let id: String?
+    public let scope: String?
+    public let transport: String?
+    public let expiresAt: String?
+    public let csrfToken: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case scope
+        case transport
+        case expiresAt = "expires_at"
+        case csrfToken = "csrf_token"
+    }
+}
+
 public struct PublicShopsResponse: Codable {
     public let shops: [Shop]
 }

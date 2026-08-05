@@ -7,6 +7,7 @@ import {
   processAuthEmailQueue,
   sweepAuthEmailOutbox
 } from "./identity/email/dispatcher.js";
+import { sweepExpiredIdempotencyKeys } from "./identity/idempotency.js";
 import {
   ADMIN_INVITATION_LANDING_ROUTE,
   handleAdminInvitationLanding
@@ -12984,6 +12985,7 @@ export default {
     const limit = Number.isSafeInteger(configuredLimit)
       ? Math.max(1, Math.min(configuredLimit, 100))
       : 10;
+    ctx.waitUntil(sweepExpiredIdempotencyKeys(env));
     ctx.waitUntil(sweepAuthEmailOutbox(env, { limit }));
   }
 };

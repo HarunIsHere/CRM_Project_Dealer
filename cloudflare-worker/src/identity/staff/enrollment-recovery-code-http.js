@@ -529,6 +529,7 @@ export async function handleStaffEnrollmentRecoveryCodeSetAcknowledgement(
       );
     }
 
+    reservation = idempotency.reservation;
     const session = requireEnrollmentSession(await resolveCanonicalSession(
       env,
       authentication.sessionToken,

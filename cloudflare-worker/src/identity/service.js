@@ -26,6 +26,16 @@ import {
   handleStaffEnrollmentRecoveryCodeSetAcknowledgement,
   handleStaffEnrollmentRecoveryCodeSetGeneration
 } from "./staff/enrollment-recovery-code-http.js";
+import {
+  handleStaffRecoveryLogout,
+  handleStaffRecoveryPassword,
+  handleStaffRecoveryStart,
+  handleStaffRecoveryVerify,
+  STAFF_RECOVERY_LOGOUT_ROUTE,
+  STAFF_RECOVERY_PASSWORD_ROUTE,
+  STAFF_RECOVERY_START_ROUTE,
+  STAFF_RECOVERY_VERIFY_ROUTE
+} from "./staff/recovery-http.js";
 
 const IDENTITY_PATH = /^\/api\/v1\/(customer|admin)\/(auth|security)(?:\/|$)/;
 const STAFF_ENROLLMENT_RECOVERY_CODE_ACK_PATH =
@@ -64,6 +74,34 @@ const IMPLEMENTED_ROUTES = new Map([
     Object.freeze({
       feature: "staff_bootstrap_enrollment",
       handler: handleStaffEnrollmentRecoveryCodeSetGeneration
+    })
+  ],
+  [
+    STAFF_RECOVERY_START_ROUTE,
+    Object.freeze({
+      feature: "staff_recovery",
+      handler: handleStaffRecoveryStart
+    })
+  ],
+  [
+    STAFF_RECOVERY_VERIFY_ROUTE,
+    Object.freeze({
+      feature: "staff_recovery",
+      handler: handleStaffRecoveryVerify
+    })
+  ],
+  [
+    STAFF_RECOVERY_PASSWORD_ROUTE,
+    Object.freeze({
+      feature: "staff_recovery",
+      handler: handleStaffRecoveryPassword
+    })
+  ],
+  [
+    STAFF_RECOVERY_LOGOUT_ROUTE,
+    Object.freeze({
+      feature: "staff_recovery",
+      handler: handleStaffRecoveryLogout
     })
   ]
 ]);
