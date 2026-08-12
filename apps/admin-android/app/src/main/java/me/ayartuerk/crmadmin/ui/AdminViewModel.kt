@@ -21,12 +21,15 @@ import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.data.AdminRepository
+import me.ayartuerk.crmadmin.data.AdminOrderAction
 import me.ayartuerk.crmadmin.data.TokenStore
 enum class AdminScreen {
     GENERAL,
     DASHBOARD,
     ORDERS,
+    CLOSED_ORDERS,
     ORDER_DETAIL,
+    CLOSED_ORDER_DETAIL,
     PRODUCTS,
     PRODUCT_LIST,
     CATEGORY_LIST,
@@ -45,6 +48,7 @@ data class AdminUiState(
     val screen: AdminScreen = AdminScreen.GENERAL,
     val dashboard: DashboardResponse? = null,
     val orders: List<CustomerAppOrder> = emptyList(),
+    val closedOrders: List<CustomerAppOrder> = emptyList(),
     val selectedOrder: CustomerAppOrder? = null,
     val products: List<Product> = emptyList(),
     val categories: List<ProductCategory> = emptyList(),
@@ -62,6 +66,7 @@ data class AdminUiState(
     val lastProductAction: String? = null,
     val settings: Map<String, String> = emptyMap(),
     val lastSettingsAction: String? = null,
+    val recoveryNotice: String? = null,
     val error: String? = null
 )
 
@@ -117,6 +122,32 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun sendIdentityRecovery(username: String) {
+        val cleaned = username.trim()
+        if (cleaned.isBlank()) {
+            _state.value = _state.value.copy(recoveryNotice = null, error = "Username is required")
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, recoveryNotice = null)
+
+            runCatching {
+                repository.startIdentityRecovery(cleaned)
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    recoveryNotice = "If the account exists, a recovery email has been sent."
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Recovery email request failed"
+                )
+            }
+        }
+    }
+
     
     fun showGeneral() {
         _state.value = _state.value.copy(
@@ -153,18 +184,66 @@ fun showDashboard() {
         loadOrders()
     }
 
+    fun showClosedOrders() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.CLOSED_ORDERS,
+            selectedOrder = null
+        )
+        loadOrders()
+    }
+
     fun loadOrders() {
         val token = _state.value.token ?: return
 
         viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
 
             runCatching {
                 repository.customerAppOrders(token)
             }.onSuccess { orders ->
-                _state.value = _state.value.copy(loading = false, orders = orders)
+                val activeOrders = orders.filterNot { order ->
+                    val orderStatus =
+                        (order.orderStatus ?: order.status)
+                            ?.trim()
+                            ?.lowercase()
+
+                    val deliveryStatus =
+                        order.deliveryStatus
+                            ?.trim()
+                            ?.lowercase()
+
+                    val pickupStatus =
+                        order.pickupStatus
+                            ?.trim()
+                            ?.lowercase()
+
+                    orderStatus in setOf(
+                        "delivered",
+                        "closed",
+                        "cancelled",
+                        "canceled"
+                    ) ||
+                        deliveryStatus == "delivered" ||
+                        pickupStatus == "picked_up"
+                }
+
+                _state.value = _state.value.copy(
+                    loading = false,
+                    orders = activeOrders,
+                    closedOrders = orders.filterNot { candidate ->
+                        activeOrders.any { active ->
+                            active.id == candidate.id
+                        }
+                    }
+                )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Orders failed")
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Failed to load orders"
+                )
             }
         }
     }
@@ -186,6 +265,34 @@ fun showDashboard() {
                 _state.value = _state.value.copy(loading = false, selectedOrder = order)
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Order detail failed")
+            }
+        }
+    }
+
+    fun showClosedOrderDetail(orderId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                screen = AdminScreen.CLOSED_ORDER_DETAIL,
+                selectedOrder = _state.value.closedOrders
+                    .firstOrNull { it.id == orderId }
+            )
+
+            runCatching {
+                repository.customerAppOrderDetail(token, orderId)
+            }.onSuccess { order ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    selectedOrder = order
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Order detail failed"
+                )
             }
         }
     }
@@ -516,9 +623,8 @@ fun showDashboard() {
         }
     }
 
-    fun markOpenRequestGroupDone(requestId: Long) {
+    fun markOpenRequestGroupDone(request: OpenRequest) {
         val token = _state.value.token ?: return
-        val request = _state.value.openRequests.firstOrNull { it.id == requestId } ?: return
 
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null, lastOpenRequestAction = null)
@@ -533,6 +639,26 @@ fun showDashboard() {
                 loadOpenRequests()
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Group done failed")
+            }
+        }
+    }
+
+    fun markAllOpenRequestsDone() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastOpenRequestAction = null)
+
+            runCatching {
+                repository.markAllOpenRequestsDone(token)
+            }.onSuccess { updated ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    lastOpenRequestAction = "All done updated $updated request(s)"
+                )
+                loadOpenRequests()
+            }.onFailure {
+                _state.value = _state.value.copy(loading = false, error = it.message ?: "All done failed")
             }
         }
     }
@@ -828,4 +954,44 @@ fun showDashboard() {
             _state.value = AdminUiState(loading = false, loggedIn = false)
         }
     }
+    fun performSelectedOrderAction(
+        action: AdminOrderAction,
+        note: String = ""
+    ) {
+        val token = _state.value.token
+        val selectedOrder = _state.value.selectedOrder
+
+        if (token.isNullOrBlank() || selectedOrder == null) {
+            _state.value = _state.value.copy(error = "No order is selected")
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+
+            runCatching {
+                repository.performOrderAction(
+                    token = token,
+                    orderId = selectedOrder.id,
+                    action = action,
+                    note = note
+                )
+            }.onSuccess { updated ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    selectedOrder = updated,
+                    orders = _state.value.orders.map { order ->
+                        if (order.id == updated.id) updated else order
+                    }
+                )
+                loadOrders()
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Order update failed"
+                )
+            }
+        }
+    }
+
 }

@@ -1,4 +1,5 @@
 package me.ayartuerk.crmadmin.ui
+import me.ayartuerk.crmadmin.data.AdminOrderAction
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.Alignment
@@ -17,6 +18,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -347,6 +351,31 @@ private val adminTextAliases = mapOf(
     "inProgress" to "in_progress_status",
     "done" to "done",
     "groupDone" to "group_done",
+    "allDone" to "all_done",
+    "allDoneConfirm" to "all_done_confirm",
+    "openCustomer" to "open_customer",
+    "answer" to "answer",
+    "quantity" to "quantity",
+    "requestCount" to "request_count",
+    "latestText" to "latest_text",
+    "latestCreatedAt" to "latest_created_at",
+    "cancel" to "cancel",
+    "actions" to "actions",
+    "noAvailableAction" to "no_available_action",
+    "onTheWay" to "on_the_way",
+    "delivered" to "delivered",
+    "notDelivered" to "not_delivered",
+    "returnNotDelivered" to "return_not_delivered",
+    "readyToPickUp" to "ready_to_pick_up",
+    "pickedUpDelivered" to "picked_up_delivered",
+    "updated" to "updated_at",
+    "requestTypeProductSpecific" to "request_type_product_specific",
+    "requestTypeProductList" to "request_type_product_list",
+    "requestTypeDeliveryLocation" to "request_type_delivery_location",
+    "requestTypeLocation" to "request_type_location",
+    "requestTypeAddress" to "request_type_address",
+    "requestTypeContactAdmin" to "request_type_contact_admin",
+    "requestTypeUnresolved" to "request_type_unresolved",
     "mapLabel" to "google_maps",
     "replySent" to "reply_sent",
     "adminLanguageUpdated" to "admin_language_updated",
@@ -397,6 +426,12 @@ private fun localizedAdminFlashMessage(message: String?, ui: AdminLocalizedText)
         return template("group_done_updated_template", "count" to count)
     }
 
+    val allDone = Regex("^All done updated (\\d+) request\\(s\\)$").matchEntire(message)
+    if (allDone != null) {
+        val count = allDone.groupValues[1]
+        return template("all_done_updated_template", "count" to count)
+    }
+
     return when (message) {
         "Reply sent" -> adminText(ui, "replySent")
         "Admin language updated" -> adminText(ui, "adminLanguageUpdated")
@@ -424,6 +459,7 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onDashboard = viewModel::showDashboard,
                     onGeneral = viewModel::showGeneral,
                     onOrders = viewModel::showOrders,
+                    onClosedOrders = viewModel::showClosedOrders,
                     onProducts = viewModel::showProducts,
                     onCustomers = viewModel::showCustomers,
                     onOpenRequests = viewModel::showOpenRequests,
@@ -437,6 +473,8 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onRefreshMeetingPoints = viewModel::loadMeetingPoints,
                     onRefreshSettings = viewModel::loadSettings,
                     onOrderClick = viewModel::showOrderDetail,
+                    onClosedOrderClick = viewModel::showClosedOrderDetail,
+                    onOrderAction = viewModel::performSelectedOrderAction,
                     onCustomerClick = viewModel::showCustomerDetail,
                     onCreateProduct = viewModel::createProduct,
                     onCreateProductCategory = viewModel::createProductCategory,
@@ -452,8 +490,9 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onDeleteMeetingPoint = viewModel::deleteMeetingPoint,
                     onReplyChange = viewModel::updateReplyMessage,
                     onSendReply = viewModel::sendCustomerReply,
-                    onOpenRequestStatus = viewModel::updateOpenRequestStatus,
                     onOpenRequestGroupDone = viewModel::markOpenRequestGroupDone,
+                    onOpenRequestAllDone = viewModel::markAllOpenRequestsDone,
+                    onOpenRequestCustomer = viewModel::showCustomerDetail,
                     onUpdateGeneralSetting = viewModel::updateSettingsValue,
                     onUpdateWorkingHours = viewModel::updateWorkingHours,
                     onUpdateFulfillment = viewModel::updateFulfillmentOptions,
@@ -465,7 +504,9 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                 else -> LoginScreen(
                     loading = state.loading,
                     error = state.error,
+                    recoveryNotice = state.recoveryNotice,
                     onLogin = viewModel::login,
+                    onForgotPassword = viewModel::sendIdentityRecovery,
                     ui = ui
                 )
             }
@@ -491,7 +532,9 @@ private fun LoadingScreen(ui: AdminLocalizedText) {
 private fun LoginScreen(
     loading: Boolean,
     error: String?,
+    recoveryNotice: String?,
     onLogin: (String, String) -> Unit,
+    onForgotPassword: (String) -> Unit,
     ui: AdminLocalizedText
 ) {
     var username by remember { mutableStateOf("admin") }
@@ -548,12 +591,17 @@ private fun LoginScreen(
         )
 
         TextButton(
-            onClick = {
-                // TODO: wire existing Web Admin forgot/reset-password API flow.
-            },
+            onClick = { onForgotPassword(username) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(adminText(ui, "forgotPassword"))
+        }
+
+        Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+        if (!recoveryNotice.isNullOrBlank()) {
+            Text(recoveryNotice, color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(AdminSpacing.S))
         }
 
         Spacer(modifier = Modifier.height(AdminSpacing.M))
@@ -578,6 +626,7 @@ private fun AdminShell(
     onDashboard: () -> Unit,
     onGeneral: () -> Unit,
     onOrders: () -> Unit,
+    onClosedOrders: () -> Unit,
     onProducts: () -> Unit,
     onCustomers: () -> Unit,
     onOpenRequests: () -> Unit,
@@ -591,6 +640,8 @@ private fun AdminShell(
     onRefreshMeetingPoints: () -> Unit,
     onRefreshSettings: () -> Unit,
     onOrderClick: (Long) -> Unit,
+    onClosedOrderClick: (Long) -> Unit,
+    onOrderAction: (AdminOrderAction, String) -> Unit,
     onCustomerClick: (Long) -> Unit,
     onCreateProduct: (String, Double, Long?) -> Unit,
     onCreateProductCategory: (String) -> Unit,
@@ -606,8 +657,9 @@ private fun AdminShell(
     onDeleteMeetingPoint: (Long) -> Unit,
     onReplyChange: (String) -> Unit,
     onSendReply: () -> Unit,
-    onOpenRequestStatus: (Long, String) -> Unit,
-    onOpenRequestGroupDone: (Long) -> Unit,
+    onOpenRequestGroupDone: (OpenRequest) -> Unit,
+    onOpenRequestAllDone: () -> Unit,
+    onOpenRequestCustomer: (Long) -> Unit,
     onUpdateGeneralSetting: (String, String) -> Unit,
     onUpdateWorkingHours: (Boolean, String, String, String, String, String) -> Unit,
     onUpdateFulfillment: (Boolean, Boolean, Boolean) -> Unit,
@@ -636,6 +688,10 @@ private fun AdminShell(
                 onOrders = {
                     drawerScope.launch { drawerState.close() }
                     onOrders()
+                },
+                onClosedOrders = {
+                    drawerScope.launch { drawerState.close() }
+                    onClosedOrders()
                 },
                 onProducts = {
                     drawerScope.launch { drawerState.close() }
@@ -690,7 +746,9 @@ private fun AdminShell(
                         AdminScreen.GENERAL -> ui.general
                         AdminScreen.DASHBOARD -> adminText(ui, "dashboard")
                         AdminScreen.ORDERS -> ui.orders
+                        AdminScreen.CLOSED_ORDERS -> ui.closedOrders
                         AdminScreen.ORDER_DETAIL -> ui.orderDetail
+                        AdminScreen.CLOSED_ORDER_DETAIL -> ui.orderDetail
                         AdminScreen.PRODUCTS -> ui.products
                         AdminScreen.PRODUCT_LIST -> ui.productList
                         AdminScreen.CATEGORY_LIST -> ui.categoryList
@@ -730,13 +788,33 @@ private fun AdminShell(
                     ui = ui
                 )
 
+                AdminScreen.CLOSED_ORDERS -> OrdersScreen(
+                    state = state,
+                    onRefresh = onRefreshOrders,
+                    onOrderClick = onClosedOrderClick,
+                    ui = ui,
+                    closed = true
+                )
+
                 AdminScreen.ORDER_DETAIL -> OrderDetailScreen(
                     state = state,
                     onBack = onOrders,
                     onRefresh = {
                         state.selectedOrder?.id?.let(onOrderClick)
                     },
-                    ui = ui
+                    ui = ui,
+                    onAction = onOrderAction
+                )
+
+                AdminScreen.CLOSED_ORDER_DETAIL -> OrderDetailScreen(
+                    state = state,
+                    onBack = onClosedOrders,
+                    onRefresh = {
+                        state.selectedOrder?.id?.let(onClosedOrderClick)
+                    },
+                    ui = ui,
+                    onAction = onOrderAction,
+                    closedMode = true
                 )
 
                 AdminScreen.PRODUCTS -> ProductsScreen(
@@ -788,8 +866,9 @@ private fun AdminShell(
                 AdminScreen.OPEN_REQUESTS -> OpenRequestsScreen(
                     state = state,
                     onRefresh = onRefreshOpenRequests,
-                    onStatus = onOpenRequestStatus,
                     onGroupDone = onOpenRequestGroupDone,
+                    onAllDone = onOpenRequestAllDone,
+                    onOpenCustomer = onOpenRequestCustomer,
                     ui = ui
                 )
 
@@ -835,6 +914,7 @@ private fun AdminNavigationDrawerContent(
     onGeneral: () -> Unit,
     onOpenRequests: () -> Unit,
     onOrders: () -> Unit,
+    onClosedOrders: () -> Unit,
     onProducts: () -> Unit,
     onMeetingPoints: () -> Unit,
     onCustomers: () -> Unit,
@@ -869,7 +949,7 @@ private fun AdminNavigationDrawerContent(
         NavigationDrawerItem(
             label = { Text(ui.closedOrders) },
             selected = false,
-            onClick = { }
+            onClick = onClosedOrders
         )
 
         NavigationDrawerItem(
@@ -1362,8 +1442,14 @@ private fun OrdersScreen(
     state: AdminUiState,
     onRefresh: () -> Unit,
     onOrderClick: (Long) -> Unit,
-    ui: AdminLocalizedText
+    ui: AdminLocalizedText,
+    closed: Boolean = false
 ) {
+    val visibleOrders =
+        if (closed) state.closedOrders else state.orders
+    val screenTitle =
+        if (closed) ui.closedOrders else ui.orders
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dpCompat),
@@ -1374,24 +1460,102 @@ private fun OrdersScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(ui.orders, style = MaterialTheme.typography.headlineSmall)
+                Text(screenTitle, style = MaterialTheme.typography.headlineSmall)
                 AdminSecondaryButton(text = ui.refresh, onClick = onRefresh)
             }
         }
 
         commonStateItems(state)
 
-        if (state.orders.isEmpty() && !state.loading) {
+        if (visibleOrders.isEmpty() && !state.loading) {
             item {
                 Text(adminText(ui, "noOrdersLoaded"))
             }
         }
 
-        items(state.orders) { order ->
+        items(visibleOrders) { order ->
             OrderCard(order = order, onOrderClick = onOrderClick, ui = ui)
         }
     }
 }
+
+private fun CustomerAppOrder.displayCustomer(): String =
+    listOf(
+        customerName,
+        customer?.fullName,
+        customer?.username
+    ).firstOrNull { !it.isNullOrBlank() } ?: "-"
+
+private fun CustomerAppOrder.displayTotal(): String =
+    totalFormatted?.takeIf { it.isNotBlank() }
+        ?: totalAmount?.toString()
+        ?: confirmedTotal?.toString()
+        ?: total?.toString()
+        ?: "-"
+
+private fun displayOrderTimestamp(value: String?): String {
+    val cleaned = value?.trim()?.replace('T', ' ').orEmpty()
+    if (cleaned.isBlank()) return "-"
+
+    return cleaned
+        .substringBefore(".")
+        .removeSuffix("Z")
+}
+
+private fun displayOrderValue(
+    ui: AdminLocalizedText,
+    backendLabel: String? = null,
+    raw: String?,
+    fulfillment: Boolean = false
+): String {
+    val normalized = raw?.trim()?.lowercase()
+
+    val alias = when {
+        fulfillment && normalized == "delivery" -> "delivery"
+        fulfillment && normalized == "pickup" -> "pickup"
+        normalized == "delivery" -> "delivery"
+        normalized == "pickup" -> "pickup"
+        normalized == "on_the_way" -> "onTheWay"
+        normalized == "delivered" -> "delivered"
+        normalized == "not_delivered" -> "notDelivered"
+        normalized == "ready_to_pickup" -> "readyToPickUp"
+        normalized == "picked_up" -> "pickedUpDelivered"
+        else -> null
+    }
+
+    if (alias != null) {
+        val translated = adminText(ui, alias)
+        val translationKey = adminTextAliases[alias]
+
+        if (
+            translated.isNotBlank() &&
+            translated != alias &&
+            translated != translationKey
+        ) {
+            return translated
+        }
+    }
+
+    val value = raw
+        ?.takeIf { it.isNotBlank() }
+        ?: backendLabel?.takeIf { it.isNotBlank() }
+        ?: return "-"
+
+    val words = value
+        .replace('_', ' ')
+        .replace('-', ' ')
+
+    return words.replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase() else it.toString()
+    }
+}
+
+private fun CustomerAppOrder.itemsSummary(): String =
+    items.joinToString(" · ") { item ->
+        val name =
+            item.productName ?: "Item #${item.productId ?: item.id}"
+        "$name ×${item.quantity ?: 0}"
+    }
 
 @Composable
 private fun OrderCard(
@@ -1399,31 +1563,139 @@ private fun OrderCard(
     onOrderClick: (Long) -> Unit,
     ui: AdminLocalizedText
 ) {
-    AdminPanel {
-        Text("${adminText(ui, "order")} #${order.id ?: "-"}", style = MaterialTheme.typography.titleSmall)
-        Text("${adminText(ui, "customerLabel")}: ${order.customerName ?: "-"}")
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-            Text("${adminText(ui, "fulfillment")}:")
-            AdminStatusChip(text = order.fulfillmentType ?: "-")
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-            Text("${adminText(ui, "statusLabel")}:")
-            AdminStatusChip(text = order.orderStatus ?: order.status ?: "-")
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-            Text("${adminText(ui, "delivery")}:")
-            AdminStatusChip(text = order.deliveryStatus ?: "-")
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-            Text("${adminText(ui, "pickup")}:")
-            AdminStatusChip(text = order.pickupStatus ?: "-")
-        }
-        Text("${adminText(ui, "totalLabel")}: ${order.confirmedTotal ?: order.total ?: "-"}")
-        Text("${adminText(ui, "createdLabel")}: ${order.createdAt ?: "-"}", color = AdminColors.TextSecondary)
+    val fulfillment = order.fulfillmentType
+        ?.trim()
+        ?.lowercase()
+        .orEmpty()
 
-        if (order.id != null) {
-            AdminPrimaryButton(text = adminText(ui, "openDetail"), onClick = { onOrderClick(order.id) })
+    AdminPanel {
+        Text(
+            text = "${adminText(ui, "order")} #${order.id}",
+            style = MaterialTheme.typography.titleSmall
+        )
+
+        order.publicOrderCode
+            ?.takeIf { it.isNotBlank() }
+            ?.let {
+                Text(
+                    text = it,
+                    color = AdminColors.TextSecondary
+                )
+            }
+
+        Text(
+            "${adminText(ui, "customerLabel")}: ${
+                order.displayCustomer()
+            }"
+        )
+
+        order.customer?.telegramUserId
+            ?.takeIf { it.isNotBlank() }
+            ?.let { Text("Telegram: $it") }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement =
+                Arrangement.spacedBy(AdminSpacing.XS)
+        ) {
+            Text("${adminText(ui, "fulfillment")}:")
+            AdminStatusChip(
+                text = displayOrderValue(
+                    raw = order.fulfillmentType,
+                    ui = ui,
+                    fulfillment = true
+                )
+            )
         }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement =
+                Arrangement.spacedBy(AdminSpacing.XS)
+        ) {
+            Text("${adminText(ui, "statusLabel")}:")
+            AdminStatusChip(
+                text = displayOrderValue(
+                    raw = order.orderStatus ?: order.status,
+                    backendLabel = order.orderStatusLabel,
+                    ui = ui
+                )
+            )
+        }
+
+        if (fulfillment == "delivery") {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement =
+                    Arrangement.spacedBy(AdminSpacing.XS)
+            ) {
+                Text("${adminText(ui, "delivery")}:")
+                AdminStatusChip(
+                    text = displayOrderValue(
+                        raw = order.deliveryStatus,
+                        backendLabel = order.deliveryStatusLabel,
+                        ui = ui
+                    )
+                )
+            }
+        }
+
+        if (fulfillment == "pickup") {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement =
+                    Arrangement.spacedBy(AdminSpacing.XS)
+            ) {
+                Text("${adminText(ui, "pickup")}:")
+                AdminStatusChip(
+                    text = displayOrderValue(
+                        raw = order.pickupStatus,
+                        backendLabel = order.pickupStatusLabel,
+                        ui = ui
+                    )
+                )
+            }
+        }
+
+        Text(
+            "${adminText(ui, "totalLabel")}: ${
+                order.displayTotal()
+            }"
+        )
+
+        if (order.items.isNotEmpty()) {
+            Text(
+                "${adminText(ui, "items")}: ${
+                    order.itemsSummary()
+                }"
+            )
+        }
+
+        if (fulfillment == "delivery") {
+            val location =
+                order.deliveryLocationLabel ?: order.deliveryAddress
+
+            location
+                ?.takeIf { it.isNotBlank() }
+                ?.let {
+                    Text(
+                        "${adminText(ui, "location")}: $it"
+                    )
+                }
+        }
+
+        Text(
+            text = "${adminText(ui, "createdLabel")}: ${
+                displayOrderTimestamp(order.createdAt)
+            }",
+            color = AdminColors.TextSecondary
+        )
+
+        AdminPrimaryButton(
+            text = adminText(ui, "openDetail"),
+            onClick = { onOrderClick(order.id) },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -1432,22 +1704,34 @@ private fun OrderDetailScreen(
     state: AdminUiState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
-    ui: AdminLocalizedText
+    onAction: (AdminOrderAction, String) -> Unit,
+    ui: AdminLocalizedText,
+    closedMode: Boolean = false
 ) {
     val order = state.selectedOrder
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dpCompat),
-        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+        verticalArrangement =
+            Arrangement.spacedBy(12.dpCompat)
     ) {
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dpCompat)
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dpCompat)
             ) {
-                AdminSecondaryButton(text = ui.back, onClick = onBack)
-                AdminSecondaryButton(text = ui.refresh, onClick = onRefresh)
+                AdminSecondaryButton(
+                    text = ui.back,
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f)
+                )
+                AdminSecondaryButton(
+                    text = ui.refresh,
+                    onClick = onRefresh,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
@@ -1460,53 +1744,460 @@ private fun OrderDetailScreen(
         }
 
         if (order != null) {
+            val fulfillment = order.fulfillmentType
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+
+            val orderStatus = (order.orderStatus ?: order.status)
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+
+            val deliveryStatus = order.deliveryStatus
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+
+            val pickupStatus = order.pickupStatus
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+
+            val terminal = orderStatus in setOf(
+                "delivered",
+                "cancelled",
+                "not_delivered",
+                "closed"
+            )
+
             item {
                 AdminPanel {
-                    Text("${adminText(ui, "order")} #${order.id ?: "-"}", style = MaterialTheme.typography.headlineSmall)
-                    Text("${adminText(ui, "customerLabel")}: ${order.customerName ?: "-"}")
-                    Text("${adminText(ui, "phoneLabel")}: ${order.customerPhone ?: "-"}")
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
+                    Text(
+                        text = "${adminText(ui, "order")} #${order.id}",
+                        style =
+                            MaterialTheme.typography.headlineSmall
+                    )
+
+                    order.publicOrderCode
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { Text(it) }
+
+                    Text(
+                        "${adminText(ui, "customerLabel")}: ${
+                            order.displayCustomer()
+                        }"
+                    )
+
+                    order.customerPhone
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let {
+                            Text(
+                                "${adminText(ui, "phoneLabel")}: $it"
+                            )
+                        }
+
+                    order.customer?.telegramUserId
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { Text("Telegram: $it") }
+
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.spacedBy(AdminSpacing.XS)
+                    ) {
                         Text("${adminText(ui, "fulfillment")}:")
-                        AdminStatusChip(text = order.fulfillmentType ?: "-")
+                        AdminStatusChip(
+                            text = displayOrderValue(
+                                raw = order.fulfillmentType,
+                                ui = ui,
+                                fulfillment = true
+                            )
+                        )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-                        Text("${adminText(ui, "orderStatusLabel")}:")
-                        AdminStatusChip(text = order.orderStatus ?: order.status ?: "-")
+
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.spacedBy(AdminSpacing.XS)
+                    ) {
+                        Text(
+                            "${adminText(ui, "orderStatusLabel")}:"
+                        )
+                        AdminStatusChip(
+                            text = displayOrderValue(
+                                raw =
+                                    order.orderStatus ?: order.status,
+                                backendLabel =
+                                    order.orderStatusLabel,
+                                ui = ui
+                            )
+                        )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-                        Text("${adminText(ui, "deliveryStatusLabel")}:")
-                        AdminStatusChip(text = order.deliveryStatus ?: "-")
+
+                    if (fulfillment == "delivery") {
+                        Row(
+                            verticalAlignment =
+                                Alignment.CenterVertically,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(
+                                    AdminSpacing.XS
+                                )
+                        ) {
+                            Text(
+                                "${
+                                    adminText(
+                                        ui,
+                                        "deliveryStatusLabel"
+                                    )
+                                }:"
+                            )
+                            AdminStatusChip(
+                                text = displayOrderValue(
+                                    raw = order.deliveryStatus,
+                                    backendLabel =
+                                        order.deliveryStatusLabel,
+                                    ui = ui
+                                )
+                            )
+                        }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-                        Text("${adminText(ui, "pickupStatusLabel")}:")
-                        AdminStatusChip(text = order.pickupStatus ?: "-")
+
+                    if (fulfillment == "pickup") {
+                        Row(
+                            verticalAlignment =
+                                Alignment.CenterVertically,
+                            horizontalArrangement =
+                                Arrangement.spacedBy(
+                                    AdminSpacing.XS
+                                )
+                        ) {
+                            Text(
+                                "${
+                                    adminText(
+                                        ui,
+                                        "pickupStatusLabel"
+                                    )
+                                }:"
+                            )
+                            AdminStatusChip(
+                                text = displayOrderValue(
+                                    raw = order.pickupStatus,
+                                    backendLabel =
+                                        order.pickupStatusLabel,
+                                    ui = ui
+                                )
+                            )
+                        }
                     }
-                    Text("${adminText(ui, "totalLabel")}: ${order.confirmedTotal ?: order.total ?: "-"}")
-                    Text("${adminText(ui, "createdLabel")}: ${order.createdAt ?: "-"}", color = AdminColors.TextSecondary)
+
+                    Text(
+                        "${adminText(ui, "totalLabel")}: ${
+                            order.displayTotal()
+                        }"
+                    )
+
+                    Text(
+                        "${adminText(ui, "createdLabel")}: ${
+                            displayOrderTimestamp(
+                                order.createdAt
+                            )
+                        }",
+                        color = AdminColors.TextSecondary
+                    )
+
+                    Text(
+                        "${adminText(ui, "updated")}: ${
+                            displayOrderTimestamp(
+                                order.updatedAt
+                            )
+                        }",
+                        color = AdminColors.TextSecondary
+                    )
                 }
             }
 
             item {
                 AdminPanel {
-                    Text(adminText(ui, "delivery"), style = MaterialTheme.typography.titleMedium)
-                    Text("${ui.addressLabel}: ${order.deliveryAddress ?: "-"}")
-                    Text("${adminText(ui, "mapLabel")}: ${order.deliveryMapsUrl ?: "-"}", color = AdminColors.TextSecondary)
+                    Text(
+                        text = adminText(ui, "actions"),
+                        style =
+                            MaterialTheme.typography.titleMedium
+                    )
+
+                    when {
+                        state.loading -> {
+                            CircularProgressIndicator()
+                        }
+
+                        closedMode &&
+                            orderStatus == "cancelled" -> {
+                            Text(
+                                adminText(
+                                    ui,
+                                    "noAvailableAction"
+                                )
+                            )
+                        }
+
+                        closedMode &&
+                            orderStatus in setOf(
+                                "delivered",
+                                "closed"
+                            ) -> {
+                            AdminSecondaryButton(
+                                text = adminText(
+                                    ui,
+                                    "returnNotDelivered"
+                                ),
+                                onClick = {
+                                    onAction(
+                                        AdminOrderAction
+                                            .RETURN_NOT_DELIVERED,
+                                        ""
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        closedMode -> {
+                            Text(
+                                adminText(
+                                    ui,
+                                    "noAvailableAction"
+                                )
+                            )
+                        }
+
+                        terminal -> {
+                            Text(
+                                adminText(
+                                    ui,
+                                    "noAvailableAction"
+                                )
+                            )
+                        }
+
+                        fulfillment == "delivery" -> {
+                            if (deliveryStatus != "on_the_way") {
+                                AdminSecondaryButton(
+                                    text =
+                                        adminText(ui, "onTheWay"),
+                                    onClick = {
+                                        onAction(
+                                            AdminOrderAction
+                                                .DELIVERY_ON_THE_WAY,
+                                            ""
+                                        )
+                                    },
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            AdminPrimaryButton(
+                                text =
+                                    adminText(ui, "delivered"),
+                                onClick = {
+                                    onAction(
+                                        AdminOrderAction
+                                            .DELIVERY_DELIVERED,
+                                        ""
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            AdminSecondaryButton(
+                                text =
+                                    adminText(ui, "notDelivered"),
+                                onClick = {
+                                    onAction(
+                                        AdminOrderAction
+                                            .DELIVERY_NOT_DELIVERED,
+                                        ""
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            AdminSecondaryButton(
+                                text = adminText(ui, "cancel"),
+                                onClick = {
+                                    onAction(
+                                        AdminOrderAction.CANCEL,
+                                        ""
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        fulfillment == "pickup" -> {
+                            if (
+                                pickupStatus !in setOf(
+                                    "ready_to_pickup",
+                                    "picked_up"
+                                )
+                            ) {
+                                AdminSecondaryButton(
+                                    text = adminText(
+                                        ui,
+                                        "readyToPickUp"
+                                    ),
+                                    onClick = {
+                                        onAction(
+                                            AdminOrderAction
+                                                .PICKUP_READY,
+                                            ""
+                                        )
+                                    },
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            if (pickupStatus != "picked_up") {
+                                AdminPrimaryButton(
+                                    text = adminText(
+                                        ui,
+                                        "pickedUpDelivered"
+                                    ),
+                                    onClick = {
+                                        onAction(
+                                            AdminOrderAction
+                                                .PICKUP_PICKED_UP,
+                                            ""
+                                        )
+                                    },
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            AdminSecondaryButton(
+                                text = adminText(ui, "cancel"),
+                                onClick = {
+                                    onAction(
+                                        AdminOrderAction.CANCEL,
+                                        ""
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        else -> {
+                            Text(
+                                adminText(
+                                    ui,
+                                    "noAvailableAction"
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (fulfillment == "delivery") {
+                item {
+                    val location =
+                        order.deliveryLocationLabel
+                            ?: order.deliveryAddress
+
+                    val map =
+                        order.deliveryGoogleMapsLink
+                            ?: order.deliveryMapsUrl
+
+                    AdminPanel {
+                        Text(
+                            text = adminText(ui, "delivery"),
+                            style =
+                                MaterialTheme.typography.titleMedium
+                        )
+
+                        location
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let {
+                                Text("${ui.addressLabel}: $it")
+                            }
+
+                        map
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let {
+                                Text(
+                                    text = it,
+                                    color =
+                                        AdminColors.TextSecondary
+                                )
+                            }
+                    }
                 }
             }
 
             item {
-                Text(adminText(ui, "items"), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = adminText(ui, "items"),
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
 
             items(order.items) { orderItem ->
                 AdminPanel {
-                    Text(orderItem.productName ?: adminText(ui, "itemLabel"), style = MaterialTheme.typography.titleSmall)
-                    Text("${adminText(ui, "quantity")}: ${orderItem.quantity ?: "-"}")
-                    Text("${adminText(ui, "unit")}: ${orderItem.unitPrice ?: "-"}")
-                    Text("${adminText(ui, "totalLabel")}: ${orderItem.total ?: "-"}")
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-                        Text("${adminText(ui, "statusLabel")}:")
-                        AdminStatusChip(text = orderItem.status ?: "-")
+                    val name =
+                        orderItem.productName
+                            ?: "Item #${
+                                orderItem.productId
+                                    ?: orderItem.id
+                            }"
+
+                    val lineTotal =
+                        orderItem.lineTotal ?: orderItem.total
+
+                    Text(
+                        text = name,
+                        style =
+                            MaterialTheme.typography.titleSmall
+                    )
+
+                    Text(
+                        "${adminText(ui, "quantity")}: ${
+                            orderItem.quantity ?: "-"
+                        }"
+                    )
+
+                    Text(
+                        "${adminText(ui, "unit")}: ${
+                            orderItem.unitPrice ?: "-"
+                        }"
+                    )
+
+                    Text(
+                        "${adminText(ui, "totalLabel")}: ${
+                            lineTotal ?: "-"
+                        }"
+                    )
+
+                    Row(
+                        verticalAlignment =
+                            Alignment.CenterVertically,
+                        horizontalArrangement =
+                            Arrangement.spacedBy(AdminSpacing.XS)
+                    ) {
+                        Text(
+                            "${adminText(ui, "statusLabel")}:"
+                        )
+                        AdminStatusChip(
+                            text = displayOrderValue(
+                                raw =
+                                    orderItem.itemStatus
+                                        ?: orderItem.status,
+                                ui = ui
+                            )
+                        )
                     }
                 }
             }
@@ -2405,22 +3096,44 @@ private fun CustomerLocationCard(location: CustomerLocation, ui: AdminLocalizedT
 private fun OpenRequestsScreen(
     state: AdminUiState,
     onRefresh: () -> Unit,
-    onStatus: (Long, String) -> Unit,
-    onGroupDone: (Long) -> Unit,
+    onGroupDone: (OpenRequest) -> Unit,
+    onAllDone: () -> Unit,
+    onOpenCustomer: (Long) -> Unit,
     ui: AdminLocalizedText
 ) {
+    var showAllDoneConfirm by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dpCompat),
         verticalArrangement = Arrangement.spacedBy(12.dpCompat)
     ) {
         item {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.spacedBy(AdminSpacing.S)
             ) {
-                Text("${ui.openRequests} (${state.openRequests.size})", style = MaterialTheme.typography.headlineSmall)
-                AdminSecondaryButton(text = ui.refresh, onClick = onRefresh)
+                Text(
+                    "${ui.openRequests} (${state.openRequests.size})",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)
+                ) {
+                    AdminPrimaryButton(
+                        text = adminText(ui, "allDone"),
+                        enabled = state.openRequests.isNotEmpty() && !state.loading,
+                        onClick = { showAllDoneConfirm = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                    AdminSecondaryButton(
+                        text = ui.refresh,
+                        onClick = onRefresh,
+                        modifier = Modifier.weight(0.72f)
+                    )
+                }
             }
         }
 
@@ -2441,58 +3154,132 @@ private fun OpenRequestsScreen(
         items(state.openRequests) { request ->
             OpenRequestCard(
                 request = request,
-                onStatus = onStatus,
                 onGroupDone = onGroupDone,
+                onOpenCustomer = onOpenCustomer,
                 ui = ui
             )
         }
+    }
+
+    if (showAllDoneConfirm) {
+        AlertDialog(
+            onDismissRequest = { showAllDoneConfirm = false },
+            title = { Text(adminText(ui, "allDone")) },
+            text = { Text(adminText(ui, "allDoneConfirm")) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showAllDoneConfirm = false
+                        onAllDone()
+                    }
+                ) {
+                    Text(adminText(ui, "allDone"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAllDoneConfirm = false }) {
+                    Text(adminText(ui, "cancel"))
+                }
+            }
+        )
     }
 }
 
 @Composable
 private fun OpenRequestCard(
     request: OpenRequest,
-    onStatus: (Long, String) -> Unit,
-    onGroupDone: (Long) -> Unit,
+    onGroupDone: (OpenRequest) -> Unit,
+    onOpenCustomer: (Long) -> Unit,
     ui: AdminLocalizedText
 ) {
+    val customer = request.customer
+    val customerLabel = customer?.fullName?.takeIf { it.isNotBlank() }
+        ?: customer?.username?.takeIf { it.isNotBlank() }
+        ?: customer?.telegramUserId?.takeIf { it.isNotBlank() }
+        ?: request.customerId?.toString()
+        ?: "-"
+    val typeLabel = localizeRequestType(request.requestType, ui)
+    val quantity = request.quantity
+    val requestCount = request.requestCount
+
     AdminPanel {
-        Text("${adminText(ui, "request")} #${request.id ?: "-"}", style = MaterialTheme.typography.titleSmall)
-        Text("${adminText(ui, "customerLabel")}: ${request.customerName ?: request.customerUsername ?: request.customerId ?: "-"}")
-        Text("${adminText(ui, "typeLabel")}: ${request.requestType ?: "-"}")
-        Text("${adminText(ui, "itemLabel")}: ${request.itemName ?: "-"}", color = AdminColors.TextSecondary)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-            Text("${adminText(ui, "statusLabel")}:")
-            AdminStatusChip(text = localizeOpenRequestStatus(request.status, ui))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AdminSpacing.XS)
+        ) {
+            RequestRow(label = adminText(ui, "customerLabel"), value = customerLabel, ui = ui)
+            RequestRow(label = adminText(ui, "typeLabel"), value = typeLabel, ui = ui)
+            RequestRow(label = adminText(ui, "itemLabel"), value = request.itemName ?: "-", ui = ui)
+            RequestRow(label = adminText(ui, "quantity"), value = quantity?.toString() ?: "-", ui = ui)
+            RequestRow(label = adminText(ui, "requestCount"), value = requestCount?.toString() ?: "-", ui = ui)
+            RequestRow(label = adminText(ui, "statusLabel"), value = localizeOpenRequestStatus(request.status, ui), ui = ui)
+            RequestRow(label = adminText(ui, "latestText"), value = request.latestText ?: "-", ui = ui)
+            RequestRow(label = adminText(ui, "latestCreatedAt"), value = request.latestCreatedAt ?: "-", ui = ui)
         }
-        Text("${adminText(ui, "messageLabel")}: ${request.message ?: request.notes ?: "-"}")
-        Text("${adminText(ui, "createdLabel")}: ${request.createdAt ?: "-"}", color = AdminColors.TextSecondary)
 
-        if (request.id != null) {
-            Spacer(modifier = Modifier.height(AdminSpacing.XS))
-            Row(horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
-                AdminSecondaryButton(
-                    text = adminText(ui, "inProgress"),
-                    enabled = request.status != "in_progress",
-                    onClick = { onStatus(request.id, "in_progress") }
-                )
+        Spacer(modifier = Modifier.height(AdminSpacing.S))
 
-                AdminPrimaryButton(
-                    text = adminText(ui, "done"),
-                    enabled = request.status != "done",
-                    onClick = { onStatus(request.id, "done") }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(AdminSpacing.XS))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)
+        ) {
+            AdminSecondaryButton(
+                text = adminText(ui, "openCustomer"),
+                enabled = request.customerId != null,
+                onClick = { request.customerId?.let(onOpenCustomer) },
+                modifier = Modifier.weight(1.45f)
+            )
 
             AdminSecondaryButton(
-                text = adminText(ui, "groupDone"),
+                text = adminText(ui, "answer"),
+                enabled = request.customerId != null,
+                onClick = { request.customerId?.let(onOpenCustomer) },
+                modifier = Modifier.weight(0.95f)
+            )
+
+            AdminPrimaryButton(
+                text = adminText(ui, "done"),
                 enabled = request.customerId != null && !request.requestType.isNullOrBlank(),
-                onClick = { onGroupDone(request.id) }
+                onClick = { onGroupDone(request) },
+                modifier = Modifier.weight(0.85f)
             )
         }
     }
+}
+
+@Composable
+private fun RequestRow(label: String, value: String, ui: AdminLocalizedText) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AdminSpacing.S)
+    ) {
+        Text(
+            label,
+            modifier = Modifier.weight(0.34f),
+            style = MaterialTheme.typography.labelSmall,
+            color = AdminColors.TextSecondary
+        )
+        Text(
+            value,
+            modifier = Modifier.weight(0.66f),
+            style = MaterialTheme.typography.bodyMedium,
+            softWrap = true
+        )
+    }
+}
+
+private fun localizeRequestType(type: String?, ui: AdminLocalizedText): String {
+    val label = when (type) {
+        "product_specific" -> adminText(ui, "requestTypeProductSpecific")
+        "product_list" -> adminText(ui, "requestTypeProductList")
+        "delivery_location" -> adminText(ui, "requestTypeDeliveryLocation")
+        "location" -> adminText(ui, "requestTypeLocation")
+        "address" -> adminText(ui, "requestTypeAddress")
+        "contact_admin" -> adminText(ui, "requestTypeContactAdmin")
+        "unresolved" -> adminText(ui, "requestTypeUnresolved")
+        else -> null
+    }
+    return label ?: type ?: "-"
 }
 
 

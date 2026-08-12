@@ -12,7 +12,13 @@ import {
   ADMIN_INVITATION_LANDING_ROUTE,
   handleAdminInvitationLanding
 } from "./identity/staff/invitation-page.js";
+import {
+  ADMIN_RECOVERY_LANDING_ROUTE,
+  handleAdminRecoveryLanding
+} from "./identity/staff/recovery-page.js";
 import { getAdminSharedText } from "./i18n/admin-shared.generated.js";
+import { createOpaqueId } from "./identity/crypto.js";
+import { normalizeEmailAddress } from "./identity/email/normalization.js";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
 const TELEGRAM_MINI_APP_URL = "https://crm-delivery-mini-app.pages.dev";
@@ -3735,17 +3741,23 @@ async function logAdminAction(env, request, session, actionType, actionDetail = 
 async function getAdminUsersForSuperadmin(env) {
   const rows = await env.DB.prepare(
     `SELECT
-       id,
-       username,
-       username_normalized,
-       role,
-       is_active,
-       is_protected,
-       auth_account_id,
-       created_at,
-       last_login_at
+       admin_users.id,
+       admin_users.username,
+       admin_users.username_normalized,
+       admin_users.role,
+       admin_users.is_active,
+       admin_users.is_protected,
+       admin_users.auth_account_id,
+       admin_users.created_at,
+       admin_users.last_login_at,
+       auth_email_addresses.display_email AS email
      FROM admin_users
-     ORDER BY username`
+     LEFT JOIN auth_email_addresses
+       ON auth_email_addresses.auth_account_id = admin_users.auth_account_id
+      AND auth_email_addresses.realm = 'staff'
+      AND auth_email_addresses.is_primary = 1
+      AND auth_email_addresses.status = 'verified'
+     ORDER BY admin_users.username`
   ).all();
 
   const databaseAdmins = (rows.results || []).map((row) => {
@@ -5310,7 +5322,7 @@ function formatOrderItemsText(itemsText) {
       const quantity = Number(item.quantity || 1);
       const price = Number(item.price_snapshot || 0);
       const total = price * quantity;
-      return `${item.name} x ${quantity}${price ? ` (${formatPrice(price)} x ${quantity} = ${formatPrice(total)})` : ""}`;
+      return `${escapeHtml(item.name || "")} x ${quantity}${price ? ` (${formatPrice(price)} x ${quantity} = ${formatPrice(total)})` : ""}`;
     }).join("<br>");
   } catch (error) {
     return "";
@@ -5325,6 +5337,7 @@ async function getOrdersContext(env, closed = false) {
   const rows = await env.DB.prepare(`
     SELECT
       o.id,
+      o.public_order_code,
       CAST(REPLACE(o.session_token, 'app_customer_', '') AS INTEGER) AS customer_id,
       o.status,
       o.order_status,
@@ -5332,8 +5345,12 @@ async function getOrdersContext(env, closed = false) {
       o.delivery_status,
       o.pickup_status,
       o.delivery_location_label,
+      o.delivery_address,
       o.delivery_google_maps_link,
       o.notes AS delivery_note,
+      o.currency,
+      o.customer_name AS order_customer_name,
+      o.phone AS order_customer_phone,
       NULL AS delivered_at,
       CASE
         WHEN COALESCE(o.order_status, o.status, '') IN ('delivered', 'closed', 'cancelled')
@@ -5343,12 +5360,20 @@ async function getOrdersContext(env, closed = false) {
       o.admin_status_note,
       o.created_at,
       o.updated_at,
-      customers.full_name,
+      COALESCE(
+        NULLIF(customers.full_name, ''),
+        NULLIF(o.customer_name, ''),
+        ''
+      ) AS full_name,
       customers.username,
       customers.telegram_user_id,
       customers.preferred_language,
       COUNT(i.id) AS item_count,
-      COALESCE(SUM(COALESCE(i.line_total, 0)), 0) AS total_amount,
+      COALESCE(
+        o.total_amount,
+        SUM(COALESCE(i.line_total, 0)),
+        0
+      ) AS total_amount,
       json_group_array(
         json_object(
           'id', i.id,
@@ -5358,8 +5383,11 @@ async function getOrdersContext(env, closed = false) {
         )
       ) AS items_json
     FROM customer_orders_v2 o
-    LEFT JOIN customers ON o.session_token = ('app_customer_' || customers.id)
-    LEFT JOIN customer_order_items_v2 i ON i.customer_order_id = o.id
+    LEFT JOIN customers
+      ON o.session_token = ('app_customer_' || customers.id)
+    LEFT JOIN customer_order_items_v2 i
+      ON i.customer_order_id = o.id
+      AND COALESCE(i.item_status, 'confirmed') = 'confirmed'
     WHERE ${closedWhere}
     GROUP BY o.id
     HAVING item_count > 0
@@ -5546,46 +5574,160 @@ function renderAdminOrderActionForms(order, closed = false, ui = getAdminOrderUi
   return forms.join("\n");
 }
 
+function formatAdminOrderTimestamp(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  return raw
+    .replace("T", " ")
+    .replace(/\.\d+Z$/, " UTC")
+    .replace(/Z$/, " UTC");
+}
+
 function renderOrdersTable(orders, closed = false, ui = getAdminOrderUiText("en")) {
   const rows = orders.map((order) => {
-    const customerLabel = order.full_name || order.username || order.telegram_user_id || "";
+    const customerLabel =
+      order.full_name ||
+      order.order_customer_name ||
+      order.username ||
+      order.telegram_user_id ||
+      "";
+
+    const customerMeta = [
+      order.username,
+      order.telegram_user_id
+    ].filter(Boolean).join(" · ");
 
     return `<tr>
-      <td>
+      <td class="order-id">
         <strong>${escapeHtml(order.id)}</strong>
-        ${order.public_order_code ? `<br><small>${escapeHtml(order.public_order_code)}</small>` : ""}
-        <br><a href="/admin/orders/${order.id}"><button type="button">${ui.details}</button></a>
+        ${order.public_order_code
+          ? `<br><small>${escapeHtml(order.public_order_code)}</small>`
+          : ""}
       </td>
-      <td>${escapeHtml(customerLabel)}<br><small>${escapeHtml(order.telegram_user_id || "")}</small></td>
-      <td>${renderAdminOrderStatusBadges(order, ui)}</td>
-      <td>${formatOrderItemsText(order.items_json)}</td>
-      <td>${escapeHtml(formatPrice(order.total_amount || 0))}</td>
-      <td>${renderAdminOrderLocationCell(order, ui)}</td>
-      <td>
-        ${escapeHtml(order.created_at || "")}
+      <td class="order-customer">
+        ${escapeHtml(customerLabel)}
+        ${customerMeta
+          ? `<br><small>${escapeHtml(customerMeta)}</small>`
+          : ""}
+      </td>
+      <td class="order-status">${renderAdminOrderStatusBadges(order, ui)}</td>
+      <td class="order-items">${formatOrderItemsText(order.items_json)}</td>
+      <td class="order-total">${escapeHtml(formatPrice(order.total_amount || 0))}</td>
+      <td class="order-location">${renderAdminOrderLocationCell(order, ui)}</td>
+      <td class="order-dates">
+        <time datetime="${escapeHtml(order.created_at || "")}">
+          ${escapeHtml(formatAdminOrderTimestamp(order.created_at))}
+        </time>
         <br>
-        ${escapeHtml(order.updated_at || "")}
+        <time datetime="${escapeHtml(order.updated_at || "")}">
+          ${escapeHtml(formatAdminOrderTimestamp(order.updated_at))}
+        </time>
       </td>
-      <td>
-        ${order.admin_status_note ? `<div><small>${ui.note}: ${escapeHtml(getAdminNoteDisplayText(order.admin_status_note, ui))}</small></div>` : ""}
+      <td class="order-actions">
+        ${order.admin_status_note
+          ? `<div><small>${ui.note}: ${escapeHtml(order.admin_status_note)}</small></div>`
+          : ""}
         ${renderAdminOrderActionForms(order, closed, ui)}
       </td>
     </tr>`;
   }).join("");
 
-  return `<table border="1" cellpadding="10">
-    <tr>
-      <th>${ui.order}</th>
-      <th>${ui.customer}</th>
-      <th>${ui.status}</th>
-      <th>${ui.items}</th>
-      <th>${ui.total}</th>
-      <th>${ui.location}</th>
-      <th>${ui.created_updated}</th>
-      <th>${ui.action}</th>
-    </tr>
-    ${rows || `<tr><td colspan="8">${ui.no_orders_found}</td></tr>`}
-  </table>`;
+  return `<style>
+    .orders-table-wrap {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: none !important;
+      overflow-x: auto;
+      border-radius: 14px;
+    }
+
+    .orders-table {
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 1180px;
+      border-collapse: collapse;
+      table-layout: auto;
+    }
+
+    .orders-table th,
+    .orders-table td {
+      vertical-align: top;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+
+    .orders-table .order-id {
+      min-width: 80px;
+    }
+
+    .orders-table .order-customer {
+      min-width: 150px;
+    }
+
+    .orders-table .order-status {
+      min-width: 135px;
+    }
+
+    .orders-table .order-items {
+      min-width: 180px;
+    }
+
+    .orders-table .order-total {
+      min-width: 85px;
+      white-space: nowrap;
+    }
+
+    .orders-table .order-location {
+      min-width: 240px;
+    }
+
+    .orders-table .order-dates {
+      min-width: 170px;
+    }
+
+    .orders-table .order-actions {
+      min-width: 290px;
+    }
+
+    .orders-table .order-actions form {
+      display: flex !important;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0;
+    }
+
+    .orders-table .order-actions input {
+      flex: 1 1 180px;
+      min-width: 0;
+    }
+
+    @media (max-width: 800px) {
+      .orders-table {
+        min-width: 1050px;
+      }
+    }
+  </style>
+  <div class="orders-table-wrap">
+    <table class="orders-table" border="1" cellpadding="10">
+      <thead>
+        <tr>
+          <th>${ui.order}</th>
+          <th>${ui.customer}</th>
+          <th>${ui.status}</th>
+          <th>${ui.items}</th>
+          <th>${ui.total}</th>
+          <th>${ui.location}</th>
+          <th>${ui.created_updated}</th>
+          <th>${ui.action}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows || `<tr><td colspan="8">${ui.no_orders_found}</td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 async function getAdminOrderStatusHistory(env, orderId) {
@@ -6365,6 +6507,7 @@ async function handleAdminSuperadminPage(env, session) {
     return `
     <tr>
       <td>${escapeHtml(admin.username)}</td>
+      <td>${escapeHtml(admin.email || "")}</td>
       <td>${escapeHtml(admin.role)}</td>
       <td>${Number(admin.is_active) === 1 ? escapeHtml(ui.active) : escapeHtml(ui.inactive)}</td>
       <td>${escapeHtml(admin.source || "")}</td>
@@ -6421,6 +6564,7 @@ ${renderOrdersNav(ui, session)}
 <table>
   <tr>
     <th>${escapeHtml(ui.username)}</th>
+    <th>${escapeHtml(ui.email_address)}</th>
     <th>${escapeHtml(ui.role)}</th>
     <th>${escapeHtml(ui.active)}</th>
     <th>${escapeHtml(ui.source)}</th>
@@ -6435,6 +6579,9 @@ ${renderOrdersNav(ui, session)}
 <form action="/admin/superadmin/admins" method="post">
   <label>${escapeHtml(ui.username)}</label><br>
   <input type="text" name="username" required>
+  <br><br>
+  <label>${escapeHtml(ui.email_address)}</label><br>
+  <input type="email" name="email" required>
   <br><br>
   <label>${escapeHtml(ui.password)}</label><br>
   <input type="password" name="password" required>
@@ -6472,10 +6619,18 @@ async function handleSuperadminCreateAdmin(request, env, session) {
   const form = await request.formData();
   const username = String(form.get("username") || "").trim();
   const password = String(form.get("password") || "");
+  const emailInput = String(form.get("email") || "").trim();
   const roleInput = String(form.get("role") || "admin");
   const role = roleInput === "superadmin" ? "superadmin" : "admin";
 
-  if (!username || !password) return redirectResponse("/admin/superadmin");
+  if (!username || !password || !emailInput) return redirectResponse("/admin/superadmin");
+
+  let email;
+  try {
+    email = normalizeEmailAddress(emailInput);
+  } catch {
+    return redirectResponse("/admin/superadmin");
+  }
 
   const normalizedUsername = username.toLowerCase();
   const protectedAccount = await env.DB.prepare(`
@@ -6493,19 +6648,88 @@ async function handleSuperadminCreateAdmin(request, env, session) {
     return redirectResponse("/admin/superadmin");
   }
 
-  await env.DB.prepare(
-    `
-    INSERT INTO admin_users (username, password_hash, role, is_active)
-    VALUES (?, ?, ?, 1)
-    ON CONFLICT(username) DO UPDATE SET
-      password_hash = excluded.password_hash,
-      role = excluded.role,
-      is_active = 1
-    `
-  ).bind(username, await hashAdminPassword(env, password), role).run();
+  const existing = await env.DB.prepare(`
+    SELECT id, auth_account_id
+    FROM admin_users
+    WHERE lower(trim(username)) = ?
+    LIMIT 1
+  `).bind(normalizedUsername).first();
+
+  const statements = await buildSuperadminCreateStatements(env, {
+    username,
+    normalizedUsername,
+    passwordHash: await hashAdminPassword(env, password),
+    role,
+    displayEmail: email.displayEmail,
+    normalizedEmail: email.normalizedEmail,
+    existing
+  });
+  await env.DB.batch(statements);
 
   await logAdminAction(env, request, session, "admin_created_or_updated", `${username}:${role}`);
   return redirectResponse("/admin/superadmin");
+}
+
+async function buildSuperadminCreateStatements(env, {
+  username,
+  normalizedUsername,
+  passwordHash,
+  role,
+  displayEmail,
+  normalizedEmail,
+  existing
+}) {
+  const statements = [];
+  let accountId = existing?.auth_account_id || null;
+
+  if (!accountId) {
+    accountId = createOpaqueId();
+    const webauthnUserHandle = createOpaqueId();
+    statements.push(env.DB.prepare(`
+      INSERT INTO auth_accounts (
+        id, webauthn_user_handle, realm, status, auth_version, enrollment_state
+      ) VALUES (?, ?, 'staff', 'active', 1, 'not_required')
+    `).bind(accountId, webauthnUserHandle));
+    if (existing) {
+      statements.push(env.DB.prepare(`
+        UPDATE admin_users
+        SET auth_account_id = ?
+        WHERE id = ?
+      `).bind(accountId, existing.id));
+    }
+  }
+
+  statements.push(env.DB.prepare(`
+    UPDATE auth_email_addresses
+    SET status = 'replaced',
+        replaced_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE auth_account_id = ?
+      AND realm = 'staff'
+      AND status NOT IN ('replaced', 'revoked', 'deleted')
+  `).bind(accountId));
+
+  const emailAddressId = createOpaqueId();
+  statements.push(env.DB.prepare(`
+    INSERT INTO auth_email_addresses (
+      id, auth_account_id, realm, normalized_email, normalization_version,
+      display_email, status, is_primary, verified_at
+    ) VALUES (?, ?, 'staff', ?, 1, ?, 'verified', 1, CURRENT_TIMESTAMP)
+  `).bind(emailAddressId, accountId, normalizedEmail, displayEmail));
+
+  statements.push(env.DB.prepare(`
+    INSERT INTO admin_users (
+      username, password_hash, role, is_active, created_at,
+      auth_account_id, username_normalized, is_protected
+    ) VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP, ?, ?, 0)
+    ON CONFLICT(username) DO UPDATE SET
+      password_hash = excluded.password_hash,
+      role = excluded.role,
+      is_active = 1,
+      auth_account_id = COALESCE(admin_users.auth_account_id, excluded.auth_account_id)
+  `).bind(username, passwordHash, role, accountId, normalizedUsername));
+
+  return statements;
 }
 
 async function handleSuperadminToggleAdmin(request, env, session, adminId) {
@@ -7297,20 +7521,35 @@ async function handleForgotPasswordPage(error = null, success = null) {
 <p><a href="/admin/login">Back to Login</a></p>
 ${error ? `<p style="color:red;">${escapeHtml(error)}</p>` : ""}
 ${success ? `<p style="color:green;">${escapeHtml(success)}</p>` : ""}
-<form action="/admin/forgot-password" method="post"><button type="submit">Send reset code to admin Telegram</button></form>
+<form action="/admin/forgot-password" method="post">
+  <label>Username</label><br>
+  <input type="text" name="username" required><br><br>
+  <button type="submit">Send recovery email</button>
+</form>
 </body></html>`);
 }
 
-async function handleSendForgotPasswordCode(env) {
-  const adminChatId = await getAdminChatId(env);
-  if (!adminChatId) return handleForgotPasswordPage("No admin Telegram Chat ID is configured.", null);
+async function handleSendForgotPasswordCode(request, env) {
+  const form = await request.formData();
+  const username = String(form.get("username") || "").trim();
+  if (!username) {
+    return handleForgotPasswordPage("Enter a username.", null);
+  }
 
-  const code = String(Math.floor(10000 + Math.random() * 90000));
-  await setSetting(env, "admin_password_reset_code", code);
-  await setSetting(env, "admin_password_reset_expires_at", String(Math.floor(Date.now() / 1000) + 600));
+  const recoveryRequest = new Request(
+    "https://crm.local/api/v1/admin/auth/recovery/start",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username })
+    }
+  );
 
-  await sendTelegramMessage(env, adminChatId, `Admin password reset code: ${code}\n\nThis code expires in 10 minutes.`);
-  return handleResetPasswordPage();
+  const response = await handleIdentityApi(recoveryRequest, env);
+  if (!response || response.status >= 400) {
+    return handleForgotPasswordPage("Recovery email could not be sent.", null);
+  }
+  return handleForgotPasswordPage(null, "If the account exists, a recovery email has been sent.");
 }
 
 async function handleResetPasswordPage(error = null) {
@@ -10268,6 +10507,26 @@ async function handleApiAdminOpenRequestGroupDone(request, env) {
   });
 }
 
+async function handleApiAdminOpenRequestAllDone(request, env) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const result = await env.DB.prepare(
+    "UPDATE customer_requests SET status = 'done' WHERE status != 'done' AND request_type != 'product_list'"
+  ).run();
+
+  return apiOk({
+    updated: result?.meta?.changes || 0
+  });
+}
+
 
 
 function mapProductForApi(product, aliasMap = {}) {
@@ -12664,6 +12923,10 @@ async function handleApiV1(request, env) {
     return handleApiAdminOpenRequestGroupDone(request, env);
   }
 
+  if (url.pathname === "/api/v1/admin/open-requests/all/done") {
+    return handleApiAdminOpenRequestAllDone(request, env);
+  }
+
   if (url.pathname === "/api/v1/admin/products") {
     return handleApiAdminProducts(request, env);
   }
@@ -12830,10 +13093,14 @@ async function routeRequest(request, env, ctx) {
     return handleAdminInvitationLanding(request);
   }
 
+  if (url.pathname === ADMIN_RECOVERY_LANDING_ROUTE && getIdentityCapabilities(env).staff_recovery === true) {
+    return handleAdminRecoveryLanding(request);
+  }
+
   if (url.pathname === "/admin/login" && request.method === "GET") return handleLoginPage();
   if (url.pathname === "/admin/login" && request.method === "POST") return handleAdminLogin(request, env);
   if (url.pathname === "/admin/forgot-password" && request.method === "GET") return handleForgotPasswordPage();
-  if (url.pathname === "/admin/forgot-password" && request.method === "POST") return handleSendForgotPasswordCode(env);
+  if (url.pathname === "/admin/forgot-password" && request.method === "POST") return handleSendForgotPasswordCode(request, env);
   if (url.pathname === "/admin/reset-password" && request.method === "GET") return handleResetPasswordPage();
   if (url.pathname === "/admin/reset-password" && request.method === "POST") return handleResetPassword(request, env);
 

@@ -13,6 +13,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
 
 import me.ayartuerk.crmadmin.api.AdminApi
+import me.ayartuerk.crmadmin.api.AdminIdentityRecoveryStartRequest
 import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.CustomerDetailResponse
@@ -26,6 +27,16 @@ import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
 import me.ayartuerk.crmadmin.api.bearer
+enum class AdminOrderAction {
+    DELIVERY_ON_THE_WAY,
+    DELIVERY_DELIVERED,
+    DELIVERY_NOT_DELIVERED,
+    RETURN_NOT_DELIVERED,
+    PICKUP_READY,
+    PICKUP_PICKED_UP,
+    CANCEL
+}
+
 class AdminRepository(
     private val api: AdminApi
 ) {
@@ -36,6 +47,16 @@ class AdminRepository(
             throw IllegalStateException(message)
         }
         return response.accessToken
+    }
+
+    suspend fun startIdentityRecovery(username: String) {
+        val response = api.startIdentityRecovery(
+            AdminIdentityRecoveryStartRequest(username = username)
+        )
+        if (!response.ok) {
+            val message = response.error?.message ?: "Recovery email request failed"
+            throw IllegalStateException(message)
+        }
     }
 
     suspend fun checkSession(token: String): Boolean {
@@ -244,6 +265,17 @@ class AdminRepository(
         return response.updated ?: 0
     }
 
+    suspend fun markAllOpenRequestsDone(token: String): Int {
+        val response = api.markAllOpenRequestsDone(bearer(token))
+
+        if (!response.ok) {
+            val message = response.error?.message ?: "All done failed"
+            throw IllegalStateException(message)
+        }
+
+        return response.updated ?: 0
+    }
+
     suspend fun meetingPoints(token: String): List<MeetingPoint> {
         val response = api.meetingPoints(bearer(token))
         if (!response.ok) {
@@ -355,4 +387,56 @@ class AdminRepository(
     suspend fun logout(token: String) {
         api.logout(bearer(token))
     }
+    suspend fun performOrderAction(
+        token: String,
+        orderId: Long,
+        action: AdminOrderAction,
+        note: String = ""
+    ): me.ayartuerk.crmadmin.api.CustomerAppOrder {
+        val authorization = "Bearer $token"
+
+        val response = when (action) {
+            AdminOrderAction.DELIVERY_ON_THE_WAY ->
+                api.markCustomerAppOrderOnTheWay(authorization, orderId)
+
+            AdminOrderAction.DELIVERY_DELIVERED,
+            AdminOrderAction.PICKUP_PICKED_UP ->
+                api.markCustomerAppOrderDelivered(authorization, orderId)
+
+            AdminOrderAction.DELIVERY_NOT_DELIVERED ->
+                api.updateCustomerAppOrderStatus(
+                    authorization,
+                    orderId,
+                    me.ayartuerk.crmadmin.api.CustomerAppOrderStatusRequest(
+                        orderStatus = "not_delivered",
+                        adminStatusNote = note
+                    )
+                )
+
+            AdminOrderAction.RETURN_NOT_DELIVERED ->
+                api.returnCustomerAppOrderNotDelivered(
+                    authorization,
+                    orderId
+                )
+
+            AdminOrderAction.PICKUP_READY ->
+                api.markCustomerAppOrderReadyToPickup(authorization, orderId)
+
+            AdminOrderAction.CANCEL ->
+                api.cancelCustomerAppOrder(
+                    authorization,
+                    orderId,
+                    me.ayartuerk.crmadmin.api.CustomerAppOrderCancelRequest(
+                        reason = note
+                    )
+                )
+        }
+
+        if (!response.ok) {
+            throw IllegalStateException("Order update failed")
+        }
+
+        return customerAppOrderDetail(token, orderId)
+    }
+
 }

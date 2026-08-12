@@ -9,26 +9,27 @@ import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface AdminApi {
-    @POST("api/v1/admin/auth/recovery/start")
+    @POST("admin/auth/recovery/start")
     suspend fun startIdentityRecovery(
         @Body body: AdminIdentityRecoveryStartRequest
     ): AdminIdentityRecoveryStartResponse
 
-    @POST("api/v1/admin/auth/recovery/verify")
+    @POST("admin/auth/recovery/verify")
     suspend fun verifyIdentityRecovery(
         @Body body: AdminIdentityRecoveryVerifyRequest
     ): AdminIdentityRecoveryVerifyResponse
 
-    @PUT("api/v1/admin/auth/recovery/password")
+    @PUT("admin/auth/recovery/password")
     suspend fun completeIdentityRecovery(
         @Header("X-CSRF-Token") csrfToken: String,
         @Body body: AdminIdentityRecoveryPasswordRequest
     ): AdminIdentityRecoveryPasswordResponse
 
-    @POST("api/v1/admin/auth/recovery/logout")
+    @POST("admin/auth/recovery/logout")
     suspend fun logoutIdentityRecovery(
         @Header("X-CSRF-Token") csrfToken: String
     ): BasicResponse
@@ -130,6 +131,11 @@ interface AdminApi {
         @Body body: OpenRequestGroupDoneRequest
     ): OpenRequestGroupDoneResponse
 
+    @POST("admin/open-requests/all/done")
+    suspend fun markAllOpenRequestsDone(
+        @Header("Authorization") authorization: String
+    ): OpenRequestAllDoneResponse
+
     @GET("admin/meeting-points")
     suspend fun meetingPoints(@Header("Authorization") authorization: String): MeetingPointsResponse
 
@@ -160,6 +166,44 @@ interface AdminApi {
         @Header("Authorization") authorization: String,
         @Body body: JsonObject
     ): SettingsResponse
+    @POST("admin/customer-app-orders/{orderId}/on-the-way")
+    suspend fun markCustomerAppOrderOnTheWay(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long
+    ): BasicResponse
+
+    @POST("admin/customer-app-orders/{orderId}/ready-to-pickup")
+    suspend fun markCustomerAppOrderReadyToPickup(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long
+    ): BasicResponse
+
+    @POST("admin/customer-app-orders/{orderId}/cancel")
+    suspend fun cancelCustomerAppOrder(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long,
+        @Body body: CustomerAppOrderCancelRequest
+    ): BasicResponse
+
+    @POST("admin/orders/{orderId}/delivered")
+    suspend fun markCustomerAppOrderDelivered(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long
+    ): BasicResponse
+
+    @PATCH("admin/orders/{orderId}/status")
+    suspend fun updateCustomerAppOrderStatus(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long,
+        @Body body: CustomerAppOrderStatusRequest
+    ): BasicResponse
+
+    @POST("admin/orders/{orderId}/return")
+    suspend fun returnCustomerAppOrderNotDelivered(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long
+    ): BasicResponse
+
 }
 
 @Serializable
@@ -399,6 +443,13 @@ data class OpenRequestGroupDoneResponse(
 )
 
 @Serializable
+data class OpenRequestAllDoneResponse(
+    val ok: Boolean = false,
+    val updated: Int? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
 data class ApiErrorEnvelope(
     val code: String? = null,
     val message: String? = null
@@ -449,44 +500,95 @@ data class AdminRequestPreview(
 )
 
 @Serializable
-data class CustomerAppOrder(
+data class CustomerAppOrderCancelRequest(
+    val reason: String = ""
+)
+
+@Serializable
+data class CustomerAppOrderStatusRequest(
+    @SerialName("order_status")
+    val orderStatus: String,
+    @SerialName("admin_status_note")
+    val adminStatusNote: String = ""
+)
+
+@Serializable
+data class CustomerAppOrderCustomer(
     val id: Long? = null,
+    @SerialName("full_name")
+    val fullName: String? = null,
+    val username: String? = null,
+    @SerialName("telegram_user_id")
+    val telegramUserId: String? = null,
+    @SerialName("preferred_language")
+    val preferredLanguage: String? = null
+)
+
+@Serializable
+data class CustomerAppOrder(
+    val id: Long,
+    @SerialName("public_order_code")
+    val publicOrderCode: String? = null,
     val status: String? = null,
     @SerialName("order_status")
     val orderStatus: String? = null,
-    @SerialName("delivery_status")
-    val deliveryStatus: String? = null,
-    @SerialName("pickup_status")
-    val pickupStatus: String? = null,
+    @SerialName("order_status_label")
+    val orderStatusLabel: String? = null,
     @SerialName("fulfillment_type")
     val fulfillmentType: String? = null,
+    @SerialName("delivery_status")
+    val deliveryStatus: String? = null,
+    @SerialName("delivery_status_label")
+    val deliveryStatusLabel: String? = null,
+    @SerialName("pickup_status")
+    val pickupStatus: String? = null,
+    @SerialName("pickup_status_label")
+    val pickupStatusLabel: String? = null,
+    val customer: CustomerAppOrderCustomer? = null,
     @SerialName("customer_id")
     val customerId: Long? = null,
     @SerialName("customer_name")
     val customerName: String? = null,
     @SerialName("customer_phone")
     val customerPhone: String? = null,
+    @SerialName("delivery_location_label")
+    val deliveryLocationLabel: String? = null,
     @SerialName("delivery_address")
     val deliveryAddress: String? = null,
+    @SerialName("delivery_google_maps_link")
+    val deliveryGoogleMapsLink: String? = null,
     @SerialName("delivery_maps_url")
     val deliveryMapsUrl: String? = null,
+    @SerialName("total_amount")
+    val totalAmount: Double? = null,
+    @SerialName("total_formatted")
+    val totalFormatted: String? = null,
     val total: Double? = null,
     @SerialName("confirmed_total")
     val confirmedTotal: Double? = null,
+    val currency: String? = null,
     val items: List<CustomerAppOrderItem> = emptyList(),
     @SerialName("created_at")
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    @SerialName("updated_at")
+    val updatedAt: String? = null
 )
 
 @Serializable
 data class CustomerAppOrderItem(
-    val id: Long? = null,
+    val id: Long,
+    @SerialName("product_id")
+    val productId: Long? = null,
     @SerialName("product_name")
     val productName: String? = null,
     val quantity: Int? = null,
     @SerialName("unit_price")
     val unitPrice: Double? = null,
+    @SerialName("line_total")
+    val lineTotal: Double? = null,
     val total: Double? = null,
+    @SerialName("item_status")
+    val itemStatus: String? = null,
     val status: String? = null
 )
 
@@ -591,22 +693,25 @@ data class CustomerLocation(
 
 @Serializable
 data class OpenRequest(
-    val id: Long? = null,
     @SerialName("customer_id")
     val customerId: Long? = null,
-    @SerialName("customer_name")
-    val customerName: String? = null,
-    @SerialName("customer_username")
-    val customerUsername: String? = null,
     @SerialName("request_type")
     val requestType: String? = null,
+    @SerialName("request_type_label")
+    val requestTypeLabel: String? = null,
     @SerialName("item_name")
     val itemName: String? = null,
+    val quantity: Double? = null,
+    @SerialName("request_count")
+    val requestCount: Int? = null,
     val status: String? = null,
-    val message: String? = null,
-    val notes: String? = null,
-    @SerialName("created_at")
-    val createdAt: String? = null
+    @SerialName("latest_text")
+    val latestText: String? = null,
+    @SerialName("latest_created_at")
+    val latestCreatedAt: String? = null,
+    @SerialName("google_maps_link")
+    val googleMapsLink: String? = null,
+    val customer: Customer? = null
 )
 
 @Serializable
