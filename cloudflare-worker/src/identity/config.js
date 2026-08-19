@@ -99,7 +99,7 @@ export function getIdentityCapabilities(env) {
   };
   const staffEnrollment = true;
   const staffPasskeys = true;
-  const staffRecovery = true;
+  const staffRecovery = flag(env, FLAG_NAMES.staffRecovery);
 
   return {
     contract_version: 1,

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crm.ayartuerk.me/api-contract/admin.schema.json",
+  "title": "CRM Admin API Shared Core Contract",
+  "description": "Canonical DTO schemas for the Cloudflare Worker admin API. Wire keys are snake_case. Source of truth: cloudflare-worker/src/index.js on branch unified-order-v2.",
+  "$defs": {
+    "ErrorEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "details": {}
+      },
+      "required": ["code", "message"]
+    },
+    "ApiError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": false },
+        "error": { "$ref": "#/$defs/ErrorEnvelope" }
+      },
+      "required": ["ok", "error"]
+    },
+    "AdminSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "username": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "superadmin"] },
+        "is_superadmin": { "type": "boolean" }
+      },
+      "required": ["username", "role", "is_superadmin"]
+    },
+    "LoginResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "token_type": { "const": "Bearer" },
+        "access_token": { "type": "string" },
+        "expires_in": { "type": "integer" },
+        "admin": { "$ref": "#/$defs/AdminSession" }
+      },
+      "required": ["ok", "token_type", "access_token", "expires_in", "admin"]
+    },
+    "MeResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "admin": { "$ref": "#/$defs/AdminSession" }
+      },
+      "required": ["ok", "admin"]
+    },
+    "ManagedAdmin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "superadmin"] },
+        "is_active": { "type": "integer" },
+        "source": { "type": "string" },
+        "created_at": { "type": "string" },
+        "last_login_at": { "type": "string" },
+        "protected": { "type": "boolean" }
+      },
+      "required": ["id", "username", "email", "role", "is_active", "source", "created_at", "last_login_at", "protected"]
+    },
+    "AdminAuditLog": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "username": { "type": "string" },
+        "role": { "type": "string" },
+        "action_type": { "type": "string" },
+        "action_detail": { "type": "string" },
+        "method": { "type": "string" },
+        "path": { "type": "string" },
+        "ip": { "type": "string" },
+        "user_agent": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "username", "role", "action_type", "action_detail", "method", "path", "ip", "user_agent", "created_at"]
+    },
+    "SuperadminOverview": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "current_admin": { "$ref": "#/$defs/AdminSession" },
+        "admins": { "type": "array", "items": { "$ref": "#/$defs/ManagedAdmin" } },
+        "audit_logs": { "type": "array", "items": { "$ref": "#/$defs/AdminAuditLog" } }
+      },
+      "required": ["ok", "current_admin", "admins", "audit_logs"]
+    }
+  }
+}

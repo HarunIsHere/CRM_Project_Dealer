@@ -84,12 +84,21 @@ fun AdminPrimaryButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 48.dp),
         enabled = enabled,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = 8.dp,
+            vertical = 8.dp
+        ),
         shape = AdminShapes.Control,
         colors = ButtonDefaults.buttonColors(
             containerColor = AdminColors.Primary
         )
     ) {
-        Text(text)
+        Text(
+            text = text,
+            maxLines = 1,
+            softWrap = false,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -104,10 +113,20 @@ fun AdminSecondaryButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 48.dp),
         enabled = enabled,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = 8.dp,
+            vertical = 8.dp
+        ),
         shape = AdminShapes.Control,
         border = BorderStroke(1.dp, AdminColors.Primary)
     ) {
-        Text(text, color = AdminColors.Primary)
+        Text(
+            text = text,
+            color = AdminColors.Primary,
+            maxLines = 1,
+            softWrap = false,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -122,12 +141,21 @@ fun AdminDangerButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 48.dp),
         enabled = enabled,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = 8.dp,
+            vertical = 8.dp
+        ),
         shape = AdminShapes.Control,
         colors = ButtonDefaults.buttonColors(
             containerColor = AdminColors.Danger
         )
     ) {
-        Text(text)
+        Text(
+            text = text,
+            maxLines = 1,
+            softWrap = false,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
     }
 }
 

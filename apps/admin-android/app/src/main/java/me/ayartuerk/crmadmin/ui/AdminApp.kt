@@ -34,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -164,9 +165,13 @@ private data class AdminLocalizedText(
     val googleMapsLinkLabel: String,
     val preferredLabel: String,
     val addMeetingPoint: String,
+    val searchLocation: String,
+    val search: String,
+    val noLocationsFound: String,
     val setAsPreferred: String,
     val createMeetingPoint: String,
     val setPreferred: String,
+    val unsetPreferred: String,
     val meetingPointHelp: String,
     val noMeetingPointsLoaded: String,
     val openMap: String,
@@ -267,9 +272,13 @@ private fun adminLocalizedText(language: String): AdminLocalizedText {
         googleMapsLinkLabel = t("google_maps_link"),
         preferredLabel = t("preferred"),
         addMeetingPoint = t("add_meeting_point"),
+        searchLocation = t("search_location"),
+        search = t("search"),
+        noLocationsFound = t("no_locations_found"),
         setAsPreferred = t("set_as_preferred"),
         createMeetingPoint = t("create_meeting_point"),
         setPreferred = t("set_preferred"),
+        unsetPreferred = t("unset_preferred"),
         meetingPointHelp = t("meeting_point_help"),
         noMeetingPointsLoaded = t("no_meeting_points_loaded"),
         openMap = t("open_map"),
@@ -296,6 +305,24 @@ private fun resolveAdminLanguage(configured: String?): String {
 
 private val adminTextAliases = mapOf(
     "appTitle" to "title",
+    "aiCounter" to "ai_counter",
+    "lastHour" to "last_hour",
+    "last24Hours" to "last_24_hours",
+    "lastWeek" to "last_week",
+    "lastMonth" to "last_month",
+    "aiTotal" to "total",
+    "aiPatterns" to "ai_patterns",
+    "patternLabel" to "pattern",
+    "intentLabel" to "intent",
+    "aiProduct" to "product",
+    "responseLabel" to "response",
+    "aiStatus" to "status",
+    "hitsLabel" to "hits",
+    "approve" to "approve",
+    "reject" to "reject",
+    "pendingStatus" to "pending_status",
+    "approvedStatus" to "approved_status",
+    "rejectedStatus" to "rejected_status",
     "loadingAdmin" to "loading_admin",
     "username" to "username",
     "password" to "password",
@@ -378,6 +405,12 @@ private val adminTextAliases = mapOf(
     "requestTypeUnresolved" to "request_type_unresolved",
     "mapLabel" to "google_maps",
     "replySent" to "reply_sent",
+    "messageCustomer" to "message_customer",
+    "structuredRequests" to "structured_requests",
+    "customerLocations" to "customer_locations",
+    "conversationHistory" to "conversation_history",
+    "message" to "message",
+    "send" to "send",
     "adminLanguageUpdated" to "admin_language_updated",
     "notificationSettingsUpdated" to "notification_settings_updated",
     "botResponseModeUpdated" to "bot_response_mode_updated",
@@ -385,7 +418,8 @@ private val adminTextAliases = mapOf(
     "fulfillmentOptionsUpdated" to "fulfillment_options_updated",
     "deliveryCitiesUpdated" to "delivery_cities_updated",
     "aiInstructionsUpdated" to "ai_instructions_updated",
-    "new" to "new_status"
+    "new" to "new_status",
+    "save" to "save"
 )
 
 private fun adminText(ui: AdminLocalizedText, key: String): String {
@@ -450,6 +484,12 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
     val ui = adminLocalizedText(resolveAdminLanguage(state.settings["admin_view_language"]))
 
+    LaunchedEffect(state.loggedIn, state.token) {
+        if (state.loggedIn) {
+            viewModel.loadCurrentAdmin()
+        }
+    }
+
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             when {
@@ -464,6 +504,14 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onCustomers = viewModel::showCustomers,
                     onOpenRequests = viewModel::showOpenRequests,
                     onMeetingPoints = viewModel::showMeetingPoints,
+                    onAiInfo = viewModel::showAiInfo,
+                    onSuperadmin = viewModel::showSuperadmin,
+                    onChangePassword = viewModel::showChangePassword,
+                    onRefreshSuperadmin = viewModel::loadSuperadmin,
+                    onCreateManagedAdmin = viewModel::createManagedAdmin,
+                    onToggleManagedAdmin = viewModel::toggleManagedAdmin,
+                    onDeleteManagedAdmin = viewModel::deleteManagedAdmin,
+                    onSubmitPasswordChange = viewModel::submitPasswordChange,
                     onMore = viewModel::showMore,
                     onRefreshDashboard = viewModel::loadDashboard,
                     onRefreshOrders = viewModel::loadOrders,
@@ -471,11 +519,15 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onRefreshCustomers = viewModel::loadCustomers,
                     onRefreshOpenRequests = viewModel::loadOpenRequests,
                     onRefreshMeetingPoints = viewModel::loadMeetingPoints,
+                    onRefreshAiInfo = viewModel::loadAiInfo,
+                    onSearchMeetingPointLocations = viewModel::searchMeetingPointLocations,
                     onRefreshSettings = viewModel::loadSettings,
                     onOrderClick = viewModel::showOrderDetail,
                     onClosedOrderClick = viewModel::showClosedOrderDetail,
                     onOrderAction = viewModel::performSelectedOrderAction,
                     onCustomerClick = viewModel::showCustomerDetail,
+                    onCustomerMessage = viewModel::sendCustomerMessage,
+                    onDeleteCustomer = viewModel::deleteCustomer,
                     onCreateProduct = viewModel::createProduct,
                     onCreateProductCategory = viewModel::createProductCategory,
                     onUpdateProduct = viewModel::updateProduct,
@@ -488,11 +540,13 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onUpdateMeetingPoint = viewModel::updateMeetingPoint,
                     onSetPreferredMeetingPoint = viewModel::setPreferredMeetingPoint,
                     onDeleteMeetingPoint = viewModel::deleteMeetingPoint,
+                    onLearnedPatternAction = viewModel::updateLearnedPattern,
                     onReplyChange = viewModel::updateReplyMessage,
                     onSendReply = viewModel::sendCustomerReply,
                     onOpenRequestGroupDone = viewModel::markOpenRequestGroupDone,
                     onOpenRequestAllDone = viewModel::markAllOpenRequestsDone,
                     onOpenRequestCustomer = viewModel::showCustomerDetail,
+                    onUpdateOpenRequestStatus = viewModel::updateOpenRequestStatus,
                     onUpdateGeneralSetting = viewModel::updateSettingsValue,
                     onUpdateWorkingHours = viewModel::updateWorkingHours,
                     onUpdateFulfillment = viewModel::updateFulfillmentOptions,
@@ -631,6 +685,14 @@ private fun AdminShell(
     onCustomers: () -> Unit,
     onOpenRequests: () -> Unit,
     onMeetingPoints: () -> Unit,
+    onAiInfo: () -> Unit,
+    onSuperadmin: () -> Unit,
+    onChangePassword: () -> Unit,
+    onRefreshSuperadmin: () -> Unit,
+    onCreateManagedAdmin: (String, String, String, String) -> Unit,
+    onToggleManagedAdmin: (Long) -> Unit,
+    onDeleteManagedAdmin: (Long) -> Unit,
+    onSubmitPasswordChange: (String, String, String) -> Unit,
     onMore: () -> Unit,
     onRefreshDashboard: () -> Unit,
     onRefreshOrders: () -> Unit,
@@ -638,11 +700,15 @@ private fun AdminShell(
     onRefreshCustomers: () -> Unit,
     onRefreshOpenRequests: () -> Unit,
     onRefreshMeetingPoints: () -> Unit,
+    onRefreshAiInfo: () -> Unit,
+    onSearchMeetingPointLocations: (String) -> Unit,
     onRefreshSettings: () -> Unit,
     onOrderClick: (Long) -> Unit,
     onClosedOrderClick: (Long) -> Unit,
     onOrderAction: (AdminOrderAction, String) -> Unit,
     onCustomerClick: (Long) -> Unit,
+    onCustomerMessage: (Long, String) -> Unit,
+    onDeleteCustomer: (Long) -> Unit,
     onCreateProduct: (String, Double, Long?) -> Unit,
     onCreateProductCategory: (String) -> Unit,
     onUpdateProduct: (Long, String, Double, Long?, String, Boolean) -> Unit,
@@ -653,13 +719,15 @@ private fun AdminShell(
     onDeleteProductCategory: (Long) -> Unit,
     onCreateMeetingPoint: (String, String, String, Boolean) -> Unit,
     onUpdateMeetingPoint: (Long, String, String, String, Boolean) -> Unit,
-    onSetPreferredMeetingPoint: (Long) -> Unit,
+    onSetPreferredMeetingPoint: (Long, Boolean) -> Unit,
     onDeleteMeetingPoint: (Long) -> Unit,
+    onLearnedPatternAction: (Long, String) -> Unit,
     onReplyChange: (String) -> Unit,
     onSendReply: () -> Unit,
     onOpenRequestGroupDone: (OpenRequest) -> Unit,
     onOpenRequestAllDone: () -> Unit,
     onOpenRequestCustomer: (Long) -> Unit,
+    onUpdateOpenRequestStatus: (Long, String) -> Unit,
     onUpdateGeneralSetting: (String, String) -> Unit,
     onUpdateWorkingHours: (Boolean, String, String, String, String, String) -> Unit,
     onUpdateFulfillment: (Boolean, Boolean, Boolean) -> Unit,
@@ -700,6 +768,19 @@ private fun AdminShell(
                 onMeetingPoints = {
                     drawerScope.launch { drawerState.close() }
                     onMeetingPoints()
+                },
+                onAiInfo = {
+                    drawerScope.launch { drawerState.close() }
+                    onAiInfo()
+                },
+                isSuperadmin = state.isSuperadmin,
+                onSuperadmin = {
+                    drawerScope.launch { drawerState.close() }
+                    onSuperadmin()
+                },
+                onChangePassword = {
+                    drawerScope.launch { drawerState.close() }
+                    onChangePassword()
                 },
                 onCustomers = {
                     drawerScope.launch { drawerState.close() }
@@ -756,6 +837,9 @@ private fun AdminShell(
                         AdminScreen.CUSTOMER_DETAIL -> ui.customer
                         AdminScreen.OPEN_REQUESTS -> ui.openRequests
                         AdminScreen.MEETING_POINTS -> ui.meetingPoints
+                    AdminScreen.AI_INFO -> ui.aiInfo
+                        AdminScreen.SUPERADMIN -> ui.superadmin
+                        AdminScreen.CHANGE_PASSWORD -> ui.changePassword
                         AdminScreen.SETTINGS -> ui.general
                         AdminScreen.MORE -> ui.general
                     },
@@ -849,6 +933,8 @@ private fun AdminShell(
                     state = state,
                     onRefresh = onRefreshCustomers,
                     onCustomerClick = onCustomerClick,
+                    onMessageCustomer = onCustomerMessage,
+                    onDeleteCustomer = onDeleteCustomer,
                     ui = ui
                 )
 
@@ -860,6 +946,7 @@ private fun AdminShell(
                     },
                     onReplyChange = onReplyChange,
                     onSendReply = onSendReply,
+                    onUpdateRequestStatus = onUpdateOpenRequestStatus,
                     ui = ui
                 )
 
@@ -875,11 +962,32 @@ private fun AdminShell(
                 AdminScreen.MEETING_POINTS -> MeetingPointsScreen(
                     state = state,
                     onRefresh = onRefreshMeetingPoints,
+                    onSearchLocation = onSearchMeetingPointLocations,
                     onCreateMeetingPoint = onCreateMeetingPoint,
                     onUpdateMeetingPoint = onUpdateMeetingPoint,
                     onSetPreferredMeetingPoint = onSetPreferredMeetingPoint,
                     onDeleteMeetingPoint = onDeleteMeetingPoint,
                     ui = ui
+                )
+
+                AdminScreen.AI_INFO -> AiInfoScreen(
+                    state = state,
+                    onRefresh = onRefreshAiInfo,
+                    onPatternAction = onLearnedPatternAction,
+                    ui = ui
+                )
+
+                AdminScreen.SUPERADMIN -> SuperadminManagementScreen(
+                    state = state,
+                    onRefresh = onRefreshSuperadmin,
+                    onCreate = onCreateManagedAdmin,
+                    onToggle = onToggleManagedAdmin,
+                    onDelete = onDeleteManagedAdmin
+                )
+
+                AdminScreen.CHANGE_PASSWORD -> AdminChangePasswordScreen(
+                    state = state,
+                    onSubmit = onSubmitPasswordChange
                 )
 
                 AdminScreen.SETTINGS -> SettingsScreen(
@@ -917,6 +1025,10 @@ private fun AdminNavigationDrawerContent(
     onClosedOrders: () -> Unit,
     onProducts: () -> Unit,
     onMeetingPoints: () -> Unit,
+    onAiInfo: () -> Unit,
+    isSuperadmin: Boolean,
+    onSuperadmin: () -> Unit,
+    onChangePassword: () -> Unit,
     onCustomers: () -> Unit,
     onLogout: () -> Unit,
     ui: AdminLocalizedText
@@ -967,7 +1079,7 @@ private fun AdminNavigationDrawerContent(
         NavigationDrawerItem(
             label = { Text(ui.aiInfo) },
             selected = false,
-            onClick = { }
+            onClick = onAiInfo
         )
 
         NavigationDrawerItem(
@@ -976,16 +1088,18 @@ private fun AdminNavigationDrawerContent(
             onClick = onCustomers
         )
 
-        NavigationDrawerItem(
-            label = { Text(ui.superadmin) },
-            selected = false,
-            onClick = { }
-        )
+        if (isSuperadmin) {
+            NavigationDrawerItem(
+                label = { Text(ui.superadmin) },
+                selected = false,
+                onClick = onSuperadmin
+            )
+        }
 
         NavigationDrawerItem(
             label = { Text(ui.changePassword) },
             selected = false,
-            onClick = { }
+            onClick = onChangePassword
         )
 
         NavigationDrawerItem(
@@ -2901,13 +3015,44 @@ private fun ProductCard(
 }
 
 
+// CUSTOMER_LIST_UI_V1
 @Composable
 private fun CustomersScreen(
     state: AdminUiState,
     onRefresh: () -> Unit,
     onCustomerClick: (Long) -> Unit,
+    onMessageCustomer: (Long, String) -> Unit,
+    onDeleteCustomer: (Long) -> Unit,
     ui: AdminLocalizedText
 ) {
+    var idFilter by remember { mutableStateOf("") }
+    var searchFilter by remember { mutableStateOf("") }
+    var languageFilter by remember { mutableStateOf("") }
+    var lastSeenFrom by remember { mutableStateOf("") }
+    var lastSeenTo by remember { mutableStateOf("") }
+
+    val visibleCustomers = state.customers.filter { customer ->
+        val idMatches = idFilter.isBlank() ||
+            customer.id?.toString()?.contains(idFilter.trim()) == true
+        val searchMatches = searchFilter.isBlank() || listOf(
+            customer.fullName,
+            customer.name,
+            customer.username,
+            customer.telegramUserId
+        ).any { it?.contains(searchFilter.trim(), ignoreCase = true) == true }
+        val languageMatches = languageFilter.isBlank() || listOf(
+            customer.language,
+            customer.preferredLanguage
+        ).any { it?.equals(languageFilter.trim(), ignoreCase = true) == true }
+        val seenDate = customer.lastSeenAt?.take(10).orEmpty()
+        val fromMatches = lastSeenFrom.isBlank() ||
+            (seenDate.isNotBlank() && seenDate >= lastSeenFrom.trim())
+        val toMatches = lastSeenTo.isBlank() ||
+            (seenDate.isNotBlank() && seenDate <= lastSeenTo.trim())
+
+        idMatches && searchMatches && languageMatches && fromMatches && toMatches
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dpCompat),
@@ -2918,68 +3063,7 @@ private fun CustomersScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("${ui.customers} (${state.customers.size})", style = MaterialTheme.typography.headlineSmall)
-                AdminSecondaryButton(text = ui.refresh, onClick = onRefresh)
-            }
-        }
-
-        commonStateItems(state)
-
-        if (state.customers.isEmpty() && !state.loading) {
-            item {
-                Text(adminText(ui, "noCustomersLoaded"))
-            }
-        }
-
-        items(state.customers) { customer ->
-            CustomerCard(customer = customer, onCustomerClick = onCustomerClick, ui = ui)
-        }
-    }
-}
-
-@Composable
-private fun CustomerCard(
-    customer: Customer,
-    onCustomerClick: (Long) -> Unit,
-    ui: AdminLocalizedText
-) {
-    AdminPanel {
-        Text(customer.fullName ?: customer.name ?: ui.customer, style = MaterialTheme.typography.titleSmall)
-        Text("${ui.idLabel}: ${customer.id ?: "-"}", color = AdminColors.TextSecondary)
-        Text("${adminText(ui, "usernameLabel")}: ${customer.username ?: "-"}", color = AdminColors.TextSecondary)
-        Text("${adminText(ui, "telegramLabel")}: ${customer.telegramUserId ?: "-"}", color = AdminColors.TextSecondary)
-        Text("${adminText(ui, "languageLabel")}: ${customer.preferredLanguage ?: customer.language ?: "-"}")
-        Text("${adminText(ui, "blockedLabel")}: ${customer.isBlocked ?: "-"}")
-        Text("${adminText(ui, "lastSeenLabel")}: ${customer.lastSeenAt ?: "-"}", color = AdminColors.TextSecondary)
-
-        if (customer.id != null) {
-            AdminPrimaryButton(text = adminText(ui, "openDetail"), onClick = { onCustomerClick(customer.id) })
-        }
-    }
-}
-
-@Composable
-private fun CustomerDetailScreen(
-    state: AdminUiState,
-    onBack: () -> Unit,
-    onRefresh: () -> Unit,
-    onReplyChange: (String) -> Unit,
-    onSendReply: () -> Unit,
-    ui: AdminLocalizedText
-) {
-    val customer = state.selectedCustomer
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dpCompat),
-        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
-    ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dpCompat)
-            ) {
-                AdminSecondaryButton(text = ui.back, onClick = onBack)
+                Text("${ui.customers} (${visibleCustomers.size})", style = MaterialTheme.typography.headlineSmall)
                 AdminSecondaryButton(text = ui.refresh, onClick = onRefresh)
             }
         }
@@ -2988,72 +3072,394 @@ private fun CustomerDetailScreen(
 
         if (!state.lastReplySent.isNullOrBlank()) {
             item {
-                Text(localizedAdminFlashMessage(state.lastReplySent, ui) ?: "")
+                Text(state.lastReplySent, color = MaterialTheme.colorScheme.primary)
             }
         }
 
-        if (customer == null && !state.loading) {
-            item {
-                Text(adminText(ui, "customerNotLoaded"))
+        item {
+            AdminPanel {
+                Text("${ui.search} / Filters", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+                OutlinedTextField(
+                    value = idFilter,
+                    onValueChange = { idFilter = it },
+                    label = { Text(ui.idLabel) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+                OutlinedTextField(
+                    value = searchFilter,
+                    onValueChange = { searchFilter = it },
+                    label = { Text("${ui.search} ${ui.customer}") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+                OutlinedTextField(
+                    value = languageFilter,
+                    onValueChange = { languageFilter = it },
+                    label = { Text("${adminText(ui, "languageLabel")} (en, de, tr, ar, ru)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+                OutlinedTextField(
+                    value = lastSeenFrom,
+                    onValueChange = { lastSeenFrom = it },
+                    label = { Text("${adminText(ui, "lastSeenLabel")} ≥ YYYY-MM-DD") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+                OutlinedTextField(
+                    value = lastSeenTo,
+                    onValueChange = { lastSeenTo = it },
+                    label = { Text("${adminText(ui, "lastSeenLabel")} ≤ YYYY-MM-DD") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+                AdminSecondaryButton(
+                    text = ui.clearFilters,
+                    onClick = {
+                        idFilter = ""
+                        searchFilter = ""
+                        languageFilter = ""
+                        lastSeenFrom = ""
+                        lastSeenTo = ""
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
-        if (customer != null) {
+        if (visibleCustomers.isEmpty() && !state.loading) {
+            item { Text(adminText(ui, "noCustomersLoaded")) }
+        }
+
+        items(visibleCustomers) { customer ->
+            CustomerCard(
+                customer = customer,
+                loading = state.loading,
+                onCustomerClick = onCustomerClick,
+                onMessageCustomer = onMessageCustomer,
+                onDeleteCustomer = onDeleteCustomer,
+                ui = ui
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomerCard(
+    customer: Customer,
+    loading: Boolean,
+    onCustomerClick: (Long) -> Unit,
+    onMessageCustomer: (Long, String) -> Unit,
+    onDeleteCustomer: (Long) -> Unit,
+    ui: AdminLocalizedText
+) {
+    val id = customer.id
+    val name = customer.fullName ?: customer.name ?: customer.username ?: customer.telegramUserId ?: ui.customer
+    var showMessageDialog by remember(id) { mutableStateOf(false) }
+    var showDeleteDialog by remember(id) { mutableStateOf(false) }
+    var message by remember(id) { mutableStateOf("") }
+
+    AdminPanel {
+        Text(name, style = MaterialTheme.typography.titleSmall)
+        Text("${ui.idLabel}: ${id ?: "-"}", color = AdminColors.TextSecondary)
+        Text("${adminText(ui, "usernameLabel")}: ${customer.username ?: "-"}", color = AdminColors.TextSecondary)
+        Text("${adminText(ui, "telegramLabel")}: ${customer.telegramUserId ?: "-"}", color = AdminColors.TextSecondary)
+        Text("${adminText(ui, "languageLabel")}: ${customer.preferredLanguage ?: customer.language ?: "-"}")
+        Text("${adminText(ui, "blockedLabel")}: ${if (customer.isBlocked == true) ui.trueLabel else ui.falseLabel}")
+        Text(
+            "${adminText(ui, "lastSeenLabel")}: ${displayOrderTimestamp(customer.lastSeenAt)}",
+            color = AdminColors.TextSecondary
+        )
+
+        Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AdminSpacing.S)
+        ) {
+            AdminPrimaryButton(
+                text = adminText(ui, "openCustomer"),
+                onClick = { id?.let(onCustomerClick) },
+                enabled = id != null && !loading,
+                modifier = Modifier.weight(0.85f)
+            )
+            androidx.compose.material3.OutlinedButton(
+                onClick = { showMessageDialog = true },
+                enabled = id != null && !loading,
+                modifier = Modifier.weight(1.15f),
+                contentPadding = PaddingValues(
+                    horizontal = 8.dpCompat,
+                    vertical = AdminSpacing.S
+                )
+            ) {
+                Text(
+                    text = adminText(ui, "messageCustomer"),
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        AdminDangerButton(
+            text = ui.delete,
+            onClick = { showDeleteDialog = true },
+            enabled = id != null && !loading,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    if (showMessageDialog) {
+        AlertDialog(
+            onDismissRequest = { showMessageDialog = false },
+            title = { Text("${adminText(ui, "messageCustomer")} – $name") },
+            text = {
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text(adminText(ui, "message")) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = id != null && message.isNotBlank() && !loading,
+                    onClick = {
+                        id?.let { onMessageCustomer(it, message.trim()) }
+                        message = ""
+                        showMessageDialog = false
+                    }
+                ) {
+                    Text(adminText(ui, "send"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMessageDialog = false }) {
+                    Text(adminText(ui, "cancel"))
+                }
+            }
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(ui.delete) },
+            text = { Text("$name?") },
+            confirmButton = {
+                TextButton(
+                    enabled = id != null && !loading,
+                    onClick = {
+                        id?.let(onDeleteCustomer)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text(ui.delete)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(adminText(ui, "cancel"))
+                }
+            }
+        )
+    }
+}
+
+// CUSTOMER_DETAIL_UI_V1
+@Composable
+private fun CustomerDetailScreen(
+    state: AdminUiState,
+    onBack: () -> Unit,
+    onRefresh: () -> Unit,
+    onReplyChange: (String) -> Unit,
+    onSendReply: () -> Unit,
+    onUpdateRequestStatus: (Long, String) -> Unit,
+    ui: AdminLocalizedText
+) {
+    val customer = state.selectedCustomer
+    val name = customer?.fullName ?: customer?.name ?: customer?.username ?: customer?.telegramUserId ?: "-"
+    var visibleSection by remember(customer?.id) { mutableStateOf("requests") }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dpCompat),
+        verticalArrangement = Arrangement.spacedBy(12.dpCompat)
+    ) {
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dpCompat)) {
+                AdminSecondaryButton(text = ui.back, onClick = onBack)
+                AdminSecondaryButton(text = ui.refresh, onClick = onRefresh)
+            }
+        }
+
+        if (customer == null) {
+            item { Text("-") }
+        } else {
             item {
                 AdminPanel {
-                    Text(customer.fullName ?: customer.name ?: ui.customer, style = MaterialTheme.typography.headlineSmall)
-                    Text("${ui.idLabel}: ${customer.id ?: "-"}", color = AdminColors.TextSecondary)
-                    Text("${adminText(ui, "usernameLabel")}: ${customer.username ?: "-"}", color = AdminColors.TextSecondary)
-                    Text("${adminText(ui, "telegramLabel")}: ${customer.telegramUserId ?: "-"}", color = AdminColors.TextSecondary)
-                    Text("${adminText(ui, "languageLabel")}: ${customer.preferredLanguage ?: customer.language ?: "-"}")
-                    Text("${adminText(ui, "blockedLabel")}: ${customer.isBlocked ?: "-"}")
-                    Text("${adminText(ui, "lastSeenLabel")}: ${customer.lastSeenAt ?: "-"}", color = AdminColors.TextSecondary)
-                    Text("${adminText(ui, "createdLabel")}: ${customer.createdAt ?: "-"}", color = AdminColors.TextSecondary)
+                    Text(name, style = MaterialTheme.typography.headlineSmall)
+                    Spacer(modifier = Modifier.height(AdminSpacing.S))
+                    Text("${ui.idLabel}: ${customer.id ?: "-"}")
+                    Text("${adminText(ui, "telegramLabel")}: ${customer.telegramUserId ?: "-"}")
+                    Text("${adminText(ui, "usernameLabel")}: ${customer.username ?: "-"}")
+                    Text("${adminText(ui, "fullNameLabel")}: ${customer.fullName ?: customer.name ?: "-"}")
+                    Text("${adminText(ui, "languageLabel")}: ${customer.language ?: "-"}")
+                    Text("${adminText(ui, "preferredLanguageLabel")}: ${customer.preferredLanguage ?: "-"}")
+                    Text("${adminText(ui, "blockedLabel")}: ${if (customer.isBlocked == true) ui.trueLabel else ui.falseLabel}")
+                    Text(
+                        "${adminText(ui, "lastSeenLabel")}: ${displayOrderTimestamp(customer.lastSeenAt)}",
+                        color = AdminColors.TextSecondary
+                    )
                 }
             }
 
             item {
                 AdminPanel {
-                    Text(adminText(ui, "reply"), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "${adminText(ui, "messageCustomer")} – $name",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(AdminSpacing.S))
                     OutlinedTextField(
-                        modifier = Modifier.fillMaxWidth(),
                         value = state.replyMessage,
                         onValueChange = onReplyChange,
-                        label = { Text(adminText(ui, "messageLabel")) },
-                        minLines = 3
+                        label = { Text(adminText(ui, "message")) },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 4
                     )
+                    Spacer(modifier = Modifier.height(AdminSpacing.S))
                     AdminPrimaryButton(
-                        text = adminText(ui, "sendReply"),
-                        enabled = !state.loading && state.replyMessage.isNotBlank(),
+                        text = adminText(ui, "send"),
+                        enabled = state.replyMessage.isNotBlank() && !state.loading,
                         onClick = onSendReply
                     )
+                    state.lastReplySent?.takeIf { it.isNotBlank() }?.let {
+                        Spacer(modifier = Modifier.height(AdminSpacing.S))
+                        Text(it, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
 
             item {
-                Text("${adminText(ui, "messages")} (${state.customerMessages.size})", style = MaterialTheme.typography.titleMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(AdminSpacing.S)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AdminSpacing.S)
+                    ) {
+                        CustomerDetailSectionButton(
+                            text = adminText(ui, "structuredRequests"),
+                            selected = visibleSection == "requests",
+                            onClick = { visibleSection = "requests" },
+                            modifier = Modifier.weight(1f)
+                        )
+                        CustomerDetailSectionButton(
+                            text = adminText(ui, "customerLocations"),
+                            selected = visibleSection == "locations",
+                            onClick = { visibleSection = "locations" },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    CustomerDetailSectionButton(
+                        text = adminText(ui, "conversationHistory"),
+                        selected = visibleSection == "messages",
+                        onClick = { visibleSection = "messages" },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
-            items(state.customerMessages) { message ->
-                CustomerMessageCard(message = message, ui = ui)
-            }
+            when (visibleSection) {
+                "requests" -> {
+                    item {
+                        Text(
+                            "${adminText(ui, "structuredRequests")} (${state.customerRequests.size})",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    if (state.customerRequests.isEmpty()) {
+                        item { Text("-") }
+                    } else {
+                        items(state.customerRequests) { request ->
+                            CustomerRequestCard(
+                                request = request,
+                                loading = state.loading,
+                                onUpdateStatus = onUpdateRequestStatus,
+                                ui = ui
+                            )
+                        }
+                    }
+                }
 
-            item {
-                Text("${adminText(ui, "requests")} (${state.customerRequests.size})", style = MaterialTheme.typography.titleMedium)
-            }
+                "locations" -> {
+                    item {
+                        Text(
+                            "${adminText(ui, "customerLocations")} (${state.customerLocations.size})",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    if (state.customerLocations.isEmpty()) {
+                        item { Text("-") }
+                    } else {
+                        items(state.customerLocations) { location ->
+                            CustomerLocationCard(location = location, ui = ui)
+                        }
+                    }
+                }
 
-            items(state.customerRequests) { request ->
-                CustomerRequestCard(request = request, ui = ui)
-            }
-
-            item {
-                Text("${adminText(ui, "locations")} (${state.customerLocations.size})", style = MaterialTheme.typography.titleMedium)
-            }
-
-            items(state.customerLocations) { location ->
-                CustomerLocationCard(location = location, ui = ui)
+                "messages" -> {
+                    item {
+                        Text(
+                            "${adminText(ui, "conversationHistory")} (${state.customerMessages.size})",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    if (state.customerMessages.isEmpty()) {
+                        item { Text("-") }
+                    } else {
+                        items(state.customerMessages) { message ->
+                            CustomerMessageCard(message = message, ui = ui)
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun CustomerDetailSectionButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selected) {
+        AdminPrimaryButton(
+            text = text,
+            onClick = onClick,
+            modifier = modifier
+        )
+    } else {
+        AdminSecondaryButton(
+            text = text,
+            onClick = onClick,
+            modifier = modifier
+        )
     }
 }
 
@@ -3063,31 +3469,129 @@ private fun CustomerMessageCard(message: CustomerMessage, ui: AdminLocalizedText
         Text("${message.direction ?: "-"} / ${message.messageType ?: "-"}", style = MaterialTheme.typography.titleSmall)
         Text(message.message ?: message.text ?: message.body ?: "-")
         Text("${adminText(ui, "languageLabel")}: ${message.language ?: "-"}", color = AdminColors.TextSecondary)
-        Text("${adminText(ui, "createdLabel")}: ${message.createdAt ?: "-"}", color = AdminColors.TextSecondary)
+        Text("${adminText(ui, "createdLabel")}: ${displayOrderTimestamp(message.createdAt)}", color = AdminColors.TextSecondary)
     }
 }
 
 @Composable
-private fun CustomerRequestCard(request: CustomerRequest, ui: AdminLocalizedText) {
+private fun CustomerRequestCard(
+    request: CustomerRequest,
+    loading: Boolean,
+    onUpdateStatus: (Long, String) -> Unit,
+    ui: AdminLocalizedText
+) {
+    val context = LocalContext.current
+    val mapUrl = request.googleMapsLink?.takeIf { it.isNotBlank() }
+    val statusOptions = listOf("new", "in_progress", "done")
+    var selectedStatus by remember(request.id, request.status) {
+        mutableStateOf(request.status?.takeIf { it in statusOptions } ?: "new")
+    }
+    var statusMenuExpanded by remember(request.id) { mutableStateOf(false) }
+
     AdminPanel {
         Text("${adminText(ui, "request")} #${request.id ?: "-"}", style = MaterialTheme.typography.titleSmall)
-        Text("${adminText(ui, "typeLabel")}: ${request.requestType ?: "-"}")
+        Text("${adminText(ui, "typeLabel")}: ${localizeRequestType(request.requestType, ui)}")
         Text("${adminText(ui, "itemLabel")}: ${request.itemName ?: "-"}", color = AdminColors.TextSecondary)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)) {
+
+        request.quantity?.let {
+            Text("${adminText(ui, "quantity")}: $it")
+        }
+
+        Text(request.description ?: request.requestText ?: "-")
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)
+        ) {
             Text("${adminText(ui, "statusLabel")}:")
             AdminStatusChip(text = localizeOpenRequestStatus(request.status, ui))
         }
-        Text("${adminText(ui, "createdLabel")}: ${request.createdAt ?: "-"}", color = AdminColors.TextSecondary)
+
+        Text(
+            "${adminText(ui, "createdLabel")}: ${displayOrderTimestamp(request.createdAt)}",
+            color = AdminColors.TextSecondary
+        )
+
+        if (mapUrl != null) {
+            TextButton(onClick = { openCustomerLocationInMaps(context, mapUrl) }) {
+                Text(ui.openMap)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+        androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxWidth()) {
+            androidx.compose.material3.OutlinedButton(
+                onClick = { statusMenuExpanded = true },
+                enabled = !loading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AdminSpacing.XS)
+                ) {
+                    Text(
+                        localizeOpenRequestStatus(selectedStatus, ui),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Text("▾", color = AdminColors.TextSecondary)
+                }
+            }
+
+            androidx.compose.material3.DropdownMenu(
+                expanded = statusMenuExpanded,
+                onDismissRequest = { statusMenuExpanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                statusOptions.forEach { status ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(localizeOpenRequestStatus(status, ui)) },
+                        onClick = {
+                            selectedStatus = status
+                            statusMenuExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(AdminSpacing.XS))
+
+        AdminPrimaryButton(
+            text = adminText(ui, "save"),
+            enabled = !loading && request.id != null,
+            onClick = { request.id?.let { onUpdateStatus(it, selectedStatus) } },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 @Composable
 private fun CustomerLocationCard(location: CustomerLocation, ui: AdminLocalizedText) {
+    val context = LocalContext.current
+    val mapUrl = location.googleMapsLink ?: location.mapsUrl ?: location.googleMapsUrl
+
     AdminPanel {
         Text(location.label ?: adminText(ui, "location"), style = MaterialTheme.typography.titleSmall)
         Text("${ui.addressLabel}: ${location.address ?: "-"}")
-        Text("${adminText(ui, "mapLabel")}: ${location.mapsUrl ?: location.googleMapsUrl ?: "-"}", color = AdminColors.TextSecondary)
-        Text("${adminText(ui, "createdLabel")}: ${location.createdAt ?: "-"}", color = AdminColors.TextSecondary)
+        Text("${adminText(ui, "createdLabel")}: ${displayOrderTimestamp(location.createdAt)}", color = AdminColors.TextSecondary)
+
+        if (!mapUrl.isNullOrBlank()) {
+            TextButton(onClick = { openCustomerLocationInMaps(context, mapUrl) }) {
+                Text(ui.openMap)
+            }
+        }
+    }
+}
+
+private fun openCustomerLocationInMaps(context: android.content.Context, url: String) {
+    runCatching {
+        context.startActivity(
+            android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse(url)
+            )
+        )
     }
 }
 
@@ -3287,12 +3791,14 @@ private fun localizeRequestType(type: String?, ui: AdminLocalizedText): String {
 private fun MeetingPointsScreen(
     state: AdminUiState,
     onRefresh: () -> Unit,
+    onSearchLocation: (String) -> Unit,
     onCreateMeetingPoint: (String, String, String, Boolean) -> Unit,
     onUpdateMeetingPoint: (Long, String, String, String, Boolean) -> Unit,
-    onSetPreferredMeetingPoint: (Long) -> Unit,
+    onSetPreferredMeetingPoint: (Long, Boolean) -> Unit,
     onDeleteMeetingPoint: (Long) -> Unit,
     ui: AdminLocalizedText
 ) {
+    var locationSearchQuery by remember(state.screen) { mutableStateOf("") }
     var name by remember(state.screen) { mutableStateOf("") }
     var address by remember(state.screen) { mutableStateOf("") }
     var googleMapsLink by remember(state.screen) { mutableStateOf("") }
@@ -3319,6 +3825,51 @@ private fun MeetingPointsScreen(
         item {
             AdminPanel {
                 Text(ui.addMeetingPoint, style = MaterialTheme.typography.titleMedium)
+
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = locationSearchQuery,
+                    onValueChange = { locationSearchQuery = it },
+                    label = { Text(ui.searchLocation) },
+                    singleLine = true
+                )
+
+                AdminPrimaryButton(
+                    text = ui.search,
+                    enabled = !state.meetingPointSearchLoading && locationSearchQuery.isNotBlank(),
+                    onClick = {
+                        onSearchLocation(locationSearchQuery)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (state.meetingPointSearchLoading) {
+                    CircularProgressIndicator()
+                }
+
+                if (
+                    state.meetingPointSearchAttempted &&
+                    !state.meetingPointSearchLoading &&
+                    state.meetingPointSearchResults.isEmpty()
+                ) {
+                    Text(
+                        text = ui.noLocationsFound,
+                        color = AdminColors.TextSecondary
+                    )
+                }
+
+                state.meetingPointSearchResults.forEach { result ->
+                    AdminSecondaryButton(
+                        text = result.address.ifBlank { result.name },
+                        onClick = {
+                            locationSearchQuery = result.address
+                            name = result.name.ifBlank { result.address }
+                            address = result.address
+                            googleMapsLink = result.googleMapsLink
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
@@ -3416,7 +3967,7 @@ private fun MeetingPointCard(
     point: MeetingPoint,
     loading: Boolean,
     onUpdateMeetingPoint: (Long, String, String, String, Boolean) -> Unit,
-    onSetPreferredMeetingPoint: (Long) -> Unit,
+    onSetPreferredMeetingPoint: (Long, Boolean) -> Unit,
     onDeleteMeetingPoint: (Long) -> Unit,
     ui: AdminLocalizedText
 ) {
@@ -3428,7 +3979,7 @@ private fun MeetingPointCard(
     }
     var isActive by remember(point.id, point.isActive) { mutableStateOf(point.isActive == true) }
     val canSave = !loading && point.id != null && name.isNotBlank() && address.isNotBlank() && googleMapsLink.isNotBlank()
-    val canSetPreferred = !loading && point.id != null && point.isDefault != true
+    val canTogglePreferred = !loading && point.id != null
 
     AdminPanel {
         Text("${ui.idLabel}: ${point.id ?: "-"}", color = AdminColors.TextSecondary)
@@ -3507,11 +4058,11 @@ private fun MeetingPointCard(
             )
 
             AdminSecondaryButton(
-                text = ui.setPreferred,
-                enabled = canSetPreferred,
+                text = if (point.isDefault == true) ui.unsetPreferred else ui.setPreferred,
+                enabled = canTogglePreferred,
                 onClick = {
                     val pointId = point.id ?: return@AdminSecondaryButton
-                    onSetPreferredMeetingPoint(pointId)
+                    onSetPreferredMeetingPoint(pointId, point.isDefault != true)
                 },
                 modifier = Modifier.weight(1f)
             )
@@ -3529,6 +4080,227 @@ private fun MeetingPointCard(
     }
 }
 
+
+private fun localizedAiPatternStatus(
+    status: String,
+    ui: AdminLocalizedText
+): String {
+    return when (status.trim().lowercase(Locale.ROOT)) {
+        "pending" -> adminText(ui, "pendingStatus")
+        "approved" -> adminText(ui, "approvedStatus")
+        "rejected" -> adminText(ui, "rejectedStatus")
+        else -> status
+            .replace('_', ' ')
+            .replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase() else it.toString()
+            }
+    }
+}
+
+@Composable
+private fun AiMetricCell(
+    label: String,
+    value: Long,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(AdminSpacing.S)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.headlineSmall
+        )
+    }
+}
+
+@Composable
+private fun AiInfoScreen(
+    state: AdminUiState,
+    onRefresh: () -> Unit,
+    onPatternAction: (Long, String) -> Unit,
+    ui: AdminLocalizedText
+) {
+    val usage = state.aiUsageStats
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = AdminSpacing.L),
+        verticalArrangement = Arrangement.spacedBy(AdminSpacing.M)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = ui.aiInfo,
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.weight(1f)
+                )
+
+                AdminSecondaryButton(
+                    text = ui.refresh,
+                    enabled = !state.loading,
+                    onClick = onRefresh
+                )
+            }
+        }
+
+        commonStateItems(state)
+
+        item {
+            Text(
+                text = adminText(ui, "aiCounter"),
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+
+        item {
+            AdminPanel {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    AiMetricCell(
+                        label = adminText(ui, "lastHour"),
+                        value = usage?.lastHour ?: 0,
+                        modifier = Modifier.weight(1f)
+                    )
+                    AiMetricCell(
+                        label = adminText(ui, "last24Hours"),
+                        value = usage?.last24Hours ?: 0,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    AiMetricCell(
+                        label = adminText(ui, "lastWeek"),
+                        value = usage?.lastWeek ?: 0,
+                        modifier = Modifier.weight(1f)
+                    )
+                    AiMetricCell(
+                        label = adminText(ui, "lastMonth"),
+                        value = usage?.lastMonth ?: 0,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                AiMetricCell(
+                    label = adminText(ui, "aiTotal"),
+                    value = usage?.total ?: 0,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        item {
+            Text(
+                text = "${adminText(ui, "aiPatterns")} (${state.learnedPatterns.size})",
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+
+        if (state.learnedPatterns.isEmpty() && !state.loading) {
+            item {
+                Text("-")
+            }
+        }
+
+        items(state.learnedPatterns) { pattern ->
+            AdminPanel {
+                Text(
+                    text = "#${pattern.id}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = "${adminText(ui, "patternLabel")}: ${pattern.patternText.ifBlank { "-" }}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Text(
+                    text = "${adminText(ui, "intentLabel")}: ${pattern.intent.ifBlank { "-" }}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = "${adminText(ui, "aiProduct")}: ${pattern.productName.ifBlank { "-" }}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = "${adminText(ui, "responseLabel")}:",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                Text(
+                    text = pattern.responseText.ifBlank { "-" },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${adminText(ui, "aiStatus")}: ${
+                            localizedAiPatternStatus(pattern.status, ui)
+                        }",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Text(
+                        text = "${adminText(ui, "hitsLabel")}: ${pattern.hitCount}"
+                    )
+                }
+
+                if (pattern.status.equals("pending", ignoreCase = true)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AdminSpacing.S)
+                    ) {
+                        AdminPrimaryButton(
+                            text = adminText(ui, "approve"),
+                            enabled = !state.loading && pattern.id > 0,
+                            onClick = {
+                                onPatternAction(pattern.id, "approve")
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        AdminSecondaryButton(
+                            text = adminText(ui, "reject"),
+                            enabled = !state.loading && pattern.id > 0,
+                            onClick = {
+                                onPatternAction(pattern.id, "reject")
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                AdminDangerButton(
+                    text = ui.delete,
+                    enabled = !state.loading && pattern.id > 0,
+                    onClick = {
+                        onPatternAction(pattern.id, "delete")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(AdminSpacing.L))
+        }
+    }
+}
 
 @Composable
 private fun SettingsScreen(

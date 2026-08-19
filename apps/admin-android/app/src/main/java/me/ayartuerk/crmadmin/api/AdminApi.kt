@@ -11,6 +11,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface AdminApi {
     @POST("admin/auth/recovery/start")
@@ -39,6 +40,36 @@ interface AdminApi {
 
     @GET("admin/me")
     suspend fun me(@Header("Authorization") authorization: String): MeResponse
+
+    // ADMIN_SUPERADMIN_ANDROID_API_V1
+    @GET("admin/superadmin")
+    suspend fun superadminOverview(
+        @Header("Authorization") authorization: String
+    ): SuperadminOverviewResponse
+
+    @POST("admin/superadmin/admins")
+    suspend fun createManagedAdmin(
+        @Header("Authorization") authorization: String,
+        @Body body: CreateManagedAdminRequest
+    ): SuperadminOverviewResponse
+
+    @PATCH("admin/superadmin/admins/{adminId}/toggle")
+    suspend fun toggleManagedAdmin(
+        @Header("Authorization") authorization: String,
+        @Path("adminId") adminId: Long
+    ): SuperadminOverviewResponse
+
+    @DELETE("admin/superadmin/admins/{adminId}")
+    suspend fun deleteManagedAdmin(
+        @Header("Authorization") authorization: String,
+        @Path("adminId") adminId: Long
+    ): SuperadminOverviewResponse
+
+    @POST("admin/password")
+    suspend fun changeAdminPassword(
+        @Header("Authorization") authorization: String,
+        @Body body: ChangeAdminPasswordRequest
+    ): BasicResponse
 
     @GET("admin/dashboard")
     suspend fun dashboard(@Header("Authorization") authorization: String): DashboardResponse
@@ -115,6 +146,13 @@ interface AdminApi {
         @Body body: CustomerReplyRequest
     ): BasicResponse
 
+    // CUSTOMER_ACTIONS_V1
+    @DELETE("admin/customers/{customerId}")
+    suspend fun deleteCustomer(
+        @Header("Authorization") authorization: String,
+        @Path("customerId") customerId: Long
+    ): BasicResponse
+
     @GET("admin/open-requests")
     suspend fun openRequests(@Header("Authorization") authorization: String): OpenRequestsResponse
 
@@ -135,6 +173,12 @@ interface AdminApi {
     suspend fun markAllOpenRequestsDone(
         @Header("Authorization") authorization: String
     ): OpenRequestAllDoneResponse
+
+    @GET("admin/search-location")
+    suspend fun searchMeetingPointLocations(
+        @Header("Authorization") authorization: String,
+        @Query("query") query: String
+    ): MeetingPointLocationSearchResponse
 
     @GET("admin/meeting-points")
     suspend fun meetingPoints(@Header("Authorization") authorization: String): MeetingPointsResponse
@@ -198,6 +242,18 @@ interface AdminApi {
         @Body body: CustomerAppOrderStatusRequest
     ): BasicResponse
 
+    @GET("admin/ai-info")
+    suspend fun aiInfo(
+        @Header("Authorization") authorization: String
+    ): AiInfoResponse
+
+    @POST("admin/learned-patterns/{patternId}/{action}")
+    suspend fun updateLearnedPattern(
+        @Header("Authorization") authorization: String,
+        @Path("patternId") patternId: Long,
+        @Path("action") action: String
+    ): BasicResponse
+
     @POST("admin/orders/{orderId}/return")
     suspend fun returnCustomerAppOrderNotDelivered(
         @Header("Authorization") authorization: String,
@@ -205,6 +261,46 @@ interface AdminApi {
     ): BasicResponse
 
 }
+
+@Serializable
+data class AiUsageStats(
+    @SerialName("last_hour")
+    val lastHour: Long = 0,
+    @SerialName("last_24_hours")
+    val last24Hours: Long = 0,
+    @SerialName("last_week")
+    val lastWeek: Long = 0,
+    @SerialName("last_month")
+    val lastMonth: Long = 0,
+    val total: Long = 0
+)
+
+@Serializable
+data class LearnedPattern(
+    val id: Long = 0,
+    @SerialName("pattern_text")
+    val patternText: String = "",
+    val intent: String = "",
+    @SerialName("product_id")
+    val productId: Long? = null,
+    @SerialName("product_name")
+    val productName: String = "",
+    @SerialName("response_text")
+    val responseText: String = "",
+    val status: String = "pending",
+    @SerialName("hit_count")
+    val hitCount: Long = 0
+)
+
+@Serializable
+data class AiInfoResponse(
+    val ok: Boolean = false,
+    val usage: AiUsageStats? = null,
+    @SerialName("learned_patterns")
+    val learnedPatterns: List<LearnedPattern> = emptyList(),
+    val count: Int = 0,
+    val error: ApiErrorEnvelope? = null
+)
 
 @Serializable
 data class LoginRequest(
@@ -390,6 +486,26 @@ data class SettingsResponse(
 )
 
 @Serializable
+data class MeetingPointLocationSearchResponse(
+    val ok: Boolean = false,
+    val locations: List<MeetingPointLocationSearchResult> = emptyList(),
+    val count: Int? = null,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
+data class MeetingPointLocationSearchResult(
+    val name: String = "",
+    val address: String = "",
+    @SerialName("postal_code")
+    val postalCode: String = "",
+    val latitude: String = "",
+    val longitude: String = "",
+    @SerialName("google_maps_link")
+    val googleMapsLink: String = ""
+)
+
+@Serializable
 data class MeetingPointsResponse(
     val ok: Boolean = false,
     @SerialName("meeting_points")
@@ -460,6 +576,8 @@ data class AdminUser(
     val id: Long? = null,
     val username: String? = null,
     val role: String? = null,
+    @SerialName("is_superadmin")
+    val isSuperadmin: Boolean = false,
     val name: String? = null
 )
 
@@ -674,6 +792,12 @@ data class CustomerRequest(
     val requestType: String? = null,
     @SerialName("item_name")
     val itemName: String? = null,
+    val description: String? = null,
+    @SerialName("request_text")
+    val requestText: String? = null,
+    val quantity: Double? = null,
+    @SerialName("google_maps_link")
+    val googleMapsLink: String? = null,
     @SerialName("created_at")
     val createdAt: String? = null
 )
@@ -683,6 +807,8 @@ data class CustomerLocation(
     val id: Long? = null,
     val label: String? = null,
     val address: String? = null,
+    @SerialName("google_maps_link")
+    val googleMapsLink: String? = null,
     @SerialName("maps_url")
     val mapsUrl: String? = null,
     @SerialName("google_maps_url")

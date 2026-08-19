@@ -1,5 +1,9 @@
 package me.ayartuerk.crmadmin.data
 
+import me.ayartuerk.crmadmin.api.ChangeAdminPasswordRequest
+import me.ayartuerk.crmadmin.api.CreateManagedAdminRequest
+import me.ayartuerk.crmadmin.api.SuperadminOverviewResponse
+
 import kotlinx.serialization.json.put
 
 import kotlinx.serialization.json.jsonPrimitive
@@ -13,6 +17,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
 
 import me.ayartuerk.crmadmin.api.AdminApi
+import me.ayartuerk.crmadmin.api.AiUsageStats
+import me.ayartuerk.crmadmin.api.LearnedPattern
 import me.ayartuerk.crmadmin.api.AdminIdentityRecoveryStartRequest
 import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
@@ -21,6 +27,7 @@ import me.ayartuerk.crmadmin.api.CustomerReplyRequest
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.api.LoginRequest
 import me.ayartuerk.crmadmin.api.MeetingPoint
+import me.ayartuerk.crmadmin.api.MeetingPointLocationSearchResult
 import me.ayartuerk.crmadmin.api.OpenRequestStatusRequest
 import me.ayartuerk.crmadmin.api.OpenRequestGroupDoneRequest
 import me.ayartuerk.crmadmin.api.OpenRequest
@@ -222,6 +229,14 @@ class AdminRepository(
         }
     }
 
+    // CUSTOMER_ACTIONS_V1
+    suspend fun deleteCustomer(token: String, customerId: Long) {
+        val response = api.deleteCustomer(bearer(token), customerId)
+        if (!response.ok) {
+            throw IllegalStateException(response.error?.message ?: "Customer deletion failed")
+        }
+    }
+
     suspend fun openRequests(token: String): List<OpenRequest> {
         val response = api.openRequests(bearer(token))
         if (!response.ok) {
@@ -274,6 +289,23 @@ class AdminRepository(
         }
 
         return response.updated ?: 0
+    }
+
+    suspend fun searchMeetingPointLocations(
+        token: String,
+        query: String
+    ): List<MeetingPointLocationSearchResult> {
+        val response = api.searchMeetingPointLocations(
+            bearer(token),
+            query.trim()
+        )
+
+        if (!response.ok) {
+            val message = response.error?.message ?: "Location search failed"
+            throw IllegalStateException(message)
+        }
+
+        return response.locations
     }
 
     suspend fun meetingPoints(token: String): List<MeetingPoint> {
@@ -331,12 +363,12 @@ class AdminRepository(
         }
     }
 
-    suspend fun setPreferredMeetingPoint(token: String, pointId: Long) {
+    suspend fun setPreferredMeetingPoint(token: String, pointId: Long, isPreferred: Boolean) {
         val response = api.updateMeetingPoint(
             bearer(token),
             pointId,
             buildJsonObject {
-                put("is_default", true)
+                put("is_default", isPreferred)
             }
         )
         if (!response.ok) {
@@ -349,6 +381,43 @@ class AdminRepository(
         val response = api.deleteMeetingPoint(bearer(token), pointId)
         if (!response.ok) {
             val message = response.error?.message ?: "Meeting point delete failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun aiInfo(
+        token: String
+    ): Pair<AiUsageStats, List<LearnedPattern>> {
+        val response = api.aiInfo(bearer(token))
+
+        if (!response.ok) {
+            val message = response.error?.message ?: "AI information load failed"
+            throw IllegalStateException(message)
+        }
+
+        return Pair(
+            response.usage ?: AiUsageStats(),
+            response.learnedPatterns
+        )
+    }
+
+    suspend fun updateLearnedPattern(
+        token: String,
+        patternId: Long,
+        action: String
+    ) {
+        require(action in setOf("approve", "reject", "delete")) {
+            "Unsupported learned-pattern action"
+        }
+
+        val response = api.updateLearnedPattern(
+            bearer(token),
+            patternId,
+            action
+        )
+
+        if (!response.ok) {
+            val message = response.error?.message ?: "Learned-pattern action failed"
             throw IllegalStateException(message)
         }
     }
@@ -381,6 +450,99 @@ class AdminRepository(
                 else -> element.toString()
             }
             entry.key to value
+        }
+    }
+
+    // ADMIN_SUPERADMIN_REPOSITORY_V1
+    suspend fun currentAdmin(token: String) =
+        api.me("Bearer $token").admin
+
+    suspend fun superadminOverview(
+        token: String
+    ): SuperadminOverviewResponse {
+        val response = api.superadminOverview("Bearer $token")
+        if (!response.ok) {
+            throw IllegalStateException(
+                response.error?.message ?: "Superadmin data request failed"
+            )
+        }
+        return response
+    }
+
+    suspend fun createManagedAdmin(
+        token: String,
+        username: String,
+        email: String,
+        password: String,
+        role: String
+    ): SuperadminOverviewResponse {
+        val response = api.createManagedAdmin(
+            "Bearer $token",
+            CreateManagedAdminRequest(
+                username = username,
+                email = email,
+                password = password,
+                role = role
+            )
+        )
+        if (!response.ok) {
+            throw IllegalStateException(
+                response.error?.message ?: "Administrator creation failed"
+            )
+        }
+        return response
+    }
+
+    suspend fun toggleManagedAdmin(
+        token: String,
+        adminId: Long
+    ): SuperadminOverviewResponse {
+        val response = api.toggleManagedAdmin(
+            "Bearer $token",
+            adminId
+        )
+        if (!response.ok) {
+            throw IllegalStateException(
+                response.error?.message ?: "Administrator access update failed"
+            )
+        }
+        return response
+    }
+
+    suspend fun deleteManagedAdmin(
+        token: String,
+        adminId: Long
+    ): SuperadminOverviewResponse {
+        val response = api.deleteManagedAdmin(
+            "Bearer $token",
+            adminId
+        )
+        if (!response.ok) {
+            throw IllegalStateException(
+                response.error?.message ?: "Administrator deletion failed"
+            )
+        }
+        return response
+    }
+
+    suspend fun changeAdminPassword(
+        token: String,
+        currentPassword: String,
+        newPassword: String,
+        confirmPassword: String
+    ) {
+        val response = api.changeAdminPassword(
+            "Bearer $token",
+            ChangeAdminPasswordRequest(
+                currentPassword = currentPassword,
+                newPassword = newPassword,
+                confirmPassword = confirmPassword
+            )
+        )
+        if (!response.ok) {
+            throw IllegalStateException(
+                response.error?.message ?: "Password change failed"
+            )
         }
     }
 

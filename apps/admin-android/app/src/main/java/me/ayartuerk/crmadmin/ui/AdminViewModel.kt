@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import me.ayartuerk.crmadmin.api.ApiClient
+import me.ayartuerk.crmadmin.api.AiUsageStats
+import me.ayartuerk.crmadmin.api.LearnedPattern
 import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.CustomerLocation
@@ -17,6 +19,7 @@ import me.ayartuerk.crmadmin.api.CustomerMessage
 import me.ayartuerk.crmadmin.api.CustomerRequest
 import me.ayartuerk.crmadmin.api.DashboardResponse
 import me.ayartuerk.crmadmin.api.MeetingPoint
+import me.ayartuerk.crmadmin.api.MeetingPointLocationSearchResult
 import me.ayartuerk.crmadmin.api.OpenRequest
 import me.ayartuerk.crmadmin.api.Product
 import me.ayartuerk.crmadmin.api.ProductCategory
@@ -37,6 +40,9 @@ enum class AdminScreen {
     CUSTOMER_DETAIL,
     OPEN_REQUESTS,
     MEETING_POINTS,
+    AI_INFO,
+    SUPERADMIN,
+    CHANGE_PASSWORD,
     SETTINGS,
     MORE
 }
@@ -62,7 +68,19 @@ data class AdminUiState(
     val openRequests: List<OpenRequest> = emptyList(),
     val lastOpenRequestAction: String? = null,
     val meetingPoints: List<MeetingPoint> = emptyList(),
+    val meetingPointSearchResults: List<MeetingPointLocationSearchResult> = emptyList(),
+    val meetingPointSearchLoading: Boolean = false,
+    val meetingPointSearchAttempted: Boolean = false,
     val lastMeetingPointAction: String? = null,
+    val aiUsageStats: AiUsageStats? = null,
+    val learnedPatterns: List<LearnedPattern> = emptyList(),
+    val currentAdminUsername: String = "",
+    val currentAdminRole: String = "admin",
+    val isSuperadmin: Boolean = false,
+    val managedAdmins: List<me.ayartuerk.crmadmin.api.ManagedAdmin> = emptyList(),
+    val adminAuditLogs: List<me.ayartuerk.crmadmin.api.AdminAuditLog> = emptyList(),
+    val lastAdminAction: String? = null,
+    val passwordChangeNotice: String? = null,
     val lastProductAction: String? = null,
     val settings: Map<String, String> = emptyMap(),
     val lastSettingsAction: String? = null,
@@ -578,6 +596,64 @@ fun showDashboard() {
         }
     }
 
+    // CUSTOMER_ACTIONS_V1
+    fun sendCustomerMessage(customerId: Long, message: String) {
+        val token = _state.value.token ?: return
+        val cleaned = message.trim()
+
+        if (cleaned.isBlank()) {
+            _state.value = _state.value.copy(error = "Message is required")
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastReplySent = null)
+
+            runCatching {
+                repository.replyToCustomer(token, customerId, cleaned)
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    lastReplySent = "Reply sent"
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Message could not be sent"
+                )
+            }
+        }
+    }
+
+    fun deleteCustomer(customerId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null, lastReplySent = null)
+
+            runCatching {
+                repository.deleteCustomer(token, customerId)
+                repository.customers(token)
+            }.onSuccess { customers ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    customers = customers,
+                    selectedCustomer = null,
+                    customerMessages = emptyList(),
+                    customerRequests = emptyList(),
+                    customerLocations = emptyList(),
+                    replyMessage = "",
+                    screen = AdminScreen.CUSTOMERS
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Customer deletion failed"
+                )
+            }
+        }
+    }
+
     fun showOpenRequests() {
         _state.value = _state.value.copy(
             screen = AdminScreen.OPEN_REQUESTS,
@@ -612,11 +688,13 @@ fun showDashboard() {
             runCatching {
                 repository.updateOpenRequestStatus(token, requestId, status)
             }.onSuccess {
+                val selectedCustomerId = _state.value.selectedCustomer?.id
                 _state.value = _state.value.copy(
                     loading = false,
                     lastOpenRequestAction = "Request #$requestId updated to $status"
                 )
                 loadOpenRequests()
+                selectedCustomerId?.let(::showCustomerDetail)
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Open request update failed")
             }
@@ -668,6 +746,9 @@ fun showDashboard() {
             screen = AdminScreen.MEETING_POINTS,
             selectedOrder = null,
             selectedCustomer = null,
+            meetingPointSearchResults = emptyList(),
+            meetingPointSearchLoading = false,
+            meetingPointSearchAttempted = false,
             lastMeetingPointAction = null
         )
         loadMeetingPoints()
@@ -685,6 +766,45 @@ fun showDashboard() {
                 _state.value = _state.value.copy(loading = false, meetingPoints = meetingPoints)
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting points failed")
+            }
+        }
+    }
+
+    fun searchMeetingPointLocations(query: String) {
+        val token = _state.value.token ?: return
+        val cleaned = query.trim()
+
+        if (cleaned.isBlank()) {
+            _state.value = _state.value.copy(
+                meetingPointSearchResults = emptyList(),
+                meetingPointSearchLoading = false,
+                meetingPointSearchAttempted = false
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                meetingPointSearchLoading = true,
+                meetingPointSearchAttempted = false,
+                error = null
+            )
+
+            runCatching {
+                repository.searchMeetingPointLocations(token, cleaned)
+            }.onSuccess { locations ->
+                _state.value = _state.value.copy(
+                    meetingPointSearchResults = locations,
+                    meetingPointSearchLoading = false,
+                    meetingPointSearchAttempted = true
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    meetingPointSearchResults = emptyList(),
+                    meetingPointSearchLoading = false,
+                    meetingPointSearchAttempted = true,
+                    error = it.message ?: "Location search failed"
+                )
             }
         }
     }
@@ -737,14 +857,14 @@ fun showDashboard() {
         }
     }
 
-    fun setPreferredMeetingPoint(pointId: Long) {
+    fun setPreferredMeetingPoint(pointId: Long, isPreferred: Boolean) {
         val token = _state.value.token ?: return
 
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null, lastMeetingPointAction = null)
 
             runCatching {
-                repository.setPreferredMeetingPoint(token, pointId)
+                repository.setPreferredMeetingPoint(token, pointId, isPreferred)
                 repository.meetingPoints(token)
             }.onSuccess { meetingPoints ->
                 _state.value = _state.value.copy(
@@ -775,6 +895,310 @@ fun showDashboard() {
                 )
             }.onFailure {
                 _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting point delete failed")
+            }
+        }
+    }
+
+    fun showAiInfo() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.AI_INFO,
+            selectedOrder = null,
+            selectedCustomer = null
+        )
+        loadAiInfo()
+    }
+
+    fun loadAiInfo() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.aiInfo(token)
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    aiUsageStats = result.first,
+                    learnedPatterns = result.second
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "AI information load failed"
+                )
+            }
+        }
+    }
+
+    fun updateLearnedPattern(patternId: Long, action: String) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.updateLearnedPattern(
+                    token,
+                    patternId,
+                    action
+                )
+                repository.aiInfo(token)
+            }.onSuccess { result ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    aiUsageStats = result.first,
+                    learnedPatterns = result.second
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Learned-pattern action failed"
+                )
+            }
+        }
+    }
+
+    // ADMIN_SUPERADMIN_VIEWMODEL_V1
+    fun loadCurrentAdmin() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            runCatching {
+                repository.currentAdmin(token)
+            }.onSuccess { admin ->
+                if (admin != null) {
+                    _state.value = _state.value.copy(
+                        currentAdminUsername = admin.username.orEmpty(),
+                        currentAdminRole = admin.role ?: "admin",
+                        isSuperadmin = admin.isSuperadmin
+                    )
+                }
+            }
+        }
+    }
+
+    fun showSuperadmin() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.SUPERADMIN,
+            error = null,
+            lastAdminAction = null
+        )
+        loadSuperadmin()
+    }
+
+    fun showChangePassword() {
+        _state.value = _state.value.copy(
+            screen = AdminScreen.CHANGE_PASSWORD,
+            error = null,
+            passwordChangeNotice = null
+        )
+    }
+
+    fun loadSuperadmin() {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.superadminOverview(token)
+            }.onSuccess(::applySuperadminOverview)
+             .onFailure {
+                 _state.value = _state.value.copy(
+                     loading = false,
+                     error = it.message ?: "Superadmin data request failed"
+                 )
+             }
+        }
+    }
+
+    private fun applySuperadminOverview(
+        response: me.ayartuerk.crmadmin.api.SuperadminOverviewResponse
+    ) {
+        val current = response.currentAdmin
+        _state.value = _state.value.copy(
+            loading = false,
+            currentAdminUsername =
+                current?.username ?: _state.value.currentAdminUsername,
+            currentAdminRole =
+                current?.role ?: _state.value.currentAdminRole,
+            isSuperadmin =
+                current?.isSuperadmin ?: _state.value.isSuperadmin,
+            managedAdmins = response.admins,
+            adminAuditLogs = response.auditLogs,
+            error = null
+        )
+    }
+
+    fun createManagedAdmin(
+        username: String,
+        email: String,
+        password: String,
+        role: String
+    ) {
+        val token = _state.value.token ?: return
+        val cleanedUsername = username.trim()
+        val cleanedEmail = email.trim()
+
+        if (cleanedUsername.isBlank() ||
+            cleanedEmail.isBlank() ||
+            password.isBlank()
+        ) {
+            _state.value = _state.value.copy(
+                error = "Username, email address and password are required."
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                lastAdminAction = null
+            )
+
+            runCatching {
+                repository.createManagedAdmin(
+                    token,
+                    cleanedUsername,
+                    cleanedEmail,
+                    password,
+                    role
+                )
+            }.onSuccess {
+                applySuperadminOverview(it)
+                _state.value = _state.value.copy(
+                    lastAdminAction = "Administrator created."
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Administrator creation failed"
+                )
+            }
+        }
+    }
+
+    fun toggleManagedAdmin(adminId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                lastAdminAction = null
+            )
+
+            runCatching {
+                repository.toggleManagedAdmin(token, adminId)
+            }.onSuccess {
+                applySuperadminOverview(it)
+                _state.value = _state.value.copy(
+                    lastAdminAction = "Administrator access updated."
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Administrator access update failed"
+                )
+            }
+        }
+    }
+
+    fun deleteManagedAdmin(adminId: Long) {
+        val token = _state.value.token ?: return
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                lastAdminAction = null
+            )
+
+            runCatching {
+                repository.deleteManagedAdmin(token, adminId)
+            }.onSuccess {
+                applySuperadminOverview(it)
+                _state.value = _state.value.copy(
+                    lastAdminAction = "Administrator credential deleted."
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Administrator deletion failed"
+                )
+            }
+        }
+    }
+
+    fun submitPasswordChange(
+        currentPassword: String,
+        newPassword: String,
+        confirmPassword: String
+    ) {
+        val token = _state.value.token ?: return
+
+        if (currentPassword.isBlank() ||
+            newPassword.isBlank() ||
+            confirmPassword.isBlank()
+        ) {
+            _state.value = _state.value.copy(
+                error = "All password fields are required."
+            )
+            return
+        }
+
+        if (newPassword != confirmPassword) {
+            _state.value = _state.value.copy(
+                error = "The new passwords do not match."
+            )
+            return
+        }
+
+        if (newPassword.length < 8) {
+            _state.value = _state.value.copy(
+                error = "The new password must contain at least 8 characters."
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                passwordChangeNotice = null
+            )
+
+            runCatching {
+                repository.changeAdminPassword(
+                    token,
+                    currentPassword,
+                    newPassword,
+                    confirmPassword
+                )
+            }.onSuccess {
+                tokenStore.clearToken()
+                _state.value = AdminUiState(
+                    loggedIn = false,
+                    loading = false,
+                    recoveryNotice =
+                        "Password changed. Sign in with your new password."
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = it.message ?: "Password change failed"
+                )
             }
         }
     }

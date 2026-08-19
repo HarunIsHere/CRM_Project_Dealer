@@ -46,6 +46,7 @@ const AdminSharedTexts = {
     "preferred": "Preferred",
     "open_map": "Open map",
     "set_preferred": "Set Preferred",
+    "unset_preferred": "Unset Preferred",
     "add_meeting_point": "Add Meeting Point",
     "search_location": "Search location...",
     "search": "Search",
@@ -378,7 +379,9 @@ const AdminSharedTexts = {
     "auth_recovery_success_body": "Your password was changed. You can now sign in with your new password.",
     "auth_recovery_back_to_login": "Back to Login",
     "role_admin": "Administrator",
-    "role_superadmin": "Superadmin"
+    "role_superadmin": "Superadmin",
+    "meeting_point_help": "If only one location is active, the customer receives that location directly. If multiple locations are active, the customer can choose from all active locations; the preferred location is marked as preferred.",
+    "no_locations_found": "No locations found."
   },
   "de": {
     "title": "CRM Delivery Admin",
@@ -426,6 +429,7 @@ const AdminSharedTexts = {
     "preferred": "Bevorzugt",
     "open_map": "Karte öffnen",
     "set_preferred": "Als bevorzugt setzen",
+    "unset_preferred": "Bevorzugung aufheben",
     "add_meeting_point": "Treffpunkt hinzufügen",
     "search_location": "Standort suchen...",
     "search": "Suchen",
@@ -758,7 +762,9 @@ const AdminSharedTexts = {
     "auth_recovery_success_body": "Ihr Passwort wurde geändert. Sie können sich jetzt mit Ihrem neuen Passwort anmelden.",
     "auth_recovery_back_to_login": "Zurück zur Anmeldung",
     "role_admin": "Administrator",
-    "role_superadmin": "Superadmin"
+    "role_superadmin": "Superadmin",
+    "meeting_point_help": "Wenn nur ein Standort aktiv ist, erhält der Kunde diesen Standort direkt. Wenn mehrere Standorte aktiv sind, kann der Kunde aus allen aktiven Standorten wählen; der bevorzugte Standort wird als bevorzugt markiert.",
+    "no_locations_found": "Keine Standorte gefunden."
   },
   "tr": {
     "title": "CRM Delivery Admin",
@@ -806,6 +812,7 @@ const AdminSharedTexts = {
     "preferred": "Tercih Edilen",
     "open_map": "Haritayı aç",
     "set_preferred": "Tercih Edilen Yap",
+    "unset_preferred": "Tercihi Kaldır",
     "add_meeting_point": "Buluşma Noktası Ekle",
     "search_location": "Konum ara...",
     "search": "Ara",
@@ -1138,7 +1145,9 @@ const AdminSharedTexts = {
     "auth_recovery_success_body": "Şifreniz değiştirildi. Artık yeni şifrenizle oturum açabilirsiniz.",
     "auth_recovery_back_to_login": "Girişe dön",
     "role_admin": "Yönetici",
-    "role_superadmin": "Süper yönetici"
+    "role_superadmin": "Süper yönetici",
+    "meeting_point_help": "Yalnızca bir konum aktifse müşteriye doğrudan o konum gönderilir. Birden fazla konum aktifse müşteri tüm aktif konumlar arasından seçim yapabilir; tercih edilen konum işaretlenir.",
+    "no_locations_found": "Konum bulunamadı."
   },
   "ar": {
     "title": "لوحة إدارة CRM Delivery",
@@ -1186,6 +1195,7 @@ const AdminSharedTexts = {
     "preferred": "مفضل",
     "open_map": "فتح الخريطة",
     "set_preferred": "تعيين كمفضل",
+    "unset_preferred": "إلغاء التفضيل",
     "add_meeting_point": "إضافة نقطة لقاء",
     "search_location": "ابحث عن موقع...",
     "search": "بحث",
@@ -1518,7 +1528,9 @@ const AdminSharedTexts = {
     "auth_recovery_success_body": "تم تغيير كلمة مرورك. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.",
     "auth_recovery_back_to_login": "العودة إلى تسجيل الدخول",
     "role_admin": "مسؤول",
-    "role_superadmin": "مسؤول أعلى"
+    "role_superadmin": "مسؤول أعلى",
+    "meeting_point_help": "إذا كان هناك موقع نشط واحد فقط، فسيحصل العميل على ذلك الموقع مباشرة. وإذا كانت هناك عدة مواقع نشطة، فيمكن للعميل الاختيار من بينها؛ ويُميّز الموقع المفضل بوضوح.",
+    "no_locations_found": "لم يتم العثور على مواقع."
   },
   "ru": {
     "title": "CRM Delivery Admin",
@@ -1566,6 +1578,7 @@ const AdminSharedTexts = {
     "preferred": "Предпочтительно",
     "open_map": "Открыть карту",
     "set_preferred": "Сделать предпочтительным",
+    "unset_preferred": "Убрать предпочтение",
     "add_meeting_point": "Добавить точку встречи",
     "search_location": "Искать локацию...",
     "search": "Поиск",
@@ -1898,7 +1911,9 @@ const AdminSharedTexts = {
     "auth_recovery_success_body": "Ваш пароль изменён. Теперь вы можете войти с новым паролем.",
     "auth_recovery_back_to_login": "Вернуться ко входу",
     "role_admin": "Администратор",
-    "role_superadmin": "Суперадминистратор"
+    "role_superadmin": "Суперадминистратор",
+    "meeting_point_help": "Если активна только одна локация, клиент получает её напрямую. Если активно несколько локаций, клиент может выбрать любую из них; предпочтительная локация отмечается отдельно.",
+    "no_locations_found": "Локации не найдены."
   }
 }
 ;

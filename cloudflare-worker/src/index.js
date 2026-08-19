@@ -4111,11 +4111,16 @@ function renderAdminDashboard(data, section = "dashboard") {
           <input type="text" name="google_maps_link" value="${escapeHtml(point.google_maps_link)}" size="50" required>
           <br><a href="${escapeHtml(point.google_maps_link)}" target="_blank">${ui.open_map}</a>
         </td>
-        <td>${point.is_default ? "True" : "False"}</td>
+        <td>${Number(point.is_default) === 1 ? ui.true_value : ui.false_value}</td>
         <td><input type="checkbox" name="is_active" ${point.is_active ? "checked" : ""}></td>
         <td><button type="submit">${ui.save}</button>
       </form>
-      ${point.is_active ? `<form action="/admin/meeting-points/${point.id}/default" method="post" style="display:inline;"><button type="submit">${ui.set_preferred}</button></form>` : ""}
+      ${point.is_active ? `
+        <form action="/admin/meeting-points/${point.id}/default" method="post" style="display:inline;">
+          <input type="hidden" name="is_default" value="${Number(point.is_default) === 1 ? "0" : "1"}">
+          <button type="submit">${Number(point.is_default) === 1 ? ui.unset_preferred : ui.set_preferred}</button>
+        </form>
+      ` : ""}
       <form action="/admin/meeting-points/${point.id}/delete" method="post" style="display:inline;">
         <button type="submit">${ui.delete}</button>
       </form></td>
@@ -6926,11 +6931,43 @@ async function handleUpdateMeetingPoint(request, env, pointId) {
   return redirectResponse("/admin");
 }
 
-async function handleSetPreferredMeetingPoint(env, pointId) {
-  await env.DB.prepare("UPDATE meeting_points SET is_default = 1, is_active = 1 WHERE id = ?").bind(pointId).run();
-  const point = await env.DB.prepare("SELECT * FROM meeting_points WHERE id = ?").bind(pointId).first();
-  if (point) await notifyCustomersAboutLocationChange(env, point);
-  return redirectResponse("/admin");
+async function handleSetPreferredMeetingPoint(request, env, pointId) {
+  const form = await request.formData();
+  const requestedValue = String(form.get("is_default") ?? "").trim();
+
+  if (requestedValue !== "0" && requestedValue !== "1") {
+    return jsonResponse({ error: "Invalid preferred status" }, 400);
+  }
+
+  const point = await env.DB.prepare(
+    "SELECT id, name, address, google_maps_link, is_default, is_active FROM meeting_points WHERE id = ?"
+  ).bind(pointId).first();
+
+  if (!point) {
+    return jsonResponse({ error: "Meeting point not found" }, 404);
+  }
+
+  const isDefault = requestedValue === "1";
+
+  if (isDefault) {
+    await env.DB.prepare(
+      "UPDATE meeting_points SET is_default = 1, is_active = 1 WHERE id = ?"
+    ).bind(pointId).run();
+
+    if (Number(point.is_default) !== 1) {
+      await notifyCustomersAboutLocationChange(env, {
+        ...point,
+        is_default: 1,
+        is_active: 1
+      });
+    }
+  } else {
+    await env.DB.prepare(
+      "UPDATE meeting_points SET is_default = 0 WHERE id = ?"
+    ).bind(pointId).run();
+  }
+
+  return redirectResponse("/admin/meeting-points");
 }
 
 async function handleDeleteMeetingPoint(env, pointId) {
@@ -9518,6 +9555,284 @@ async function handleApiAdminLogout(request, env) {
 
 
 
+// ADMIN_SUPERADMIN_API_V1
+function mapApiManagedAdmin(admin) {
+  const parsedId = Number(admin?.id);
+  return {
+    id: Number.isFinite(parsedId) ? parsedId : null,
+    username: String(admin?.username || ""),
+    email: String(admin?.email || ""),
+    role: String(admin?.role || "admin"),
+    is_active: Number(admin?.is_active) === 1,
+    source: String(admin?.source || ""),
+    created_at: String(admin?.created_at || ""),
+    last_login_at: String(admin?.last_login_at || ""),
+    protected:
+      admin?.protected === true ||
+      Number(admin?.is_protected) === 1
+  };
+}
+
+function mapApiAdminAuditLog(row) {
+  return {
+    id: Number(row?.id || 0),
+    username: String(row?.admin_username || ""),
+    role: String(row?.admin_role || ""),
+    action_type: String(row?.action_type || ""),
+    action_detail: String(row?.action_detail || ""),
+    method: String(row?.method || ""),
+    path: String(row?.path || ""),
+    ip: String(row?.ip || ""),
+    user_agent: String(row?.user_agent || ""),
+    created_at: String(row?.created_at || "")
+  };
+}
+
+async function buildApiSuperadminOverview(env, session) {
+  const [admins, auditLogs] = await Promise.all([
+    getAdminUsersForSuperadmin(env),
+    getAdminAuditLogs(env)
+  ]);
+
+  return {
+    current_admin: {
+      username: String(session.username || ""),
+      role: String(session.role || ""),
+      is_superadmin: true
+    },
+    admins: admins.map(mapApiManagedAdmin),
+    audit_logs: auditLogs.map(mapApiAdminAuditLog)
+  };
+}
+
+async function requireApiSuperadmin(request, env) {
+  const session = await getApiAdminSession(request, env);
+  if (!session) {
+    return {
+      response: apiError(
+        "authentication_required",
+        "Authentication is required.",
+        401
+      )
+    };
+  }
+
+  if (!session.is_superadmin) {
+    return {
+      response: apiError(
+        "superadmin_required",
+        "Superadmin access is required.",
+        403
+      )
+    };
+  }
+
+  return { session };
+}
+
+async function handleApiAdminSuperadminOverview(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const auth = await requireApiSuperadmin(request, env);
+  if (auth.response) return auth.response;
+
+  return apiOk({
+    ok: true,
+    ...(await buildApiSuperadminOverview(env, auth.session))
+  });
+}
+
+async function handleApiAdminSuperadminCreate(request, env) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const auth = await requireApiSuperadmin(request, env);
+  if (auth.response) return auth.response;
+
+  const body = await request.json().catch(() => null);
+  const username = String(body?.username || "").trim();
+  const email = String(body?.email || "").trim();
+  const password = String(body?.password || "");
+  const role = String(body?.role || "admin").trim().toLowerCase();
+
+  if (!username || !email || !password) {
+    return apiError(
+      "invalid_request",
+      "Username, email address and password are required.",
+      400
+    );
+  }
+
+  if (!["admin", "superadmin"].includes(role)) {
+    return apiError("invalid_role", "Role must be admin or superadmin.", 400);
+  }
+
+  if (password.length < 8) {
+    return apiError(
+      "weak_password",
+      "Password must contain at least 8 characters.",
+      400
+    );
+  }
+
+  const normalizedUsername = username.toLowerCase();
+  const before = await env.DB.prepare(
+    "SELECT id FROM admin_users WHERE username_normalized = ? LIMIT 1"
+  ).bind(normalizedUsername).first();
+
+  if (before) {
+    return apiError(
+      "username_exists",
+      "An administrator with this username already exists.",
+      409
+    );
+  }
+
+  const form = new FormData();
+  form.set("username", username);
+  form.set("email", email);
+  form.set("password", password);
+  form.set("role", role);
+
+  const headers = new Headers(request.headers);
+  headers.delete("content-type");
+  headers.delete("content-length");
+
+  const forwarded = new Request(request.url, {
+    method: "POST",
+    headers,
+    body: form
+  });
+
+  await handleSuperadminCreateAdmin(
+    forwarded,
+    env,
+    auth.session
+  );
+
+  const created = await env.DB.prepare(
+    "SELECT id FROM admin_users WHERE username_normalized = ? LIMIT 1"
+  ).bind(normalizedUsername).first();
+
+  if (!created) {
+    return apiError(
+      "admin_create_failed",
+      "The administrator could not be created.",
+      409
+    );
+  }
+
+  return apiOk({
+    ok: true,
+    ...(await buildApiSuperadminOverview(env, auth.session))
+  });
+}
+
+async function handleApiAdminSuperadminToggle(request, env, adminId) {
+  if (!["POST", "PATCH"].includes(request.method)) {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const auth = await requireApiSuperadmin(request, env);
+  if (auth.response) return auth.response;
+
+  const numericId = Number(adminId);
+  if (!Number.isInteger(numericId) || numericId < 1) {
+    return apiError("invalid_admin_id", "Invalid administrator ID.", 400);
+  }
+
+  const before = await env.DB.prepare(
+    "SELECT id, is_active FROM admin_users WHERE id = ? LIMIT 1"
+  ).bind(numericId).first();
+
+  if (!before) {
+    return apiError("admin_not_found", "Administrator not found.", 404);
+  }
+
+  const forwarded = new Request(request.url, {
+    method: "POST",
+    headers: request.headers
+  });
+
+  await handleSuperadminToggleAdmin(
+    forwarded,
+    env,
+    auth.session,
+    numericId
+  );
+
+  const after = await env.DB.prepare(
+    "SELECT id, is_active FROM admin_users WHERE id = ? LIMIT 1"
+  ).bind(numericId).first();
+
+  if (!after || Number(after.is_active) === Number(before.is_active)) {
+    return apiError(
+      "admin_toggle_rejected",
+      "The administrator access state could not be changed.",
+      409
+    );
+  }
+
+  return apiOk({
+    ok: true,
+    ...(await buildApiSuperadminOverview(env, auth.session))
+  });
+}
+
+async function handleApiAdminSuperadminDelete(request, env, adminId) {
+  if (request.method !== "DELETE") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const auth = await requireApiSuperadmin(request, env);
+  if (auth.response) return auth.response;
+
+  const numericId = Number(adminId);
+  if (!Number.isInteger(numericId) || numericId < 1) {
+    return apiError("invalid_admin_id", "Invalid administrator ID.", 400);
+  }
+
+  const before = await env.DB.prepare(
+    "SELECT id FROM admin_users WHERE id = ? LIMIT 1"
+  ).bind(numericId).first();
+
+  if (!before) {
+    return apiError("admin_not_found", "Administrator not found.", 404);
+  }
+
+  const forwarded = new Request(request.url, {
+    method: "POST",
+    headers: request.headers
+  });
+
+  await handleSuperadminDeleteAdmin(
+    forwarded,
+    env,
+    auth.session,
+    numericId
+  );
+
+  const after = await env.DB.prepare(
+    "SELECT id FROM admin_users WHERE id = ? LIMIT 1"
+  ).bind(numericId).first();
+
+  if (after) {
+    return apiError(
+      "admin_delete_rejected",
+      "The administrator credential could not be deleted.",
+      409
+    );
+  }
+
+  return apiOk({
+    ok: true,
+    ...(await buildApiSuperadminOverview(env, auth.session))
+  });
+}
+
 async function handleApiAdminPasswordChange(request, env) {
   if (request.method !== "POST" && request.method !== "PATCH" && request.method !== "PUT") {
     return apiError("method_not_allowed", "Method not allowed.", 405);
@@ -10403,6 +10718,168 @@ async function handleApiAdminOrderReturn(request, env, orderId) {
 }
 
 
+
+function mapLearnedPatternForApi(pattern) {
+  return {
+    id: Number(pattern.id || 0),
+    pattern_text: String(
+      pattern.pattern ||
+      pattern.pattern_text ||
+      pattern.original_pattern ||
+      pattern.normalized_pattern ||
+      ""
+    ),
+    intent: String(pattern.intent || ""),
+    product_id: pattern.product_id == null ? null : Number(pattern.product_id),
+    product_name: String(pattern.product_name || ""),
+    response_text: String(pattern.response_text || pattern.response || ""),
+    status: String(pattern.status || "pending"),
+    hit_count: Number(pattern.hit_count || pattern.hits || 0)
+  };
+}
+
+async function handleApiAdminAiInfo(request, env) {
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError(
+      "unauthorized",
+      "Valid admin bearer token is required.",
+      401
+    );
+  }
+
+  const [usage, learnedPatterns] = await Promise.all([
+    getAiUsageStats(env),
+    getLearnedPatternsForAdmin(env)
+  ]);
+
+  const patterns = (learnedPatterns || []).map(mapLearnedPatternForApi);
+
+  return apiOk({
+    usage: {
+      last_hour: Number(usage.lastHour || 0),
+      last_24_hours: Number(usage.last24Hours || 0),
+      last_week: Number(usage.lastWeek || 0),
+      last_month: Number(usage.lastMonth || 0),
+      total: Number(usage.total || 0)
+    },
+    learned_patterns: patterns,
+    count: patterns.length
+  });
+}
+
+async function handleApiAdminLearnedPatternAction(
+  request,
+  env,
+  patternId,
+  action
+) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError(
+      "unauthorized",
+      "Valid admin bearer token is required.",
+      401
+    );
+  }
+
+  if (
+    !Number.isSafeInteger(patternId) ||
+    patternId <= 0 ||
+    !["approve", "reject", "delete"].includes(action)
+  ) {
+    return apiError(
+      "invalid_pattern_action",
+      "The learned-pattern action is invalid.",
+      400
+    );
+  }
+
+  const pattern = await env.DB.prepare(
+    `
+    SELECT lp.*, p.name AS product_name
+    FROM learned_patterns lp
+    LEFT JOIN products p ON p.id = lp.product_id
+    WHERE lp.id = ?
+    LIMIT 1
+    `
+  ).bind(patternId).first();
+
+  if (!pattern) {
+    return apiError(
+      "learned_pattern_not_found",
+      "Learned pattern was not found.",
+      404
+    );
+  }
+
+  if (action === "approve") {
+    await env.DB.prepare(
+      `
+      UPDATE learned_patterns
+      SET status = 'approved',
+          approved_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `
+    ).bind(patternId).run();
+
+    const alias = String(pattern.normalized_pattern || "").trim();
+
+    if (
+      pattern.intent === "product_specific" &&
+      pattern.product_id &&
+      alias
+    ) {
+      const existingAlias = await env.DB.prepare(
+        `
+        SELECT 1 AS found
+        FROM product_aliases
+        WHERE product_id = ?
+          AND lower(alias) = lower(?)
+        LIMIT 1
+        `
+      ).bind(pattern.product_id, alias).first();
+
+      if (!existingAlias) {
+        await env.DB.prepare(
+          "INSERT INTO product_aliases (product_id, alias) VALUES (?, ?)"
+        ).bind(pattern.product_id, alias).run();
+      }
+    }
+  } else if (action === "reject") {
+    await env.DB.prepare(
+      "UPDATE learned_patterns SET status = 'rejected' WHERE id = ?"
+    ).bind(patternId).run();
+  } else {
+    await env.DB.prepare(
+      "DELETE FROM learned_patterns WHERE id = ?"
+    ).bind(patternId).run();
+  }
+
+  await logAdminAction(
+    env,
+    request,
+    session,
+    `api_learned_pattern_${action}`,
+    `pattern:${patternId}`
+  );
+
+  return apiOk({
+    pattern_id: patternId,
+    action
+  });
+}
+
 async function handleApiAdminOpenRequests(request, env) {
   if (request.method !== "GET") {
     return apiError("method_not_allowed", "Method not allowed.", 405);
@@ -10811,6 +11288,35 @@ function mapMeetingPointForApi(point) {
   };
 }
 
+async function handleApiAdminLocationSearch(request, env) {
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  if (request.method !== "GET") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const query = new URL(request.url).searchParams.get("query")?.trim() || "";
+
+  if (!query) {
+    return apiOk({
+      locations: [],
+      count: 0
+    });
+  }
+
+  const locations = await searchLocations(env, query);
+
+  return apiOk({
+    locations,
+    count: locations.length
+  });
+}
+
+
 async function handleApiAdminMeetingPoints(request, env) {
   const session = await requireApiAdminSession(request, env);
 
@@ -10899,23 +11405,41 @@ async function handleApiAdminMeetingPointDetail(request, env, pointId) {
     const name = String(body.name ?? point.name ?? "").trim();
     const address = String(body.address ?? point.address ?? "").trim();
     const googleMapsLink = String(body.google_maps_link ?? point.google_maps_link ?? "").trim();
-    const isActive = body.is_active === undefined ? Number(point.is_active) : (body.is_active ? 1 : 0);
-    const makeDefault = body.is_default === true;
+    const requestedActive = body.is_active === undefined ? Number(point.is_active) : (body.is_active ? 1 : 0);
+    const hasDefaultUpdate = Object.prototype.hasOwnProperty.call(body, "is_default");
+
+    if (hasDefaultUpdate && typeof body.is_default !== "boolean") {
+      return apiError("invalid_preferred_status", "Preferred status must be a boolean.", 400);
+    }
+
+    const requestedDefault = hasDefaultUpdate
+      ? body.is_default
+      : Number(point.is_default) === 1;
+
+    let isActive = requestedActive;
+    let isDefault = requestedDefault ? 1 : 0;
+
+    if (hasDefaultUpdate && requestedDefault) {
+      isActive = 1;
+    }
+
+    if (!isActive) {
+      isDefault = 0;
+    }
 
     if (!name || !googleMapsLink) {
       return apiError("invalid_meeting_point", "Meeting point name and Google Maps link are required.", 400);
     }
 
     await env.DB.prepare(
-      "UPDATE meeting_points SET name = ?, address = ?, google_maps_link = ?, is_active = ?, is_default = CASE WHEN ? = 0 THEN 0 ELSE is_default END WHERE id = ?"
-    ).bind(name, address, googleMapsLink, isActive, isActive, pointId).run();
+      "UPDATE meeting_points SET name = ?, address = ?, google_maps_link = ?, is_active = ?, is_default = ? WHERE id = ?"
+    ).bind(name, address, googleMapsLink, isActive, isDefault, pointId).run();
 
     if (Number(point.is_default) === 1 && Number(point.is_active) === 1 && !isActive) {
       await notifyCustomersLocationUnavailable(env);
     }
 
-    if (makeDefault) {
-      await env.DB.prepare("UPDATE meeting_points SET is_default = 1, is_active = 1 WHERE id = ?").bind(pointId).run();
+    if (hasDefaultUpdate && isDefault === 1 && Number(point.is_default) !== 1) {
       await notifyCustomersAboutLocationChange(env, {
         id: pointId,
         name,
@@ -12844,8 +13368,56 @@ async function handleApiV1(request, env) {
     return handleApiAdminMe(request, env);
   }
 
+  // ADMIN_SUPERADMIN_API_V1_ROUTES
+  if (url.pathname === "/api/v1/admin/superadmin") {
+    return handleApiAdminSuperadminOverview(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/superadmin/admins") {
+    return handleApiAdminSuperadminCreate(request, env);
+  }
+
+  const superadminToggleMatch = url.pathname.match(
+    /^\/api\/v1\/admin\/superadmin\/admins\/(\d+)\/toggle$/
+  );
+  if (superadminToggleMatch) {
+    return handleApiAdminSuperadminToggle(
+      request,
+      env,
+      superadminToggleMatch[1]
+    );
+  }
+
+  const superadminDeleteMatch = url.pathname.match(
+    /^\/api\/v1\/admin\/superadmin\/admins\/(\d+)$/
+  );
+  if (superadminDeleteMatch) {
+    return handleApiAdminSuperadminDelete(
+      request,
+      env,
+      superadminDeleteMatch[1]
+    );
+  }
+
   if (url.pathname === "/api/v1/admin/dashboard") {
     return handleApiAdminDashboard(request, env);
+  }
+
+  if (url.pathname === "/api/v1/admin/ai-info") {
+    return handleApiAdminAiInfo(request, env);
+  }
+
+  const adminLearnedPatternActionMatch = url.pathname.match(
+    /^\/api\/v1\/admin\/learned-patterns\/(\d+)\/(approve|reject|delete)$/
+  );
+
+  if (adminLearnedPatternActionMatch) {
+    return handleApiAdminLearnedPatternAction(
+      request,
+      env,
+      Number(adminLearnedPatternActionMatch[1]),
+      adminLearnedPatternActionMatch[2]
+    );
   }
 
   if (url.pathname === "/api/v1/admin/orders") {
@@ -12943,6 +13515,10 @@ async function handleApiV1(request, env) {
   const productCategoryDetailMatch = url.pathname.match(/^\/api\/v1\/admin\/product-categories\/(\d+)$/);
   if (productCategoryDetailMatch) {
     return handleApiAdminProductCategoryDetail(request, env, Number(productCategoryDetailMatch[1]));
+  }
+
+  if (url.pathname === "/api/v1/admin/search-location") {
+    return handleApiAdminLocationSearch(request, env);
   }
 
   if (url.pathname === "/api/v1/admin/meeting-points") {
@@ -13207,7 +13783,7 @@ async function routeRequest(request, env, ctx) {
   const pointUpdate = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/update$/);
   if (pointUpdate && request.method === "POST") return handleUpdateMeetingPoint(request, env, Number(pointUpdate[1]));
   const pointDefault = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/default$/);
-  if (pointDefault && request.method === "POST") return handleSetPreferredMeetingPoint(env, Number(pointDefault[1]));
+  if (pointDefault && request.method === "POST") return handleSetPreferredMeetingPoint(request, env, Number(pointDefault[1]));
   const pointDelete = url.pathname.match(/^\/admin\/meeting-points\/(\d+)\/delete$/);
   if (pointDelete && request.method === "POST") return handleDeleteMeetingPoint(env, Number(pointDelete[1]));
 
