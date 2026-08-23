@@ -45,6 +45,7 @@ fun SuperadminManagementScreen(
     var password by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("admin") }
     var roleExpanded by remember { mutableStateOf(false) }
+    val languageCode = resolveAdminLanguage(state.settings["admin_view_language"])
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -168,19 +169,19 @@ fun SuperadminManagementScreen(
             }
         }
 
-        state.error?.takeIf { it.isNotBlank() }?.let { message ->
+        state.error?.let { message ->
             item {
                 Text(
-                    text = message,
+                    text = localizedAdminMessage(message, languageCode).orEmpty(),
                     color = MaterialTheme.colorScheme.error
                 )
             }
         }
 
-        state.lastAdminAction?.takeIf { it.isNotBlank() }?.let { message ->
+        state.lastAdminAction?.let { message ->
             item {
                 Text(
-                    text = message,
+                    text = localizedAdminMessage(message, languageCode).orEmpty(),
                     color = MaterialTheme.colorScheme.primary
                 )
             }
@@ -340,6 +341,7 @@ fun AdminChangePasswordScreen(
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    val languageCode = resolveAdminLanguage(state.settings["admin_view_language"])
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -353,10 +355,10 @@ fun AdminChangePasswordScreen(
             )
         }
 
-        state.error?.takeIf { it.isNotBlank() }?.let { message ->
+        state.error?.let { message ->
             item {
                 Text(
-                    text = message,
+                    text = localizedAdminMessage(message, languageCode).orEmpty(),
                     color = MaterialTheme.colorScheme.error
                 )
             }

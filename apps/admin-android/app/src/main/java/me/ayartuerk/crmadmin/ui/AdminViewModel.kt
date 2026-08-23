@@ -47,6 +47,22 @@ enum class AdminScreen {
     MORE
 }
 
+data class AdminUiMessage(
+    val key: String,
+    val arguments: Map<String, String> = emptyMap(),
+    val localizedArguments: Set<String> = emptySet()
+)
+
+private fun adminItemMessage(
+    key: String,
+    itemKey: String,
+    placeholder: String = "item"
+): AdminUiMessage = AdminUiMessage(
+    key = key,
+    arguments = mapOf(placeholder to itemKey),
+    localizedArguments = setOf(placeholder)
+)
+
 data class AdminUiState(
     val loading: Boolean = true,
     val loggedIn: Boolean = false,
@@ -64,14 +80,14 @@ data class AdminUiState(
     val customerRequests: List<CustomerRequest> = emptyList(),
     val customerLocations: List<CustomerLocation> = emptyList(),
     val replyMessage: String = "",
-    val lastReplySent: String? = null,
+    val lastReplySent: AdminUiMessage? = null,
     val openRequests: List<OpenRequest> = emptyList(),
-    val lastOpenRequestAction: String? = null,
+    val lastOpenRequestAction: AdminUiMessage? = null,
     val meetingPoints: List<MeetingPoint> = emptyList(),
     val meetingPointSearchResults: List<MeetingPointLocationSearchResult> = emptyList(),
     val meetingPointSearchLoading: Boolean = false,
     val meetingPointSearchAttempted: Boolean = false,
-    val lastMeetingPointAction: String? = null,
+    val lastMeetingPointAction: AdminUiMessage? = null,
     val aiUsageStats: AiUsageStats? = null,
     val learnedPatterns: List<LearnedPattern> = emptyList(),
     val currentAdminUsername: String = "",
@@ -79,13 +95,13 @@ data class AdminUiState(
     val isSuperadmin: Boolean = false,
     val managedAdmins: List<me.ayartuerk.crmadmin.api.ManagedAdmin> = emptyList(),
     val adminAuditLogs: List<me.ayartuerk.crmadmin.api.AdminAuditLog> = emptyList(),
-    val lastAdminAction: String? = null,
-    val passwordChangeNotice: String? = null,
-    val lastProductAction: String? = null,
+    val lastAdminAction: AdminUiMessage? = null,
+    val passwordChangeNotice: AdminUiMessage? = null,
+    val lastProductAction: AdminUiMessage? = null,
     val settings: Map<String, String> = emptyMap(),
-    val lastSettingsAction: String? = null,
-    val recoveryNotice: String? = null,
-    val error: String? = null
+    val lastSettingsAction: AdminUiMessage? = null,
+    val recoveryNotice: AdminUiMessage? = null,
+    val error: AdminUiMessage? = null
 )
 
 class AdminViewModel(application: Application) : AndroidViewModel(application) {
@@ -135,7 +151,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 _state.value = AdminUiState(loading = false, loggedIn = true, token = token)
                 loadDashboard()
             }.onFailure {
-                _state.value = AdminUiState(loading = false, loggedIn = false, error = it.message ?: "Login failed")
+                _state.value = AdminUiState(loading = false, loggedIn = false, error = AdminUiMessage("login_failed"))
             }
         }
     }
@@ -143,7 +159,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     fun sendIdentityRecovery(username: String) {
         val cleaned = username.trim()
         if (cleaned.isBlank()) {
-            _state.value = _state.value.copy(recoveryNotice = null, error = "Username is required")
+            _state.value = _state.value.copy(recoveryNotice = null, error = adminItemMessage("required_template", "username", "field"))
             return
         }
 
@@ -155,12 +171,12 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             }.onSuccess {
                 _state.value = _state.value.copy(
                     loading = false,
-                    recoveryNotice = "If the account exists, a recovery email has been sent."
+                    recoveryNotice = AdminUiMessage("recovery_email_sent")
                 )
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Recovery email request failed"
+                    error = AdminUiMessage("operation_failed")
                 )
             }
         }
@@ -192,7 +208,7 @@ fun showDashboard() {
             }.onSuccess { dashboard ->
                 _state.value = _state.value.copy(loading = false, dashboard = dashboard)
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Dashboard failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "dashboard", "error"))
             }
         }
     }
@@ -260,7 +276,7 @@ fun showDashboard() {
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Failed to load orders"
+                    error = adminItemMessage("loading_failed_template", "orders", "error")
                 )
             }
         }
@@ -282,7 +298,7 @@ fun showDashboard() {
             }.onSuccess { order ->
                 _state.value = _state.value.copy(loading = false, selectedOrder = order)
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Order detail failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "order_detail", "error"))
             }
         }
     }
@@ -309,7 +325,7 @@ fun showDashboard() {
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Order detail failed"
+                    error = adminItemMessage("loading_failed_template", "order_detail", "error")
                 )
             }
         }
@@ -359,7 +375,7 @@ fun showDashboard() {
                     products = result.second
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Products failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "products", "error"))
             }
         }
     }
@@ -380,10 +396,10 @@ fun showDashboard() {
                     loading = false,
                     categories = result.first,
                     products = result.second,
-                    lastProductAction = "Product created"
+                    lastProductAction = adminItemMessage("created_template", "product")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Product create failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("create_failed_template", "product"))
             }
         }
     }
@@ -411,10 +427,10 @@ fun showDashboard() {
                     loading = false,
                     categories = result.first,
                     products = result.second,
-                    lastProductAction = "Product updated"
+                    lastProductAction = adminItemMessage("updated_template", "product")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Product update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "product"))
             }
         }
     }
@@ -435,10 +451,10 @@ fun showDashboard() {
                     loading = false,
                     categories = result.first,
                     products = result.second,
-                    lastProductAction = "Product deleted"
+                    lastProductAction = adminItemMessage("deleted_template", "product")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Product delete failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("delete_failed_template", "product"))
             }
         }
     }
@@ -459,10 +475,10 @@ fun showDashboard() {
                     loading = false,
                     categories = result.first,
                     products = result.second,
-                    lastProductAction = "Category created"
+                    lastProductAction = adminItemMessage("created_template", "category")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Category create failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("create_failed_template", "category"))
             }
         }
     }
@@ -483,10 +499,10 @@ fun showDashboard() {
                     loading = false,
                     categories = result.first,
                     products = result.second,
-                    lastProductAction = "Category updated"
+                    lastProductAction = adminItemMessage("updated_template", "category")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Category update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "category"))
             }
         }
     }
@@ -507,10 +523,10 @@ fun showDashboard() {
                     loading = false,
                     categories = result.first,
                     products = result.second,
-                    lastProductAction = "Category deleted"
+                    lastProductAction = adminItemMessage("deleted_template", "category")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Category delete failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("delete_failed_template", "category"))
             }
         }
     }
@@ -531,7 +547,7 @@ fun showDashboard() {
             }.onSuccess { customers ->
                 _state.value = _state.value.copy(loading = false, customers = customers)
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Customers failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "customers", "error"))
             }
         }
     }
@@ -559,7 +575,7 @@ fun showDashboard() {
                     customerLocations = response.locations
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Customer detail failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "customer_detail", "error"))
             }
         }
     }
@@ -574,7 +590,7 @@ fun showDashboard() {
         val message = _state.value.replyMessage.trim()
 
         if (message.isBlank()) {
-            _state.value = _state.value.copy(error = "Reply message is empty")
+            _state.value = _state.value.copy(error = adminItemMessage("required_template", "message", "field"))
             return
         }
 
@@ -587,11 +603,11 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     replyMessage = "",
-                    lastReplySent = "Reply sent"
+                    lastReplySent = AdminUiMessage("reply_sent")
                 )
                 showCustomerDetail(customerId)
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Reply failed")
+                _state.value = _state.value.copy(loading = false, error = AdminUiMessage("operation_failed"))
             }
         }
     }
@@ -602,7 +618,7 @@ fun showDashboard() {
         val cleaned = message.trim()
 
         if (cleaned.isBlank()) {
-            _state.value = _state.value.copy(error = "Message is required")
+            _state.value = _state.value.copy(error = adminItemMessage("required_template", "message", "field"))
             return
         }
 
@@ -614,12 +630,12 @@ fun showDashboard() {
             }.onSuccess {
                 _state.value = _state.value.copy(
                     loading = false,
-                    lastReplySent = "Reply sent"
+                    lastReplySent = AdminUiMessage("reply_sent")
                 )
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Message could not be sent"
+                    error = AdminUiMessage("operation_failed")
                 )
             }
         }
@@ -648,7 +664,7 @@ fun showDashboard() {
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Customer deletion failed"
+                    error = adminItemMessage("delete_failed_template", "customer")
                 )
             }
         }
@@ -674,7 +690,7 @@ fun showDashboard() {
             }.onSuccess { openRequests ->
                 _state.value = _state.value.copy(loading = false, openRequests = openRequests)
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Open requests failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "open_requests", "error"))
             }
         }
     }
@@ -691,12 +707,18 @@ fun showDashboard() {
                 val selectedCustomerId = _state.value.selectedCustomer?.id
                 _state.value = _state.value.copy(
                     loading = false,
-                    lastOpenRequestAction = "Request #$requestId updated to $status"
+                    lastOpenRequestAction = AdminUiMessage(
+                        key = "request_updated_template",
+                        arguments = mapOf(
+                            "id" to requestId.toString(),
+                            "status" to status
+                        )
+                    )
                 )
                 loadOpenRequests()
                 selectedCustomerId?.let(::showCustomerDetail)
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Open request update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "request"))
             }
         }
     }
@@ -712,11 +734,14 @@ fun showDashboard() {
             }.onSuccess { updated ->
                 _state.value = _state.value.copy(
                     loading = false,
-                    lastOpenRequestAction = "Group done updated $updated request(s)"
+                    lastOpenRequestAction = AdminUiMessage(
+                        key = "group_done_updated_template",
+                        arguments = mapOf("count" to updated.toString())
+                    )
                 )
                 loadOpenRequests()
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Group done failed")
+                _state.value = _state.value.copy(loading = false, error = AdminUiMessage("operation_failed"))
             }
         }
     }
@@ -732,11 +757,14 @@ fun showDashboard() {
             }.onSuccess { updated ->
                 _state.value = _state.value.copy(
                     loading = false,
-                    lastOpenRequestAction = "All done updated $updated request(s)"
+                    lastOpenRequestAction = AdminUiMessage(
+                        key = "all_done_updated_template",
+                        arguments = mapOf("count" to updated.toString())
+                    )
                 )
                 loadOpenRequests()
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "All done failed")
+                _state.value = _state.value.copy(loading = false, error = AdminUiMessage("operation_failed"))
             }
         }
     }
@@ -765,7 +793,7 @@ fun showDashboard() {
             }.onSuccess { meetingPoints ->
                 _state.value = _state.value.copy(loading = false, meetingPoints = meetingPoints)
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting points failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "meeting_points", "error"))
             }
         }
     }
@@ -803,7 +831,7 @@ fun showDashboard() {
                     meetingPointSearchResults = emptyList(),
                     meetingPointSearchLoading = false,
                     meetingPointSearchAttempted = true,
-                    error = it.message ?: "Location search failed"
+                    error = adminItemMessage("loading_failed_template", "location", "error")
                 )
             }
         }
@@ -822,10 +850,10 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     meetingPoints = meetingPoints,
-                    lastMeetingPointAction = "Meeting point created"
+                    lastMeetingPointAction = adminItemMessage("created_template", "meeting_points")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting point create failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("create_failed_template", "meeting_points"))
             }
         }
     }
@@ -849,10 +877,10 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     meetingPoints = meetingPoints,
-                    lastMeetingPointAction = "Meeting point updated"
+                    lastMeetingPointAction = adminItemMessage("updated_template", "meeting_points")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting point update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "meeting_points"))
             }
         }
     }
@@ -870,10 +898,10 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     meetingPoints = meetingPoints,
-                    lastMeetingPointAction = "Preferred meeting point updated"
+                    lastMeetingPointAction = adminItemMessage("updated_template", "meeting_points")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Set preferred meeting point failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "meeting_points"))
             }
         }
     }
@@ -891,10 +919,10 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     meetingPoints = meetingPoints,
-                    lastMeetingPointAction = "Meeting point deleted"
+                    lastMeetingPointAction = adminItemMessage("deleted_template", "meeting_points")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Meeting point delete failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("delete_failed_template", "meeting_points"))
             }
         }
     }
@@ -928,7 +956,7 @@ fun showDashboard() {
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "AI information load failed"
+                    error = adminItemMessage("loading_failed_template", "ai_info", "error")
                 )
             }
         }
@@ -959,7 +987,7 @@ fun showDashboard() {
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Learned-pattern action failed"
+                    error = AdminUiMessage("operation_failed")
                 )
             }
         }
@@ -1016,7 +1044,7 @@ fun showDashboard() {
              .onFailure {
                  _state.value = _state.value.copy(
                      loading = false,
-                     error = it.message ?: "Superadmin data request failed"
+                     error = adminItemMessage("loading_failed_template", "superadmin", "error")
                  )
              }
         }
@@ -1055,7 +1083,7 @@ fun showDashboard() {
             password.isBlank()
         ) {
             _state.value = _state.value.copy(
-                error = "Username, email address and password are required."
+                error = AdminUiMessage("complete_required_fields")
             )
             return
         }
@@ -1078,12 +1106,12 @@ fun showDashboard() {
             }.onSuccess {
                 applySuperadminOverview(it)
                 _state.value = _state.value.copy(
-                    lastAdminAction = "Administrator created."
+                    lastAdminAction = adminItemMessage("created_template", "administrator")
                 )
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Administrator creation failed"
+                    error = adminItemMessage("create_failed_template", "administrator")
                 )
             }
         }
@@ -1104,12 +1132,12 @@ fun showDashboard() {
             }.onSuccess {
                 applySuperadminOverview(it)
                 _state.value = _state.value.copy(
-                    lastAdminAction = "Administrator access updated."
+                    lastAdminAction = adminItemMessage("updated_template", "administrator")
                 )
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Administrator access update failed"
+                    error = adminItemMessage("update_failed_template", "administrator")
                 )
             }
         }
@@ -1130,12 +1158,12 @@ fun showDashboard() {
             }.onSuccess {
                 applySuperadminOverview(it)
                 _state.value = _state.value.copy(
-                    lastAdminAction = "Administrator credential deleted."
+                    lastAdminAction = adminItemMessage("deleted_template", "administrator")
                 )
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Administrator deletion failed"
+                    error = adminItemMessage("delete_failed_template", "administrator")
                 )
             }
         }
@@ -1153,21 +1181,21 @@ fun showDashboard() {
             confirmPassword.isBlank()
         ) {
             _state.value = _state.value.copy(
-                error = "All password fields are required."
+                error = AdminUiMessage("complete_required_fields")
             )
             return
         }
 
         if (newPassword != confirmPassword) {
             _state.value = _state.value.copy(
-                error = "The new passwords do not match."
+                error = AdminUiMessage("auth_recovery_new_password_error")
             )
             return
         }
 
         if (newPassword.length < 8) {
             _state.value = _state.value.copy(
-                error = "The new password must contain at least 8 characters."
+                error = AdminUiMessage("auth_recovery_new_password_error")
             )
             return
         }
@@ -1192,12 +1220,12 @@ fun showDashboard() {
                     loggedIn = false,
                     loading = false,
                     recoveryNotice =
-                        "Password changed. Sign in with your new password."
+                        AdminUiMessage("auth_recovery_success_body")
                 )
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Password change failed"
+                    error = AdminUiMessage("operation_failed")
                 )
             }
         }
@@ -1226,7 +1254,7 @@ fun showDashboard() {
             }.onSuccess { settings ->
                 _state.value = _state.value.copy(loading = false, settings = settings)
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Settings failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "settings", "error"))
             }
         }
     }
@@ -1242,10 +1270,10 @@ fun showDashboard() {
                 repository.updateSettings(token, body)
             }.onSuccess { settings ->
                 val action = when (key) {
-                    "admin_view_language" -> "Admin language updated"
-                    "admin_telegram_chat_id" -> "Notification settings updated"
-                    "ai_response_mode" -> "Bot response mode updated"
-                    else -> "$key updated"
+                    "admin_view_language" -> AdminUiMessage("admin_language_updated")
+                    "admin_telegram_chat_id" -> AdminUiMessage("notification_settings_updated")
+                    "ai_response_mode" -> AdminUiMessage("bot_response_mode_updated")
+                    else -> adminItemMessage("updated_template", "settings")
                 }
                 _state.value = _state.value.copy(
                     loading = false,
@@ -1253,7 +1281,7 @@ fun showDashboard() {
                     lastSettingsAction = action
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Settings update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "settings"))
             }
         }
     }
@@ -1286,10 +1314,10 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     settings = settings,
-                    lastSettingsAction = "Working hours updated"
+                    lastSettingsAction = AdminUiMessage("working_hours_updated")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Working hours update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "working_hours"))
             }
         }
     }
@@ -1311,10 +1339,10 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     settings = settings,
-                    lastSettingsAction = "Fulfillment options updated"
+                    lastSettingsAction = AdminUiMessage("fulfillment_options_updated")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Fulfillment options update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "fulfillment_options"))
             }
         }
     }
@@ -1332,10 +1360,10 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     settings = settings,
-                    lastSettingsAction = "Delivery cities updated"
+                    lastSettingsAction = AdminUiMessage("delivery_cities_updated")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "Delivery cities update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "delivery_cities"))
             }
         }
     }
@@ -1357,10 +1385,10 @@ fun showDashboard() {
                 _state.value = _state.value.copy(
                     loading = false,
                     settings = settings,
-                    lastSettingsAction = "AI instructions updated"
+                    lastSettingsAction = AdminUiMessage("ai_instructions_updated")
                 )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = it.message ?: "AI instructions update failed")
+                _state.value = _state.value.copy(loading = false, error = adminItemMessage("update_failed_template", "ai_project_instructions"))
             }
         }
     }
@@ -1386,7 +1414,7 @@ fun showDashboard() {
         val selectedOrder = _state.value.selectedOrder
 
         if (token.isNullOrBlank() || selectedOrder == null) {
-            _state.value = _state.value.copy(error = "No order is selected")
+            _state.value = _state.value.copy(error = AdminUiMessage("no_order_selected"))
             return
         }
 
@@ -1412,7 +1440,7 @@ fun showDashboard() {
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = it.message ?: "Order update failed"
+                    error = adminItemMessage("update_failed_template", "order")
                 )
             }
         }

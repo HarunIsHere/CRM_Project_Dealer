@@ -287,7 +287,7 @@ private fun adminLocalizedText(language: String): AdminLocalizedText {
     )
 }
 
-private fun resolveAdminLanguage(configured: String?): String {
+internal fun resolveAdminLanguage(configured: String?): String {
     val explicit = configured?.trim()?.lowercase(Locale.ROOT)
     if (explicit in setOf("en", "de", "tr", "ar", "ru")) return explicit!!
 
@@ -436,48 +436,30 @@ private fun localizeOpenRequestStatus(status: String?, ui: AdminLocalizedText): 
     }
 }
 
-private fun localizedAdminFlashMessage(message: String?, ui: AdminLocalizedText): String? {
-    if (message.isNullOrBlank()) return null
+internal fun localizedAdminMessage(
+    message: AdminUiMessage?,
+    languageCode: String
+): String? {
+    if (message == null) return null
 
-    fun template(key: String, vararg replacements: Pair<String, String>): String {
-        var text = AdminSharedTexts.text(ui.languageCode, key)
-        replacements.forEach { (placeholder, value) ->
-            text = text.replace("{$placeholder}", value)
+    var text = AdminSharedTexts.text(languageCode, message.key)
+    message.arguments.forEach { (placeholder, value) ->
+        val resolvedValue = when {
+            placeholder in message.localizedArguments ->
+                AdminSharedTexts.text(languageCode, value)
+            message.key == "request_updated_template" && placeholder == "status" ->
+                localizeOpenRequestStatus(value, adminLocalizedText(languageCode))
+            else -> value
         }
-        return text
+        text = text.replace("{$placeholder}", resolvedValue)
     }
-
-    val requestUpdate = Regex("^Request #(\\d+) updated to (.+)$").matchEntire(message)
-    if (requestUpdate != null) {
-        val requestId = requestUpdate.groupValues[1]
-        val status = localizeOpenRequestStatus(requestUpdate.groupValues[2], ui)
-        return template("request_updated_template", "id" to requestId, "status" to status)
-    }
-
-    val groupDone = Regex("^Group done updated (\\d+) request\\(s\\)$").matchEntire(message)
-    if (groupDone != null) {
-        val count = groupDone.groupValues[1]
-        return template("group_done_updated_template", "count" to count)
-    }
-
-    val allDone = Regex("^All done updated (\\d+) request\\(s\\)$").matchEntire(message)
-    if (allDone != null) {
-        val count = allDone.groupValues[1]
-        return template("all_done_updated_template", "count" to count)
-    }
-
-    return when (message) {
-        "Reply sent" -> adminText(ui, "replySent")
-        "Admin language updated" -> adminText(ui, "adminLanguageUpdated")
-        "Notification settings updated" -> adminText(ui, "notificationSettingsUpdated")
-        "Bot response mode updated" -> adminText(ui, "botResponseModeUpdated")
-        "Working hours updated" -> adminText(ui, "workingHoursUpdated")
-        "Fulfillment options updated" -> adminText(ui, "fulfillmentOptionsUpdated")
-        "Delivery cities updated" -> adminText(ui, "deliveryCitiesUpdated")
-        "AI instructions updated" -> adminText(ui, "aiInstructionsUpdated")
-        else -> message
-    }
+    return text
 }
+
+private fun localizedAdminMessage(
+    message: AdminUiMessage?,
+    ui: AdminLocalizedText
+): String? = localizedAdminMessage(message, ui.languageCode)
 
 @Composable
 fun AdminApp(viewModel: AdminViewModel = viewModel()) {
@@ -585,8 +567,8 @@ private fun LoadingScreen(ui: AdminLocalizedText) {
 @Composable
 private fun LoginScreen(
     loading: Boolean,
-    error: String?,
-    recoveryNotice: String?,
+    error: AdminUiMessage?,
+    recoveryNotice: AdminUiMessage?,
     onLogin: (String, String) -> Unit,
     onForgotPassword: (String) -> Unit,
     ui: AdminLocalizedText
@@ -653,8 +635,11 @@ private fun LoginScreen(
 
         Spacer(modifier = Modifier.height(AdminSpacing.S))
 
-        if (!recoveryNotice.isNullOrBlank()) {
-            Text(recoveryNotice, color = MaterialTheme.colorScheme.primary)
+        if (recoveryNotice != null) {
+            Text(
+                localizedAdminMessage(recoveryNotice, ui).orEmpty(),
+                color = MaterialTheme.colorScheme.primary
+            )
             Spacer(modifier = Modifier.height(AdminSpacing.S))
         }
 
@@ -667,9 +652,12 @@ private fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        if (!error.isNullOrBlank()) {
+        if (error != null) {
             Spacer(modifier = Modifier.height(16.dpCompat))
-            Text(error, color = MaterialTheme.colorScheme.error)
+            Text(
+                localizedAdminMessage(error, ui).orEmpty(),
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
@@ -1174,10 +1162,10 @@ private fun GeneralScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
-        if (!state.lastSettingsAction.isNullOrBlank()) {
-            item { Text(localizedAdminFlashMessage(state.lastSettingsAction, ui) ?: "") }
+        if (state.lastSettingsAction != null) {
+            item { Text(localizedAdminMessage(state.lastSettingsAction, ui) ?: "") }
         }
 
         item {
@@ -1506,7 +1494,7 @@ private fun DashboardScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
         item {
             AdminPanel {
@@ -1579,7 +1567,7 @@ private fun OrdersScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
         if (visibleOrders.isEmpty() && !state.loading) {
             item {
@@ -1849,7 +1837,7 @@ private fun OrderDetailScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
         if (order == null && !state.loading) {
             item {
@@ -2354,11 +2342,11 @@ private fun ProductsScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
-        if (!state.lastProductAction.isNullOrBlank()) {
+        if (state.lastProductAction != null) {
             item {
-                Text(state.lastProductAction)
+                Text(localizedAdminMessage(state.lastProductAction, ui).orEmpty())
             }
         }
 
@@ -2535,11 +2523,11 @@ private fun ProductListScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
-        if (!state.lastProductAction.isNullOrBlank()) {
+        if (state.lastProductAction != null) {
             item {
-                Text(state.lastProductAction)
+                Text(localizedAdminMessage(state.lastProductAction, ui).orEmpty())
             }
         }
 
@@ -2736,11 +2724,11 @@ private fun CategoryListScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
-        if (!state.lastProductAction.isNullOrBlank()) {
+        if (state.lastProductAction != null) {
             item {
-                Text(state.lastProductAction)
+                Text(localizedAdminMessage(state.lastProductAction, ui).orEmpty())
             }
         }
 
@@ -3068,11 +3056,14 @@ private fun CustomersScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
-        if (!state.lastReplySent.isNullOrBlank()) {
+        if (state.lastReplySent != null) {
             item {
-                Text(state.lastReplySent, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    localizedAdminMessage(state.lastReplySent, ui).orEmpty(),
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
 
@@ -3348,9 +3339,12 @@ private fun CustomerDetailScreen(
                         enabled = state.replyMessage.isNotBlank() && !state.loading,
                         onClick = onSendReply
                     )
-                    state.lastReplySent?.takeIf { it.isNotBlank() }?.let {
+                    state.lastReplySent?.let { message ->
                         Spacer(modifier = Modifier.height(AdminSpacing.S))
-                        Text(it, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            localizedAdminMessage(message, ui).orEmpty(),
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
@@ -3641,11 +3635,11 @@ private fun OpenRequestsScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
-        if (!state.lastOpenRequestAction.isNullOrBlank()) {
+        if (state.lastOpenRequestAction != null) {
             item {
-                Text(localizedAdminFlashMessage(state.lastOpenRequestAction, ui) ?: "")
+                Text(localizedAdminMessage(state.lastOpenRequestAction, ui) ?: "")
             }
         }
 
@@ -3820,7 +3814,7 @@ private fun MeetingPointsScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
         item {
             AdminPanel {
@@ -4153,7 +4147,7 @@ private fun AiInfoScreen(
             }
         }
 
-        commonStateItems(state)
+        commonStateItems(state, ui)
 
         item {
             Text(
@@ -4324,16 +4318,22 @@ private fun SettingsScreen(
     )
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.commonStateItems(state: AdminUiState) {
+private fun androidx.compose.foundation.lazy.LazyListScope.commonStateItems(
+    state: AdminUiState,
+    ui: AdminLocalizedText
+) {
     if (state.loading) {
         item {
             CircularProgressIndicator()
         }
     }
 
-    if (!state.error.isNullOrBlank()) {
+    if (state.error != null) {
         item {
-            Text(state.error, color = MaterialTheme.colorScheme.error)
+            Text(
+                localizedAdminMessage(state.error, ui).orEmpty(),
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
