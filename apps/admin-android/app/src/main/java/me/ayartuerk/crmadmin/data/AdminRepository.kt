@@ -563,22 +563,24 @@ class AdminRepository(
 
             AdminOrderAction.DELIVERY_DELIVERED,
             AdminOrderAction.PICKUP_PICKED_UP ->
-                api.markCustomerAppOrderDelivered(authorization, orderId)
+                api.markCustomerAppOrderDeliveredV2(authorization, orderId)
 
             AdminOrderAction.DELIVERY_NOT_DELIVERED ->
-                api.updateCustomerAppOrderStatus(
+                api.markCustomerAppOrderNotDeliveredV2(
                     authorization,
                     orderId,
-                    me.ayartuerk.crmadmin.api.CustomerAppOrderStatusRequest(
-                        orderStatus = "not_delivered",
+                    me.ayartuerk.crmadmin.api.CustomerAppOrderNotDeliveredRequest(
                         adminStatusNote = note
                     )
                 )
 
             AdminOrderAction.RETURN_NOT_DELIVERED ->
-                api.returnCustomerAppOrderNotDelivered(
+                api.markCustomerAppOrderNotDeliveredV2(
                     authorization,
-                    orderId
+                    orderId,
+                    me.ayartuerk.crmadmin.api.CustomerAppOrderNotDeliveredRequest(
+                        adminStatusNote = "Returned from closed orders"
+                    )
                 )
 
             AdminOrderAction.PICKUP_READY ->

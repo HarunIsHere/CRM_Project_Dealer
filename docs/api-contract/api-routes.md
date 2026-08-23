@@ -43,6 +43,8 @@ Verification source: `cloudflare-worker/src/index.js` (branch `unified-order-v2`
 
 Legacy orders are being superseded by the canonical V2 lifecycle; do not build new work on these.
 
+`admin/orders/{id}/status`, `admin/orders/{id}/delivered`, and `admin/orders/{id}/return` are legacy-compat routes retained for Web Admin form actions; Admin mobile uses the canonical V2 fulfillment routes in the next section.
+
 ## Customer-app orders (canonical V2)
 
 | Method | Path | Auth | Handler | Purpose |
@@ -52,9 +54,11 @@ Legacy orders are being superseded by the canonical V2 lifecycle; do not build n
 | PATCH/POST | `/api/v1/admin/customer-app-orders/{id}/status` | admin | `handleApiAdminCustomerAppOrderStatus` (`:10243`) | Update V2 order status |
 | POST | `/api/v1/admin/customer-app-orders/{id}/on-the-way` | admin | `handleApiAdminV2DeliveryOnTheWay` (`:10297`) | Delivery: on-the-way |
 | POST | `/api/v1/admin/customer-app-orders/{id}/ready-to-pickup` | admin | `handleApiAdminV2ReadyToPickup` (`:10338`) | Pickup: ready |
-| POST | `/api/v1/admin/customer-app-orders/{id}/cancel` | admin | `handleApiAdminV2CancelOrder` (`:10523`) | Cancel V2 order |
-| POST | `/api/v1/admin/customer-app-orders/{id}/groups/{gid}/approve` | admin | `handleApiAdminV2ApproveGroup` (`:10404`) | Approve delivery group |
-| POST | `/api/v1/admin/customer-app-orders/{id}/groups/{gid}/reject` | admin | `handleApiAdminV2RejectGroup` (`:10461`) | Reject delivery group |
+| POST | `/api/v1/admin/customer-app-orders/{id}/delivered` | admin | `handleApiAdminV2OrderDelivered` (`:10404`) | Mark delivered / picked up (final) |
+| POST | `/api/v1/admin/customer-app-orders/{id}/not-delivered` | admin | `handleApiAdminV2OrderNotDelivered` (`:10436`) | Mark not delivered (final) |
+| POST | `/api/v1/admin/customer-app-orders/{id}/cancel` | admin | `handleApiAdminV2CancelOrder` (`:10587`) | Cancel V2 order |
+| POST | `/api/v1/admin/customer-app-orders/{id}/groups/{gid}/approve` | admin | `handleApiAdminV2ApproveGroup` (`:10468`) | Approve delivery group |
+| POST | `/api/v1/admin/customer-app-orders/{id}/groups/{gid}/reject` | admin | `handleApiAdminV2RejectGroup` (`:10525`) | Reject delivery group |
 
 ## Open requests
 

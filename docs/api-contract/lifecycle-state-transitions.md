@@ -20,9 +20,11 @@ submitted, preparing, scheduled_for_next_online_order, cancelled, closed
 |---|---|---|
 | `POST .../on-the-way` | sets delivery status to `on_the_way` | fulfillment = delivery (`:10314`) |
 | `POST .../ready-to-pickup` | sets pickup status to `ready_to_pickup` | fulfillment = pickup (`:10338`) |
-| `POST .../cancel` | sets `cancelled` (`:10523`) | — |
-| `POST .../groups/{gid}/approve` | approve delivery group (`:10404`) | — |
-| `POST .../groups/{gid}/reject` | reject delivery group (`:10461`) | — |
+| `POST .../delivered` | sets `delivered` (delivery) / `picked_up` (pickup) final state | `order_status` not `cancelled` (`:10404`) |
+| `POST .../not-delivered` | sets `not_delivered` final state | `order_status` not `cancelled` (`:10436`) |
+| `POST .../cancel` | sets `cancelled` (`:10587`) | — |
+| `POST .../groups/{gid}/approve` | approve delivery group (`:10468`) | — |
+| `POST .../groups/{gid}/reject` | reject delivery group (`:10525`) | — |
 
 Every status change is recorded to `customer_order_status_history_v2` via `addV2OrderHistory` (`:10129`); the aggregate history is readable for admin detail views (`:5741`).
 

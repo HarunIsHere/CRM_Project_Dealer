@@ -3467,7 +3467,7 @@ private fun CustomerDetailSectionButton(
 private fun CustomerMessageCard(message: CustomerMessage, ui: AdminLocalizedText) {
     AdminPanel {
         Text("${message.direction ?: "-"} / ${message.messageType ?: "-"}", style = MaterialTheme.typography.titleSmall)
-        Text(message.message ?: message.text ?: message.body ?: "-")
+        Text(message.content ?: "-")
         Text("${adminText(ui, "languageLabel")}: ${message.language ?: "-"}", color = AdminColors.TextSecondary)
         Text("${adminText(ui, "createdLabel")}: ${displayOrderTimestamp(message.createdAt)}", color = AdminColors.TextSecondary)
     }

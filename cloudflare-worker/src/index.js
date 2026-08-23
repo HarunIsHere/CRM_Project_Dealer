@@ -10401,6 +10401,70 @@ async function handleApiAdminV2ReadyToPickup(request, env, orderId) {
   });
 }
 
+async function handleApiAdminV2OrderDelivered(request, env, orderId) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const body = await readJsonBody(request) || {};
+  const note = String(body.note || body.admin_status_note || "").trim();
+
+  const order = await getV2RawOrder(env, orderId);
+
+  if (!order) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  if (String(order.order_status || order.status || "") === "cancelled") {
+    return apiError("order_cancelled", "Cancelled orders cannot be marked delivered.", 400);
+  }
+
+  await updateOrderStatusByAdmin(env, orderId, "delivered", note || "Marked delivered from admin API");
+  await logAdminAction(env, request, session, "api_v2_order_delivered", `order:${orderId}`);
+
+  return apiOk({
+    order: await getV2AdminOrder(env, orderId)
+  });
+}
+
+async function handleApiAdminV2OrderNotDelivered(request, env, orderId) {
+  if (request.method !== "POST") {
+    return apiError("method_not_allowed", "Method not allowed.", 405);
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError("unauthorized", "Valid admin bearer token is required.", 401);
+  }
+
+  const body = await readJsonBody(request) || {};
+  const note = String(body.note || body.admin_status_note || body.reason || "").trim();
+
+  const order = await getV2RawOrder(env, orderId);
+
+  if (!order) {
+    return apiError("order_not_found", "Order was not found.", 404);
+  }
+
+  if (String(order.order_status || order.status || "") === "cancelled") {
+    return apiError("order_cancelled", "Cancelled orders cannot be marked not delivered.", 400);
+  }
+
+  await updateOrderStatusByAdmin(env, orderId, "not_delivered", note || "Marked not delivered from admin API");
+  await logAdminAction(env, request, session, "api_v2_order_not_delivered", `order:${orderId}`);
+
+  return apiOk({
+    order: await getV2AdminOrder(env, orderId)
+  });
+}
+
 async function handleApiAdminV2ApproveGroup(request, env, orderId, groupId) {
   if (request.method !== "POST") {
     return apiError("method_not_allowed", "Method not allowed.", 405);
@@ -13450,6 +13514,16 @@ async function handleApiV1(request, env) {
   const adminV2OrderReadyPickupMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/ready-to-pickup$/);
   if (adminV2OrderReadyPickupMatch) {
     return handleApiAdminV2ReadyToPickup(request, env, Number(adminV2OrderReadyPickupMatch[1]));
+  }
+
+  const adminV2OrderDeliveredMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/delivered$/);
+  if (adminV2OrderDeliveredMatch) {
+    return handleApiAdminV2OrderDelivered(request, env, Number(adminV2OrderDeliveredMatch[1]));
+  }
+
+  const adminV2OrderNotDeliveredMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/not-delivered$/);
+  if (adminV2OrderNotDeliveredMatch) {
+    return handleApiAdminV2OrderNotDelivered(request, env, Number(adminV2OrderNotDeliveredMatch[1]));
   }
 
   const adminV2OrderCancelMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/cancel$/);

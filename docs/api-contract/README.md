@@ -5,6 +5,7 @@ Canonical contract documentation for the Cloudflare Worker backend that drives A
 ## Status
 
 - Documents the current production Worker on branch `unified-order-v2`.
+- All six vertical slices (login/superadmin, products/categories, meeting points/location search, orders (V2), customers/customer detail, superadmin/change password) were reconciled against the Worker and the Android DTOs on 2026-08-19. One Android bug was fixed during reconciliation (`CustomerMessage` now reads `content`). Open alignment items are tracked in `admin-dto-contract.md`.
 - No formal OpenAPI document exists yet; this directory is the starting point and the JSON Schema file provides the machine-readable core.
 - Contract must be updated whenever the backend changes; each vertical-slice migration updates the relevant schema and checks the affected clients.
 

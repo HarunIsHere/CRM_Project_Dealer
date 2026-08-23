@@ -229,17 +229,17 @@ interface AdminApi {
         @Body body: CustomerAppOrderCancelRequest
     ): BasicResponse
 
-    @POST("admin/orders/{orderId}/delivered")
-    suspend fun markCustomerAppOrderDelivered(
+    @POST("admin/customer-app-orders/{orderId}/delivered")
+    suspend fun markCustomerAppOrderDeliveredV2(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Long
     ): BasicResponse
 
-    @PATCH("admin/orders/{orderId}/status")
-    suspend fun updateCustomerAppOrderStatus(
+    @POST("admin/customer-app-orders/{orderId}/not-delivered")
+    suspend fun markCustomerAppOrderNotDeliveredV2(
         @Header("Authorization") authorization: String,
         @Path("orderId") orderId: Long,
-        @Body body: CustomerAppOrderStatusRequest
+        @Body body: CustomerAppOrderNotDeliveredRequest
     ): BasicResponse
 
     @GET("admin/ai-info")
@@ -254,13 +254,8 @@ interface AdminApi {
         @Path("action") action: String
     ): BasicResponse
 
-    @POST("admin/orders/{orderId}/return")
-    suspend fun returnCustomerAppOrderNotDelivered(
-        @Header("Authorization") authorization: String,
-        @Path("orderId") orderId: Long
-    ): BasicResponse
-
 }
+
 
 @Serializable
 data class AiUsageStats(
@@ -623,9 +618,7 @@ data class CustomerAppOrderCancelRequest(
 )
 
 @Serializable
-data class CustomerAppOrderStatusRequest(
-    @SerialName("order_status")
-    val orderStatus: String,
+data class CustomerAppOrderNotDeliveredRequest(
     @SerialName("admin_status_note")
     val adminStatusNote: String = ""
 )
@@ -774,9 +767,8 @@ data class Customer(
 data class CustomerMessage(
     val id: Long? = null,
     val direction: String? = null,
-    val message: String? = null,
-    val text: String? = null,
-    val body: String? = null,
+    @SerialName("content")
+    val content: String? = null,
     val language: String? = null,
     @SerialName("message_type")
     val messageType: String? = null,

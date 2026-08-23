@@ -62,7 +62,7 @@
         "username": { "type": "string" },
         "email": { "type": "string" },
         "role": { "type": "string", "enum": ["admin", "superadmin"] },
-        "is_active": { "type": "integer" },
+        "is_active": { "type": "boolean" },
         "source": { "type": "string" },
         "created_at": { "type": "string" },
         "last_login_at": { "type": "string" },
@@ -97,6 +97,319 @@
         "audit_logs": { "type": "array", "items": { "$ref": "#/$defs/AdminAuditLog" } }
       },
       "required": ["ok", "current_admin", "admins", "audit_logs"]
+    },
+    "Product": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "price_formatted": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "category_id": { "type": ["integer", "null"] },
+        "category_name": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "price", "price_formatted", "is_active", "category_id", "category_name", "aliases"]
+    },
+    "ProductCategory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "is_active": { "type": "boolean" }
+      },
+      "required": ["id", "name", "is_active"]
+    },
+    "ProductsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "products": { "type": "array", "items": { "$ref": "#/$defs/Product" } },
+        "categories": { "type": "array", "items": { "$ref": "#/$defs/ProductCategory" } },
+        "count": { "type": "integer" }
+      },
+      "required": ["ok", "products", "categories", "count"]
+    },
+    "ProductCategoriesResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "categories": { "type": "array", "items": { "$ref": "#/$defs/ProductCategory" } },
+        "count": { "type": "integer" }
+      },
+      "required": ["ok", "categories", "count"]
+    },
+    "MeetingPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "google_maps_link": { "type": "string" },
+        "is_default": { "type": "boolean" },
+        "is_active": { "type": "boolean" }
+      },
+      "required": ["id", "name", "address", "google_maps_link", "is_default", "is_active"]
+    },
+    "LocationSearchResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "postal_code": { "type": "string" },
+        "latitude": { "type": "string" },
+        "longitude": { "type": "string" },
+        "google_maps_link": { "type": "string" }
+      },
+      "required": ["name", "address", "postal_code", "latitude", "longitude", "google_maps_link"]
+    },
+    "MeetingPointsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "meeting_points": { "type": "array", "items": { "$ref": "#/$defs/MeetingPoint" } },
+        "count": { "type": "integer" }
+      },
+      "required": ["ok", "meeting_points", "count"]
+    },
+    "MeetingPointLocationSearchResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "locations": { "type": "array", "items": { "$ref": "#/$defs/LocationSearchResult" } },
+        "count": { "type": "integer" }
+      },
+      "required": ["ok", "locations", "count"]
+    },
+    "SectionTotal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "item_count": { "type": "integer" },
+        "total_amount": { "type": "number" },
+        "total_formatted": { "type": "string" }
+      },
+      "required": ["item_count", "total_amount", "total_formatted"]
+    },
+    "CustomerAppOrderCustomer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": ["integer", "null"] },
+        "full_name": { "type": "string" },
+        "username": { "type": "string" },
+        "telegram_user_id": { "type": ["integer", "null"] },
+        "preferred_language": { "type": "string" }
+      },
+      "required": ["id", "full_name", "username", "telegram_user_id", "preferred_language"]
+    },
+    "CustomerAppOrderItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "customer_order_id": { "type": "integer" },
+        "group_id": { "type": ["integer", "null"] },
+        "product_id": { "type": ["integer", "null"] },
+        "name": { "type": "string" },
+        "product_name": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "unit_price": { "type": "number" },
+        "line_total": { "type": "number" },
+        "item_status": { "type": "string" },
+        "added_phase": { "type": "string" },
+        "requires_admin_approval": { "type": "boolean" },
+        "admin_decision": { "type": "string" },
+        "admin_decision_note": { "type": "string" },
+        "decided_at": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "quantity", "unit_price", "line_total", "item_status"]
+    },
+    "CustomerAppOrderGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "customer_order_id": { "type": "integer" },
+        "group_type": { "type": "string" },
+        "group_status": { "type": "string" },
+        "group_status_label": { "type": "string" },
+        "fulfillment_type": { "type": "string" },
+        "requires_admin_approval": { "type": "boolean" },
+        "scheduled_for_next_online_order": { "type": "integer" },
+        "next_online_order_at": { "type": "string" },
+        "admin_decision": { "type": "string" },
+        "admin_decision_note": { "type": "string" },
+        "decided_at": { "type": "string" },
+        "total_amount": { "type": "number" },
+        "total_formatted": { "type": "string" },
+        "item_count": { "type": "integer" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/CustomerAppOrderItem" } },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "group_status", "item_count", "total_amount"]
+    },
+    "CustomerAppOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "public_order_code": { "type": "string" },
+        "session_token": { "type": "string" },
+        "customer": { "$ref": "#/$defs/CustomerAppOrderCustomer" },
+        "status": { "type": "string" },
+        "order_status": { "type": "string" },
+        "order_status_label": { "type": "string" },
+        "fulfillment_type": { "type": "string" },
+        "delivery_status": { "type": "string" },
+        "delivery_status_label": { "type": "string" },
+        "pickup_status": { "type": "string" },
+        "pickup_status_label": { "type": "string" },
+        "delivery_location_id": { "type": ["integer", "null"] },
+        "delivery_location_label": { "type": "string" },
+        "delivery_google_maps_link": { "type": "string" },
+        "delivery_address": { "type": "string" },
+        "scheduled_for_next_online_order": { "type": "integer" },
+        "next_online_order_at": { "type": "string" },
+        "active_shop_id": { "type": ["integer", "null"] },
+        "admin_status_note": { "type": "string" },
+        "cancelled_at": { "type": "string" },
+        "cancel_reason": { "type": "string" },
+        "currency": { "type": "string" },
+        "total_amount": { "type": "number" },
+        "total_formatted": { "type": "string" },
+        "section_totals": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/SectionTotal" }
+        },
+        "groups": { "type": "array", "items": { "$ref": "#/$defs/CustomerAppOrderGroup" } },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/CustomerAppOrderItem" } },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "status", "order_status", "fulfillment_type", "total_amount", "items"]
+    },
+    "CustomerAppOrdersResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "orders": { "type": "array", "items": { "$ref": "#/$defs/CustomerAppOrder" } },
+        "count": { "type": "integer" }
+      },
+      "required": ["ok", "orders", "count"]
+    },
+    "CustomerAppOrderDetailResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "order": { "$ref": "#/$defs/CustomerAppOrder" }
+      },
+      "required": ["ok", "order"]
+    },
+    "Customer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "telegram_user_id": { "type": "string" },
+        "username": { "type": "string" },
+        "full_name": { "type": "string" },
+        "language": { "type": "string" },
+        "preferred_language": { "type": "string" },
+        "is_blocked": { "type": "boolean" },
+        "last_seen_at": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "username", "full_name", "is_blocked", "created_at"]
+    },
+    "CustomerMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "direction": { "type": "string" },
+        "message_type": { "type": "string" },
+        "source_label": { "type": "string" },
+        "content": { "type": "string" },
+        "language": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "direction", "content", "created_at"]
+    },
+    "CustomerRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "customer_id": { "type": "integer" },
+        "request_type": { "type": "string" },
+        "request_type_label": { "type": "string" },
+        "status": { "type": "string" },
+        "status_label": { "type": "string" },
+        "item_name": { "type": "string" },
+        "description": { "type": "string" },
+        "request_text": { "type": "string" },
+        "quantity": { "type": ["number", "null"] },
+        "google_maps_link": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "request_type", "status", "created_at"]
+    },
+    "CustomerLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "integer" },
+        "customer_id": { "type": ["integer", "null"] },
+        "session_token": { "type": "string" },
+        "request_type": { "type": "string" },
+        "label": { "type": "string" },
+        "address": { "type": "string" },
+        "description": { "type": "string" },
+        "latitude": { "type": ["number", "null"] },
+        "longitude": { "type": ["number", "null"] },
+        "google_maps_link": { "type": "string" },
+        "source": { "type": "string" },
+        "is_preferred": { "type": "boolean" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "label", "address", "created_at"]
+    },
+    "CustomersResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "customers": { "type": "array", "items": { "$ref": "#/$defs/Customer" } },
+        "count": { "type": "integer" }
+      },
+      "required": ["ok", "customers", "count"]
+    },
+    "CustomerDetailResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "customer": { "$ref": "#/$defs/Customer" },
+        "messages": { "type": "array", "items": { "$ref": "#/$defs/CustomerMessage" } },
+        "requests": { "type": "array", "items": { "$ref": "#/$defs/CustomerRequest" } },
+        "locations": { "type": "array", "items": { "$ref": "#/$defs/CustomerLocation" } }
+      },
+      "required": ["ok", "customer", "messages", "requests", "locations"]
     }
   }
 }
