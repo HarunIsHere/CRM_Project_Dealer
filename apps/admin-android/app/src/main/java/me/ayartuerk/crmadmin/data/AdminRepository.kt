@@ -203,8 +203,24 @@ class AdminRepository(
         }
     }
 
-    suspend fun customers(token: String): List<Customer> {
-        val response = api.customers(bearer(token))
+    suspend fun customers(
+        token: String,
+        search: String? = null,
+        language: String? = null,
+        active: String? = null,
+        limit: Int = 250
+    ): List<Customer> {
+        val normalizedActive = active
+            ?.trim()
+            ?.takeIf { it == "active" || it == "blocked" }
+
+        val response = api.customers(
+            authorization = bearer(token),
+            search = search?.trim()?.takeIf { it.isNotEmpty() },
+            language = language?.trim()?.takeIf { it.isNotEmpty() },
+            active = normalizedActive,
+            limit = limit.coerceIn(1, 250)
+        )
         if (!response.ok) {
             val message = response.error?.message ?: "Customers load failed"
             throw IllegalStateException(message)

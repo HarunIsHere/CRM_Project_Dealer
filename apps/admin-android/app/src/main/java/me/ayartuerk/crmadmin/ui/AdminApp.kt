@@ -685,7 +685,7 @@ private fun AdminShell(
     onRefreshDashboard: () -> Unit,
     onRefreshOrders: () -> Unit,
     onRefreshProducts: () -> Unit,
-    onRefreshCustomers: () -> Unit,
+    onRefreshCustomers: (String, String, String) -> Unit,
     onRefreshOpenRequests: () -> Unit,
     onRefreshMeetingPoints: () -> Unit,
     onRefreshAiInfo: () -> Unit,
@@ -3015,15 +3015,23 @@ private fun ProductCard(
 @Composable
 private fun CustomersScreen(
     state: AdminUiState,
-    onRefresh: () -> Unit,
+    onRefresh: (String, String, String) -> Unit,
     onCustomerClick: (Long) -> Unit,
     onMessageCustomer: (Long, String) -> Unit,
     onDeleteCustomer: (Long) -> Unit,
     ui: AdminLocalizedText
 ) {
     var idFilter by remember { mutableStateOf("") }
-    var searchFilter by remember { mutableStateOf("") }
-    var languageFilter by remember { mutableStateOf("") }
+    var searchFilter by remember(state.customerSearchFilter) {
+        mutableStateOf(state.customerSearchFilter)
+    }
+    var languageFilter by remember(state.customerLanguageFilter) {
+        mutableStateOf(state.customerLanguageFilter)
+    }
+    var activeFilter by remember(state.customerActiveFilter) {
+        mutableStateOf(state.customerActiveFilter)
+    }
+    var activeFilterExpanded by remember { mutableStateOf(false) }
     var lastSeenFrom by remember { mutableStateOf("") }
     var lastSeenTo by remember { mutableStateOf("") }
 
@@ -3040,13 +3048,23 @@ private fun CustomersScreen(
             customer.language,
             customer.preferredLanguage
         ).any { it?.equals(languageFilter.trim(), ignoreCase = true) == true }
+        val activeMatches = when (activeFilter) {
+            "active" -> customer.isBlocked != true
+            "blocked" -> customer.isBlocked == true
+            else -> true
+        }
         val seenDate = customer.lastSeenAt?.take(10).orEmpty()
         val fromMatches = lastSeenFrom.isBlank() ||
             (seenDate.isNotBlank() && seenDate >= lastSeenFrom.trim())
         val toMatches = lastSeenTo.isBlank() ||
             (seenDate.isNotBlank() && seenDate <= lastSeenTo.trim())
 
-        idMatches && searchMatches && languageMatches && fromMatches && toMatches
+        idMatches &&
+            searchMatches &&
+            languageMatches &&
+            activeMatches &&
+            fromMatches &&
+            toMatches
     }
 
     LazyColumn(
@@ -3060,7 +3078,16 @@ private fun CustomersScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("${ui.customers} (${visibleCustomers.size})", style = MaterialTheme.typography.headlineSmall)
-                AdminSecondaryButton(text = ui.refresh, onClick = onRefresh)
+                AdminSecondaryButton(
+                    text = ui.refresh,
+                    onClick = {
+                        onRefresh(
+                            searchFilter,
+                            languageFilter,
+                            activeFilter
+                        )
+                    }
+                )
             }
         }
 
@@ -3077,7 +3104,10 @@ private fun CustomersScreen(
 
         item {
             AdminPanel {
-                Text("${ui.search} / Filters", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    AdminSharedTexts.text(ui.languageCode, "search_filters"),
+                    style = MaterialTheme.typography.titleMedium
+                )
                 Spacer(modifier = Modifier.height(AdminSpacing.S))
 
                 OutlinedTextField(
@@ -3107,6 +3137,50 @@ private fun CustomersScreen(
                 )
                 Spacer(modifier = Modifier.height(AdminSpacing.S))
 
+                Text(
+                    AdminSharedTexts.text(
+                        ui.languageCode,
+                        "active_status"
+                    )
+                )
+                OutlinedButton(
+                    onClick = { activeFilterExpanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val labelKey = when (activeFilter) {
+                        "active" -> "active"
+                        "blocked" -> "blocked"
+                        else -> "all_customers"
+                    }
+                    Text(AdminSharedTexts.text(ui.languageCode, labelKey))
+                }
+                DropdownMenu(
+                    expanded = activeFilterExpanded,
+                    onDismissRequest = { activeFilterExpanded = false }
+                ) {
+                    listOf(
+                        "" to "all_customers",
+                        "active" to "active",
+                        "blocked" to "blocked"
+                    ).forEach { (value, labelKey) ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    AdminSharedTexts.text(
+                                        ui.languageCode,
+                                        labelKey
+                                    )
+                                )
+                            },
+                            onClick = {
+                                activeFilter = value
+                                activeFilterExpanded = false
+                            }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
                 OutlinedTextField(
                     value = lastSeenFrom,
                     onValueChange = { lastSeenFrom = it },
@@ -3125,14 +3199,32 @@ private fun CustomersScreen(
                 )
                 Spacer(modifier = Modifier.height(AdminSpacing.S))
 
+                AdminPrimaryButton(
+                    text = AdminSharedTexts.text(
+                        ui.languageCode,
+                        "apply_filters"
+                    ),
+                    onClick = {
+                        onRefresh(
+                            searchFilter,
+                            languageFilter,
+                            activeFilter
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
                 AdminSecondaryButton(
                     text = ui.clearFilters,
                     onClick = {
                         idFilter = ""
                         searchFilter = ""
                         languageFilter = ""
+                        activeFilter = ""
                         lastSeenFrom = ""
                         lastSeenTo = ""
+                        onRefresh("", "", "")
                     },
                     modifier = Modifier.fillMaxWidth()
                 )

@@ -131,7 +131,13 @@ interface AdminApi {
     ): BasicResponse
 
     @GET("admin/customers")
-    suspend fun customers(@Header("Authorization") authorization: String): CustomersResponse
+    suspend fun customers(
+        @Header("Authorization") authorization: String,
+        @Query("search") search: String?,
+        @Query("language") language: String?,
+        @Query("active") active: String?,
+        @Query("limit") limit: Int
+    ): CustomersResponse
 
     @GET("admin/customers/{customerId}")
     suspend fun customerDetail(

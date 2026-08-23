@@ -401,7 +401,9 @@ const AdminSharedTexts = {
     "ip_address": "IP",
     "no_administrators_found": "No administrators found.",
     "no_audit_records_found": "No audit records found.",
-    "protected_administrator": "Protected administrator"
+    "protected_administrator": "Protected administrator",
+    "all_customers": "All customers",
+    "apply_filters": "Apply Filters"
   },
   "de": {
     "title": "CRM Delivery Admin",
@@ -804,7 +806,9 @@ const AdminSharedTexts = {
     "ip_address": "IP",
     "no_administrators_found": "Keine Administratoren gefunden.",
     "no_audit_records_found": "Keine Audit-Protokolle gefunden.",
-    "protected_administrator": "Geschützter Administrator"
+    "protected_administrator": "Geschützter Administrator",
+    "all_customers": "Alle Kunden",
+    "apply_filters": "Filter anwenden"
   },
   "tr": {
     "title": "CRM Delivery Admin",
@@ -1207,7 +1211,9 @@ const AdminSharedTexts = {
     "ip_address": "IP",
     "no_administrators_found": "Yönetici bulunamadı.",
     "no_audit_records_found": "Denetim kaydı bulunamadı.",
-    "protected_administrator": "Korumalı yönetici"
+    "protected_administrator": "Korumalı yönetici",
+    "all_customers": "Tüm Müşteriler",
+    "apply_filters": "Filtreleri Uygula"
   },
   "ar": {
     "title": "لوحة إدارة CRM Delivery",
@@ -1610,7 +1616,9 @@ const AdminSharedTexts = {
     "ip_address": "IP",
     "no_administrators_found": "لم يتم العثور على مسؤولين.",
     "no_audit_records_found": "لم يتم العثور على سجلات تدقيق.",
-    "protected_administrator": "مسؤول محمي"
+    "protected_administrator": "مسؤول محمي",
+    "all_customers": "جميع العملاء",
+    "apply_filters": "تطبيق عوامل التصفية"
   },
   "ru": {
     "title": "CRM Delivery Admin",
@@ -2013,7 +2021,9 @@ const AdminSharedTexts = {
     "ip_address": "IP",
     "no_administrators_found": "Администраторы не найдены.",
     "no_audit_records_found": "Записи аудита не найдены.",
-    "protected_administrator": "Защищённый администратор"
+    "protected_administrator": "Защищённый администратор",
+    "all_customers": "Все клиенты",
+    "apply_filters": "Применить фильтры"
   }
 }
 ;

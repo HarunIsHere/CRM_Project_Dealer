@@ -75,6 +75,9 @@ data class AdminUiState(
     val products: List<Product> = emptyList(),
     val categories: List<ProductCategory> = emptyList(),
     val customers: List<Customer> = emptyList(),
+    val customerSearchFilter: String = "",
+    val customerLanguageFilter: String = "",
+    val customerActiveFilter: String = "",
     val selectedCustomer: Customer? = null,
     val customerMessages: List<CustomerMessage> = emptyList(),
     val customerRequests: List<CustomerRequest> = emptyList(),
@@ -536,18 +539,49 @@ fun showDashboard() {
         loadCustomers()
     }
 
-    fun loadCustomers() {
+    fun loadCustomers(
+        search: String = _state.value.customerSearchFilter,
+        language: String = _state.value.customerLanguageFilter,
+        active: String = _state.value.customerActiveFilter
+    ) {
         val token = _state.value.token ?: return
+        val normalizedSearch = search.trim()
+        val normalizedLanguage = language.trim()
+        val normalizedActive = active.trim()
+            .takeIf { it == "active" || it == "blocked" }
+            .orEmpty()
 
         viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                customerSearchFilter = normalizedSearch,
+                customerLanguageFilter = normalizedLanguage,
+                customerActiveFilter = normalizedActive
+            )
 
             runCatching {
-                repository.customers(token)
+                repository.customers(
+                    token = token,
+                    search = normalizedSearch,
+                    language = normalizedLanguage,
+                    active = normalizedActive,
+                    limit = 250
+                )
             }.onSuccess { customers ->
-                _state.value = _state.value.copy(loading = false, customers = customers)
+                _state.value = _state.value.copy(
+                    loading = false,
+                    customers = customers
+                )
             }.onFailure {
-                _state.value = _state.value.copy(loading = false, error = adminItemMessage("loading_failed_template", "customers", "error"))
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = adminItemMessage(
+                        "loading_failed_template",
+                        "customers",
+                        "error"
+                    )
+                )
             }
         }
     }
@@ -643,13 +677,22 @@ fun showDashboard() {
 
     fun deleteCustomer(customerId: Long) {
         val token = _state.value.token ?: return
+        val customerSearchFilter = _state.value.customerSearchFilter
+        val customerLanguageFilter = _state.value.customerLanguageFilter
+        val customerActiveFilter = _state.value.customerActiveFilter
 
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null, lastReplySent = null)
 
             runCatching {
                 repository.deleteCustomer(token, customerId)
-                repository.customers(token)
+                repository.customers(
+                    token = token,
+                    search = customerSearchFilter,
+                    language = customerLanguageFilter,
+                    active = customerActiveFilter,
+                    limit = 250
+                )
             }.onSuccess { customers ->
                 _state.value = _state.value.copy(
                     loading = false,

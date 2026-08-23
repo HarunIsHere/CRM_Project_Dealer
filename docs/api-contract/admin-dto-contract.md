@@ -374,9 +374,10 @@ No `phone`/`address`/`location` keys are emitted. `is_blocked` is a boolean.
 
 ### Open items (customers)
 
-1. Android never sends the list filters (`search`/`language`/`active`/`limit`) the Worker supports.
-2. `request_type_label`/`status_label` are hardcoded to `"en"` in the Worker; clients that need multilingual labels should rely on the canonical i18n source instead.
-3. iOS has no admin customer list/detail/reply/delete models at all.
+1. `request_type_label`/`status_label` are hardcoded to `"en"` in the Worker; clients that need multilingual labels should rely on the canonical i18n source instead.
+2. iOS has no admin customer list/detail/reply/delete models at all.
+
+Android sends `search`, `language`, `active`, and `limit=250` to the Worker. ID and last-seen date filters remain client-side because the API does not expose those query parameters.
 
 ## Slice status
 
