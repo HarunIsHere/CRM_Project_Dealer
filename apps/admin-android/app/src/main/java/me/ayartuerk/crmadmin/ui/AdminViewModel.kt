@@ -1449,6 +1449,100 @@ fun showDashboard() {
             _state.value = AdminUiState(loading = false, loggedIn = false)
         }
     }
+
+    fun approveSelectedOrderGroup(groupId: Long) {
+        val token = _state.value.token
+        val selectedOrder = _state.value.selectedOrder
+
+        if (token.isNullOrBlank() || selectedOrder == null) {
+            _state.value = _state.value.copy(
+                error = AdminUiMessage("no_order_selected")
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.approveOrderGroup(
+                    token = token,
+                    orderId = selectedOrder.id,
+                    groupId = groupId
+                )
+            }.onSuccess { updated ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    selectedOrder = updated,
+                    orders = _state.value.orders.map { order ->
+                        if (order.id == updated.id) updated else order
+                    },
+                    closedOrders = _state.value.closedOrders.map { order ->
+                        if (order.id == updated.id) updated else order
+                    }
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = adminItemMessage(
+                        "update_failed_template",
+                        "order"
+                    )
+                )
+            }
+        }
+    }
+
+    fun rejectSelectedOrderGroup(groupId: Long, note: String) {
+        val token = _state.value.token
+        val selectedOrder = _state.value.selectedOrder
+
+        if (token.isNullOrBlank() || selectedOrder == null) {
+            _state.value = _state.value.copy(
+                error = AdminUiMessage("no_order_selected")
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.rejectOrderGroup(
+                    token = token,
+                    orderId = selectedOrder.id,
+                    groupId = groupId,
+                    note = note
+                )
+            }.onSuccess { updated ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    selectedOrder = updated,
+                    orders = _state.value.orders.map { order ->
+                        if (order.id == updated.id) updated else order
+                    },
+                    closedOrders = _state.value.closedOrders.map { order ->
+                        if (order.id == updated.id) updated else order
+                    }
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = adminItemMessage(
+                        "update_failed_template",
+                        "order"
+                    )
+                )
+            }
+        }
+    }
+
     fun performSelectedOrderAction(
         action: AdminOrderAction,
         note: String = ""

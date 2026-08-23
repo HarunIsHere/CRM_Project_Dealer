@@ -324,7 +324,7 @@ Key facts:
 ### Open alignment items (verified 2026-08-19)
 
 1. **Android final-state mutations now use canonical V2 routes (resolved 2026-08-19).** Added `POST /api/v1/admin/customer-app-orders/{id}/delivered` and `POST /api/v1/admin/customer-app-orders/{id}/not-delivered`. `AdminRepository.performOrderAction` re-pointed: `DELIVERY_DELIVERED`/`PICKUP_PICKED_UP` → `delivered`; `DELIVERY_NOT_DELIVERED` → `not-delivered` (with note); `RETURN_NOT_DELIVERED` → `not-delivered` (note `"Returned from closed orders"`). Legacy `admin/orders/{id}/...` compat routes retained only for Web Admin.
-2. **Group approve/reject is unimplemented on Android** (no Retrofit methods). Pending-delivery groups can only be actioned via Web Admin today.
+2. **Android group approve/reject is resolved (2026-08-23).** Order detail decodes V2 groups and uses the canonical `.../groups/{groupId}/approve|reject` routes; rejection supports an optional localized note field.
 3. **iOS has no admin order models.** The customer-side `CustomerOrder.totalAmount` is a non-optional `Int` while the worker emits fractional floats — a decode-crash risk for the customer app when totals are non-integer. Must be fixed to `Double` on the customer iOS side.
 
 ## Customer DTOs
@@ -388,7 +388,7 @@ All six vertical slices have been reconciled against the Worker on 2026-08-19. R
 | login / me / superadmin | verified | verified — no changes needed | not started | aligned |
 | products / categories | verified | verified — safe superset; no changes needed | no admin layer | aligned |
 | meeting points / location search | verified | verified — exact match | public `MeetingPoint` only | aligned |
-| orders / closed orders (V2) | documented | final-state mutations use canonical V2 routes; open item: no group approve/reject | no admin models; `totalAmount: Int` decode risk | aligned (Web only) |
+| orders / closed orders (V2) | documented | final-state and group approve/reject mutations use canonical V2 routes | no admin models; `totalAmount: Int` decode risk | aligned |
 | customers / customer detail / reply | verified | fixed: `CustomerMessage` reads `content` | no admin customer models | aligned |
 | superadmin / change password | verified | verified — no changes needed (password success decodes via `BasicResponse`; mutations return full overview) | not started | aligned |
 

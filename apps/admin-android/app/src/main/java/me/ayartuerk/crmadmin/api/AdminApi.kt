@@ -86,6 +86,21 @@ interface AdminApi {
         @Path("orderId") orderId: Long
     ): CustomerAppOrderDetailResponse
 
+    @POST("admin/customer-app-orders/{orderId}/groups/{groupId}/approve")
+    suspend fun approveCustomerAppOrderGroup(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long,
+        @Path("groupId") groupId: Long
+    ): CustomerAppOrderDetailResponse
+
+    @POST("admin/customer-app-orders/{orderId}/groups/{groupId}/reject")
+    suspend fun rejectCustomerAppOrderGroup(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long,
+        @Path("groupId") groupId: Long,
+        @Body body: CustomerAppOrderGroupDecisionRequest
+    ): CustomerAppOrderDetailResponse
+
     @GET("admin/products")
     suspend fun products(@Header("Authorization") authorization: String): ProductsResponse
 
@@ -630,6 +645,12 @@ data class CustomerAppOrderNotDeliveredRequest(
 )
 
 @Serializable
+data class CustomerAppOrderGroupDecisionRequest(
+    @SerialName("admin_decision_note")
+    val adminDecisionNote: String = ""
+)
+
+@Serializable
 data class CustomerAppOrderCustomer(
     val id: Long? = null,
     @SerialName("full_name")
@@ -685,6 +706,7 @@ data class CustomerAppOrder(
     val confirmedTotal: Double? = null,
     val currency: String? = null,
     val items: List<CustomerAppOrderItem> = emptyList(),
+    val groups: List<CustomerAppOrderGroup> = emptyList(),
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")
@@ -707,6 +729,44 @@ data class CustomerAppOrderItem(
     @SerialName("item_status")
     val itemStatus: String? = null,
     val status: String? = null
+)
+
+@Serializable
+data class CustomerAppOrderGroup(
+    val id: Long,
+    @SerialName("customer_order_id")
+    val customerOrderId: Long? = null,
+    @SerialName("group_type")
+    val groupType: String? = null,
+    @SerialName("group_status")
+    val groupStatus: String? = null,
+    @SerialName("group_status_label")
+    val groupStatusLabel: String? = null,
+    @SerialName("fulfillment_type")
+    val fulfillmentType: String? = null,
+    @SerialName("requires_admin_approval")
+    val requiresAdminApproval: Boolean = false,
+    @SerialName("scheduled_for_next_online_order")
+    val scheduledForNextOnlineOrder: Boolean = false,
+    @SerialName("next_online_order_at")
+    val nextOnlineOrderAt: String? = null,
+    @SerialName("admin_decision")
+    val adminDecision: String? = null,
+    @SerialName("admin_decision_note")
+    val adminDecisionNote: String? = null,
+    @SerialName("decided_at")
+    val decidedAt: String? = null,
+    @SerialName("total_amount")
+    val totalAmount: Double? = null,
+    @SerialName("total_formatted")
+    val totalFormatted: String? = null,
+    @SerialName("item_count")
+    val itemCount: Int? = null,
+    val items: List<CustomerAppOrderItem> = emptyList(),
+    @SerialName("created_at")
+    val createdAt: String? = null,
+    @SerialName("updated_at")
+    val updatedAt: String? = null
 )
 
 @Serializable

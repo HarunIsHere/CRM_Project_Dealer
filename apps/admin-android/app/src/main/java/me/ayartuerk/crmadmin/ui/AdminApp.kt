@@ -507,6 +507,8 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onOrderClick = viewModel::showOrderDetail,
                     onClosedOrderClick = viewModel::showClosedOrderDetail,
                     onOrderAction = viewModel::performSelectedOrderAction,
+                    onApproveOrderGroup = viewModel::approveSelectedOrderGroup,
+                    onRejectOrderGroup = viewModel::rejectSelectedOrderGroup,
                     onCustomerClick = viewModel::showCustomerDetail,
                     onCustomerMessage = viewModel::sendCustomerMessage,
                     onDeleteCustomer = viewModel::deleteCustomer,
@@ -694,6 +696,8 @@ private fun AdminShell(
     onOrderClick: (Long) -> Unit,
     onClosedOrderClick: (Long) -> Unit,
     onOrderAction: (AdminOrderAction, String) -> Unit,
+    onApproveOrderGroup: (Long) -> Unit,
+    onRejectOrderGroup: (Long, String) -> Unit,
     onCustomerClick: (Long) -> Unit,
     onCustomerMessage: (Long, String) -> Unit,
     onDeleteCustomer: (Long) -> Unit,
@@ -875,7 +879,9 @@ private fun AdminShell(
                         state.selectedOrder?.id?.let(onOrderClick)
                     },
                     ui = ui,
-                    onAction = onOrderAction
+                    onAction = onOrderAction,
+                    onApproveGroup = onApproveOrderGroup,
+                    onRejectGroup = onRejectOrderGroup
                 )
 
                 AdminScreen.CLOSED_ORDER_DETAIL -> OrderDetailScreen(
@@ -886,6 +892,8 @@ private fun AdminShell(
                     },
                     ui = ui,
                     onAction = onOrderAction,
+                    onApproveGroup = onApproveOrderGroup,
+                    onRejectGroup = onRejectOrderGroup,
                     closedMode = true
                 )
 
@@ -1811,6 +1819,8 @@ private fun OrderDetailScreen(
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onAction: (AdminOrderAction, String) -> Unit,
+    onApproveGroup: (Long) -> Unit,
+    onRejectGroup: (Long, String) -> Unit,
     ui: AdminLocalizedText,
     closedMode: Boolean = false
 ) {
@@ -2248,6 +2258,35 @@ private fun OrderDetailScreen(
                 }
             }
 
+            if (order.groups.isNotEmpty()) {
+                item {
+                    Text(
+                        text = AdminSharedTexts.text(
+                            ui.languageCode,
+                            "groups_and_items"
+                        ),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                items(
+                    items = order.groups,
+                    key = { group -> group.id }
+                ) { group ->
+                    OrderGroupCard(
+                        group = group,
+                        loading = state.loading,
+                        actionable = !closedMode &&
+                            !terminal &&
+                            fulfillment == "delivery" &&
+                            group.groupStatus == "pending_admin_approval",
+                        onApprove = onApproveGroup,
+                        onReject = onRejectGroup,
+                        ui = ui
+                    )
+                }
+            }
+
             item {
                 Text(
                     text = adminText(ui, "items"),
@@ -2312,6 +2351,151 @@ private fun OrderDetailScreen(
                 }
             }
         }
+    }
+}
+
+
+@Composable
+private fun OrderGroupCard(
+    group: me.ayartuerk.crmadmin.api.CustomerAppOrderGroup,
+    loading: Boolean,
+    actionable: Boolean,
+    onApprove: (Long) -> Unit,
+    onReject: (Long, String) -> Unit,
+    ui: AdminLocalizedText
+) {
+    var showRejectDialog by remember(group.id) {
+        mutableStateOf(false)
+    }
+    var rejectNote by remember(group.id) {
+        mutableStateOf("")
+    }
+
+    val groupTypeKey = when (group.groupType) {
+        "initial_checkout" -> "group_type_initial_checkout"
+        "customer_addition" -> "group_type_customer_addition"
+        "admin_addition" -> "group_type_admin_addition"
+        else -> null
+    }
+    val groupType = groupTypeKey
+        ?.let { AdminSharedTexts.text(ui.languageCode, it) }
+        ?: group.groupType
+        ?: "-"
+
+    AdminPanel {
+        Text(
+            text = "${AdminSharedTexts.text(ui.languageCode, "group")} #${group.id}",
+            style = MaterialTheme.typography.titleSmall
+        )
+        Text(groupType)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement =
+                Arrangement.spacedBy(AdminSpacing.XS)
+        ) {
+            Text("${adminText(ui, "statusLabel")}:")
+            AdminStatusChip(
+                text = displayOrderValue(
+                    raw = group.groupStatus,
+                    ui = ui
+                )
+            )
+        }
+
+        Text(
+            "${adminText(ui, "items")}: ${
+                group.itemCount ?: group.items.size
+            }"
+        )
+        Text(
+            "${adminText(ui, "totalLabel")}: ${
+                group.totalFormatted ?: group.totalAmount ?: "-"
+            }"
+        )
+
+        group.adminDecisionNote
+            ?.takeIf { it.isNotBlank() }
+            ?.let {
+                Text(
+                    "${AdminSharedTexts.text(ui.languageCode, "note")}: $it",
+                    color = AdminColors.TextSecondary
+                )
+            }
+
+        if (actionable) {
+            AdminPrimaryButton(
+                text = AdminSharedTexts.text(
+                    ui.languageCode,
+                    "approve_group"
+                ),
+                enabled = !loading,
+                onClick = { onApprove(group.id) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            AdminSecondaryButton(
+                text = AdminSharedTexts.text(
+                    ui.languageCode,
+                    "reject_group"
+                ),
+                enabled = !loading,
+                onClick = { showRejectDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+
+    if (showRejectDialog) {
+        AlertDialog(
+            onDismissRequest = { showRejectDialog = false },
+            title = {
+                Text(
+                    AdminSharedTexts.text(
+                        ui.languageCode,
+                        "reject_group"
+                    )
+                )
+            },
+            text = {
+                OutlinedTextField(
+                    value = rejectNote,
+                    onValueChange = { rejectNote = it },
+                    label = {
+                        Text(
+                            AdminSharedTexts.text(
+                                ui.languageCode,
+                                "reject_note"
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !loading,
+                    onClick = {
+                        showRejectDialog = false
+                        onReject(group.id, rejectNote)
+                    }
+                ) {
+                    Text(
+                        AdminSharedTexts.text(
+                            ui.languageCode,
+                            "reject"
+                        )
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showRejectDialog = false }
+                ) {
+                    Text(adminText(ui, "cancel"))
+                }
+            }
+        )
     }
 }
 

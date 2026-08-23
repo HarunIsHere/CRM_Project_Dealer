@@ -565,6 +565,47 @@ class AdminRepository(
     suspend fun logout(token: String) {
         api.logout(bearer(token))
     }
+
+    suspend fun approveOrderGroup(
+        token: String,
+        orderId: Long,
+        groupId: Long
+    ): me.ayartuerk.crmadmin.api.CustomerAppOrder {
+        val response = api.approveCustomerAppOrderGroup(
+            authorization = bearer(token),
+            orderId = orderId,
+            groupId = groupId
+        )
+        if (!response.ok || response.order == null) {
+            throw IllegalStateException(
+                response.error?.message ?: "Group approval failed"
+            )
+        }
+        return response.order
+    }
+
+    suspend fun rejectOrderGroup(
+        token: String,
+        orderId: Long,
+        groupId: Long,
+        note: String
+    ): me.ayartuerk.crmadmin.api.CustomerAppOrder {
+        val response = api.rejectCustomerAppOrderGroup(
+            authorization = bearer(token),
+            orderId = orderId,
+            groupId = groupId,
+            body = me.ayartuerk.crmadmin.api.CustomerAppOrderGroupDecisionRequest(
+                adminDecisionNote = note.trim()
+            )
+        )
+        if (!response.ok || response.order == null) {
+            throw IllegalStateException(
+                response.error?.message ?: "Group rejection failed"
+            )
+        }
+        return response.order
+    }
+
     suspend fun performOrderAction(
         token: String,
         orderId: Long,
