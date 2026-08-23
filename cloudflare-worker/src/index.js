@@ -5392,7 +5392,6 @@ async function getOrdersContext(env, closed = false) {
       ON o.session_token = ('app_customer_' || customers.id)
     LEFT JOIN customer_order_items_v2 i
       ON i.customer_order_id = o.id
-      AND COALESCE(i.item_status, 'confirmed') = 'confirmed'
     WHERE ${closedWhere}
     GROUP BY o.id
     HAVING item_count > 0
