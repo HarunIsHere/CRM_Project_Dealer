@@ -395,7 +395,13 @@ const AdminSharedTexts = {
     "operation_failed": "The operation failed. Please try again.",
     "recovery_email_sent": "If the account exists, a recovery email has been sent.",
     "required_template": "{field} is required.",
-    "settings": "Settings"
+    "settings": "Settings",
+    "change_admin_password": "Change Admin Password",
+    "current_password": "Current Password",
+    "ip_address": "IP",
+    "no_administrators_found": "No administrators found.",
+    "no_audit_records_found": "No audit records found.",
+    "protected_administrator": "Protected administrator"
   },
   "de": {
     "title": "CRM Delivery Admin",
@@ -792,7 +798,13 @@ const AdminSharedTexts = {
     "operation_failed": "Der Vorgang ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "recovery_email_sent": "Wenn das Konto existiert, wurde eine Wiederherstellungs-E-Mail gesendet.",
     "required_template": "{field} ist erforderlich.",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "change_admin_password": "Administratorpasswort ändern",
+    "current_password": "Aktuelles Passwort",
+    "ip_address": "IP",
+    "no_administrators_found": "Keine Administratoren gefunden.",
+    "no_audit_records_found": "Keine Audit-Protokolle gefunden.",
+    "protected_administrator": "Geschützter Administrator"
   },
   "tr": {
     "title": "CRM Delivery Admin",
@@ -1189,7 +1201,13 @@ const AdminSharedTexts = {
     "operation_failed": "İşlem başarısız oldu. Lütfen tekrar deneyin.",
     "recovery_email_sent": "Hesap mevcutsa bir kurtarma e-postası gönderildi.",
     "required_template": "{field} gereklidir.",
-    "settings": "Ayarlar"
+    "settings": "Ayarlar",
+    "change_admin_password": "Yönetici Şifresini Değiştir",
+    "current_password": "Mevcut Şifre",
+    "ip_address": "IP",
+    "no_administrators_found": "Yönetici bulunamadı.",
+    "no_audit_records_found": "Denetim kaydı bulunamadı.",
+    "protected_administrator": "Korumalı yönetici"
   },
   "ar": {
     "title": "لوحة إدارة CRM Delivery",
@@ -1586,7 +1604,13 @@ const AdminSharedTexts = {
     "operation_failed": "فشلت العملية. يرجى المحاولة مرة أخرى.",
     "recovery_email_sent": "إذا كان الحساب موجودًا، فقد تم إرسال رسالة استعادة عبر البريد الإلكتروني.",
     "required_template": "{field} مطلوب.",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "change_admin_password": "تغيير كلمة مرور المسؤول",
+    "current_password": "كلمة المرور الحالية",
+    "ip_address": "IP",
+    "no_administrators_found": "لم يتم العثور على مسؤولين.",
+    "no_audit_records_found": "لم يتم العثور على سجلات تدقيق.",
+    "protected_administrator": "مسؤول محمي"
   },
   "ru": {
     "title": "CRM Delivery Admin",
@@ -1983,7 +2007,13 @@ const AdminSharedTexts = {
     "operation_failed": "Операция не выполнена. Повторите попытку.",
     "recovery_email_sent": "Если учётная запись существует, письмо для восстановления отправлено.",
     "required_template": "Обязательное поле: {field}.",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "change_admin_password": "Изменить пароль администратора",
+    "current_password": "Текущий пароль",
+    "ip_address": "IP",
+    "no_administrators_found": "Администраторы не найдены.",
+    "no_audit_records_found": "Записи аудита не найдены.",
+    "protected_administrator": "Защищённый администратор"
   }
 }
 ;

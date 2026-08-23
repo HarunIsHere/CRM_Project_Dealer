@@ -1693,7 +1693,11 @@ private fun OrderCard(
 
         order.customer?.telegramUserId
             ?.takeIf { it.isNotBlank() }
-            ?.let { Text("Telegram: $it") }
+            ?.let {
+                Text(
+                    "${AdminSharedTexts.text(ui.languageCode, "telegram")}: $it"
+                )
+            }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1901,7 +1905,11 @@ private fun OrderDetailScreen(
 
                     order.customer?.telegramUserId
                         ?.takeIf { it.isNotBlank() }
-                        ?.let { Text("Telegram: $it") }
+                        ?.let {
+                            Text(
+                                "${AdminSharedTexts.text(ui.languageCode, "telegram")}: $it"
+                            )
+                        }
 
                     Row(
                         verticalAlignment =

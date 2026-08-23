@@ -58,7 +58,7 @@ fun SuperadminManagementScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Superadmin",
+                    text = AdminSharedTexts.text(languageCode, "superadmin"),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.weight(1f)
                 )
@@ -66,14 +66,14 @@ fun SuperadminManagementScreen(
                     onClick = onRefresh,
                     enabled = !state.loading
                 ) {
-                    Text("Refresh", maxLines = 1, softWrap = false)
+                    Text(AdminSharedTexts.text(languageCode, "refresh"), maxLines = 1, softWrap = false)
                 }
             }
         }
 
         item {
             Text(
-                text = "Create Admin",
+                text = AdminSharedTexts.text(languageCode, "create_admin"),
                 style = MaterialTheme.typography.titleLarge
             )
         }
@@ -89,7 +89,7 @@ fun SuperadminManagementScreen(
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text("Username") },
+                        label = { Text(AdminSharedTexts.text(languageCode, "username")) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -97,7 +97,7 @@ fun SuperadminManagementScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email Address") },
+                        label = { Text(AdminSharedTexts.text(languageCode, "email_address")) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email
                         ),
@@ -108,7 +108,7 @@ fun SuperadminManagementScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text(AdminSharedTexts.text(languageCode, "password")) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password
                         ),
@@ -118,13 +118,16 @@ fun SuperadminManagementScreen(
                     )
 
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        Text("Role")
+                        Text(AdminSharedTexts.text(languageCode, "role"))
                         OutlinedButton(
                             onClick = { roleExpanded = true },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = role,
+                                text = AdminSharedTexts.text(
+                                    languageCode,
+                                    if (role == "superadmin") "role_superadmin" else "role_admin"
+                                ),
                                 maxLines = 1,
                                 softWrap = false
                             )
@@ -135,7 +138,18 @@ fun SuperadminManagementScreen(
                         ) {
                             listOf("admin", "superadmin").forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(option) },
+                                    text = {
+                                        Text(
+                                            AdminSharedTexts.text(
+                                                languageCode,
+                                                if (option == "superadmin") {
+                                                    "role_superadmin"
+                                                } else {
+                                                    "role_admin"
+                                                }
+                                            )
+                                        )
+                                    },
                                     onClick = {
                                         role = option
                                         roleExpanded = false
@@ -158,7 +172,7 @@ fun SuperadminManagementScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Create Admin",
+                            text = AdminSharedTexts.text(languageCode, "create_admin"),
                             maxLines = 1,
                             softWrap = false
                         )
@@ -189,14 +203,14 @@ fun SuperadminManagementScreen(
 
         item {
             Text(
-                text = "Admin Management",
+                text = AdminSharedTexts.text(languageCode, "admin_management"),
                 style = MaterialTheme.typography.titleLarge
             )
         }
 
         if (state.managedAdmins.isEmpty()) {
             item {
-                Text("No administrators found.")
+                Text(AdminSharedTexts.text(languageCode, "no_administrators_found"))
             }
         } else {
             items(
@@ -207,6 +221,7 @@ fun SuperadminManagementScreen(
                     admin = admin,
                     currentUsername = state.currentAdminUsername,
                     enabled = !state.loading,
+                    languageCode = languageCode,
                     onToggle = onToggle,
                     onDelete = onDelete
                 )
@@ -215,25 +230,25 @@ fun SuperadminManagementScreen(
 
         item {
             Text(
-                text = "Website Login and Action Data",
+                text = AdminSharedTexts.text(languageCode, "audit_logs"),
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
-                text = "Only the last 30 days are kept.",
+                text = AdminSharedTexts.text(languageCode, "last_30_days_only"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         if (state.adminAuditLogs.isEmpty()) {
             item {
-                Text("No audit records found.")
+                Text(AdminSharedTexts.text(languageCode, "no_audit_records_found"))
             }
         } else {
             items(
                 items = state.adminAuditLogs,
                 key = { it.id }
             ) { log ->
-                AdminAuditLogCard(log)
+                AdminAuditLogCard(log, languageCode)
             }
         }
     }
@@ -244,6 +259,7 @@ private fun ManagedAdminCard(
     admin: ManagedAdmin,
     currentUsername: String,
     enabled: Boolean,
+    languageCode: String,
     onToggle: (Long) -> Unit,
     onDelete: (Long) -> Unit
 ) {
@@ -256,12 +272,36 @@ private fun ManagedAdminCard(
                 text = admin.username.ifBlank { "-" },
                 style = MaterialTheme.typography.titleMedium
             )
-            Text("Email: ${admin.email.ifBlank { "-" }}")
-            Text("Role: ${admin.role}")
-            Text("Active: ${if (admin.isActive) "Yes" else "No"}")
-            Text("Source: ${admin.source.ifBlank { "-" }}")
-            Text("Created: ${admin.createdAt.ifBlank { "-" }}")
-            Text("Last Login: ${admin.lastLoginAt.ifBlank { "-" }}")
+            Text(
+                "${AdminSharedTexts.text(languageCode, "email_address")}: " +
+                    admin.email.ifBlank { "-" }
+            )
+            Text(
+                "${AdminSharedTexts.text(languageCode, "role")}: " +
+                    AdminSharedTexts.text(
+                        languageCode,
+                        if (admin.role == "superadmin") "role_superadmin" else "role_admin"
+                    )
+            )
+            Text(
+                "${AdminSharedTexts.text(languageCode, "active")}: " +
+                    AdminSharedTexts.text(
+                        languageCode,
+                        if (admin.isActive) "yes" else "no"
+                    )
+            )
+            Text(
+                "${AdminSharedTexts.text(languageCode, "source")}: " +
+                    admin.source.ifBlank { "-" }
+            )
+            Text(
+                "${AdminSharedTexts.text(languageCode, "created_at")}: " +
+                    admin.createdAt.ifBlank { "-" }
+            )
+            Text(
+                "${AdminSharedTexts.text(languageCode, "last_login_at")}: " +
+                    admin.lastLoginAt.ifBlank { "-" }
+            )
 
             val canManage =
                 admin.id != null &&
@@ -275,11 +315,10 @@ private fun ManagedAdminCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = if (admin.isActive) {
-                            "Deny access"
-                        } else {
-                            "Grant access"
-                        },
+                        text = AdminSharedTexts.text(
+                            languageCode,
+                            if (admin.isActive) "deny_access" else "grant_access"
+                        ),
                         maxLines = 1,
                         softWrap = false
                     )
@@ -295,14 +334,14 @@ private fun ManagedAdminCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Delete credential",
+                        text = AdminSharedTexts.text(languageCode, "delete_credential"),
                         maxLines = 1,
                         softWrap = false
                     )
                 }
             } else if (admin.protected) {
                 Text(
-                    text = "Protected administrator",
+                    text = AdminSharedTexts.text(languageCode, "protected_administrator"),
                     color = MaterialTheme.colorScheme.primary
                 )
             }
@@ -311,24 +350,26 @@ private fun ManagedAdminCard(
 }
 
 @Composable
-private fun AdminAuditLogCard(log: AdminAuditLog) {
+private fun AdminAuditLogCard(log: AdminAuditLog, languageCode: String) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = log.actionType.ifBlank { "Action" },
+                text = log.actionType.ifBlank {
+                    AdminSharedTexts.text(languageCode, "action")
+                },
                 style = MaterialTheme.typography.titleMedium
             )
-            Text("Created: ${log.createdAt.ifBlank { "-" }}")
-            Text("Username: ${log.username.ifBlank { "-" }}")
-            Text("Role: ${log.role.ifBlank { "-" }}")
-            Text("Details: ${log.actionDetail.ifBlank { "-" }}")
-            Text("Method: ${log.method.ifBlank { "-" }}")
-            Text("Path: ${log.path.ifBlank { "-" }}")
-            Text("IP: ${log.ip.ifBlank { "-" }}")
-            Text("User Agent: ${log.userAgent.ifBlank { "-" }}")
+            Text("${AdminSharedTexts.text(languageCode, "created_at")}: ${log.createdAt.ifBlank { "-" }}")
+            Text("${AdminSharedTexts.text(languageCode, "username")}: ${log.username.ifBlank { "-" }}")
+            Text("${AdminSharedTexts.text(languageCode, "role")}: ${log.role.ifBlank { "-" }}")
+            Text("${AdminSharedTexts.text(languageCode, "details")}: ${log.actionDetail.ifBlank { "-" }}")
+            Text("${AdminSharedTexts.text(languageCode, "method")}: ${log.method.ifBlank { "-" }}")
+            Text("${AdminSharedTexts.text(languageCode, "path")}: ${log.path.ifBlank { "-" }}")
+            Text("${AdminSharedTexts.text(languageCode, "ip_address")}: ${log.ip.ifBlank { "-" }}")
+            Text("${AdminSharedTexts.text(languageCode, "user_agent")}: ${log.userAgent.ifBlank { "-" }}")
         }
     }
 }
@@ -350,7 +391,7 @@ fun AdminChangePasswordScreen(
     ) {
         item {
             Text(
-                text = "Change Admin Password",
+                text = AdminSharedTexts.text(languageCode, "change_admin_password"),
                 style = MaterialTheme.typography.headlineSmall
             )
         }
@@ -373,7 +414,7 @@ fun AdminChangePasswordScreen(
                     OutlinedTextField(
                         value = currentPassword,
                         onValueChange = { currentPassword = it },
-                        label = { Text("Current Password") },
+                        label = { Text(AdminSharedTexts.text(languageCode, "current_password")) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password
                         ),
@@ -385,7 +426,7 @@ fun AdminChangePasswordScreen(
                     OutlinedTextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
-                        label = { Text("New Password") },
+                        label = { Text(AdminSharedTexts.text(languageCode, "auth_recovery_new_password")) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password
                         ),
@@ -397,7 +438,7 @@ fun AdminChangePasswordScreen(
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = { Text("Confirm New Password") },
+                        label = { Text(AdminSharedTexts.text(languageCode, "auth_recovery_confirm_password")) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password
                         ),
@@ -418,7 +459,7 @@ fun AdminChangePasswordScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Change Password",
+                            text = AdminSharedTexts.text(languageCode, "change_password"),
                             maxLines = 1,
                             softWrap = false
                         )
