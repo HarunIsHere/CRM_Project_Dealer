@@ -369,7 +369,7 @@ No `phone`/`address`/`location` keys are emitted. `is_blocked` is a boolean.
 
 - `GET /api/v1/admin/customers` → `{ ok: true, customers: Customer[], count: number }` (supports `?search=&language=&active=active|blocked&limit=` with limit default 100, clamp 1–250)
 - `GET /api/v1/admin/customers/{id}` → `{ ok: true, customer: Customer, messages: CustomerMessage[], requests: CustomerRequest[], locations: CustomerLocation[] }`
-- `DELETE /api/v1/admin/customers/{id}` → `{ ok: true, customer_id: number, deleted: true }`
+- `DELETE /api/v1/admin/customers/{id}` → `{ ok: true, customer_id: number, deleted: true }`; hard-deletes the customer and all customer-linked cart, checkout, order, session, location, request, message, membership, and payment/preference rows in one D1 batch
 - `POST /api/v1/admin/customers/{id}/reply` — body `{ reply_text | message }` → `{ ok: true, customer_id: number, sent: true }` (sends Telegram, persists as outgoing `admin_reply`)
 
 ### Open items (customers)

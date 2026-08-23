@@ -7438,39 +7438,102 @@ showCustomerDetailTab("structured-requests");
 </html>`);
 }
 
+async function deleteCustomerData(env, customerId) {
+  const sessionToken = getCustomerOrderSessionToken(customerId);
+
+  await env.DB.batch([
+    env.DB.prepare(`
+      DELETE FROM customer_order_status_history_v2
+      WHERE order_id IN (
+        SELECT id FROM customer_orders_v2 WHERE session_token = ?
+      )
+    `).bind(sessionToken),
+    env.DB.prepare(`
+      DELETE FROM order_addition_groups_v2
+      WHERE customer_order_id IN (
+        SELECT id FROM customer_orders_v2 WHERE session_token = ?
+      )
+    `).bind(sessionToken),
+    env.DB.prepare(`
+      DELETE FROM customer_order_items_v2
+      WHERE customer_order_id IN (
+        SELECT id FROM customer_orders_v2 WHERE session_token = ?
+      )
+    `).bind(sessionToken),
+    env.DB.prepare(
+      "DELETE FROM customer_orders_v2 WHERE session_token = ?"
+    ).bind(sessionToken),
+    env.DB.prepare(
+      "DELETE FROM customer_cart_items_v2 WHERE session_token = ?"
+    ).bind(sessionToken),
+    env.DB.prepare(
+      "DELETE FROM customer_cart_sessions WHERE session_token = ?"
+    ).bind(sessionToken),
+    env.DB.prepare(`
+      DELETE FROM shopping_cart_items
+      WHERE cart_id IN (
+        SELECT id FROM shopping_carts WHERE customer_id = ?
+      )
+    `).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM shopping_carts WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(`
+      DELETE FROM shop_order_parts
+      WHERE checkout_id IN (
+        SELECT id FROM customer_checkouts WHERE customer_id = ?
+      )
+    `).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM customer_checkouts WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM customer_app_sessions WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM customer_locations WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM customer_locations_v2 WHERE customer_id = ? OR session_token = ?"
+    ).bind(customerId, sessionToken),
+    env.DB.prepare(
+      "DELETE FROM messages WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM customer_requests WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM customer_shop_memberships WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM customer_payment_methods WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(
+      "DELETE FROM customer_preferred_providers WHERE customer_id = ?"
+    ).bind(customerId),
+    env.DB.prepare(`
+      DELETE FROM app_settings
+      WHERE key IN (?, ?)
+    `).bind(
+      `address_search_results_${customerId}`,
+      `pending_product_fulfillment_request_${customerId}`
+    ),
+    env.DB.prepare(
+      "DELETE FROM customers WHERE id = ?"
+    ).bind(customerId)
+  ]);
+}
+
 async function handleDeleteCustomer(env, customerId) {
   const customer = await env.DB.prepare(
-    "SELECT * FROM customers WHERE id = ?"
+    "SELECT id FROM customers WHERE id = ?"
   ).bind(customerId).first();
 
   if (!customer) {
     return redirectResponse("/admin/customers");
   }
 
-  await env.DB.prepare(
-    "DELETE FROM messages WHERE customer_id = ?"
-  ).bind(customerId).run();
-
-  await env.DB.prepare(
-    "DELETE FROM customer_requests WHERE customer_id = ?"
-  ).bind(customerId).run();
-
-  await env.DB.prepare(
-    "DELETE FROM customer_locations_v2 WHERE customer_id = ? OR session_token = ?"
-  ).bind(customerId, getCustomerOrderSessionToken(customerId)).run();
-
-  await env.DB.prepare(
-    `DELETE FROM app_settings
-     WHERE key IN (?, ?)`
-  ).bind(
-    `address_search_results_${customerId}`,
-    `pending_product_fulfillment_request_${customerId}`
-  ).run();
-
-  await env.DB.prepare(
-    "DELETE FROM customers WHERE id = ?"
-  ).bind(customerId).run();
-
+  await deleteCustomerData(env, customerId);
   return redirectResponse("/admin/customers");
 }
 
@@ -11688,20 +11751,7 @@ async function handleApiAdminCustomerDetail(request, env, customerId) {
   }
 
   if (request.method === "DELETE") {
-    await env.DB.prepare("DELETE FROM messages WHERE customer_id = ?").bind(customerId).run();
-    await env.DB.prepare("DELETE FROM customer_requests WHERE customer_id = ?").bind(customerId).run();
-    await env.DB.prepare("DELETE FROM customer_locations_v2 WHERE customer_id = ? OR session_token = ?")
-      .bind(customerId, getCustomerOrderSessionToken(customerId))
-      .run();
-    await env.DB.prepare(
-      `DELETE FROM app_settings
-       WHERE key IN (?, ?)`
-    ).bind(
-      `address_search_results_${customerId}`,
-      `pending_product_fulfillment_request_${customerId}`
-    ).run();
-    await env.DB.prepare("DELETE FROM customers WHERE id = ?").bind(customerId).run();
-
+    await deleteCustomerData(env, customerId);
     await logAdminAction(env, request, session, "api_customer_deleted", String(customerId));
 
     return apiOk({
