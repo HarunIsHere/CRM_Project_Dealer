@@ -22,7 +22,7 @@ submitted, preparing, scheduled_for_next_online_order, cancelled, closed
 | `POST .../ready-to-pickup` | sets pickup status to `ready_to_pickup` | fulfillment = pickup (`:10338`) |
 | `POST .../delivered` | sets `delivered` (delivery) / `picked_up` (pickup) final state | `order_status` not `cancelled` (`:10404`) |
 | `POST .../not-delivered` | sets `not_delivered` final state | `order_status` not `cancelled` (`:10436`) |
-| `POST .../cancel` | sets `cancelled` and snapshots each group/item status in `status_before_cancel` | source order is not already cancelled |
+| `POST .../cancel` | sets `cancelled`, snapshots each group/item status in `status_before_cancel`, and preserves the eligible commercial total | source order is not already cancelled |
 | `POST .../recreate` | creates a new linked `draft`; source remains `cancelled` | eligible items exist; every referenced product remains active; idempotency key is valid; no non-terminal successor exists |
 | `POST .../confirm-recreation` | recreated `draft` → `submitted` | products remain active and prices still match the reviewed draft |
 | `POST .../groups/{gid}/approve` | approve delivery group (`:10468`) | — |

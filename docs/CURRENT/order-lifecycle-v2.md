@@ -72,7 +72,7 @@ Delivery cancellation:
 - `delivery_status = cancelled`
 - all groups become `cancelled`
 - all items become `cancelled`
-- `total_amount = 0`
+- `total_amount` preserves the final eligible commercial item value
 - cancelled section shows cancelled item value
 
 ## Pickup lifecycle
@@ -104,7 +104,7 @@ Pickup cancellation:
 - `pickup_status = cancelled`
 - all groups become `cancelled`
 - all items become `cancelled`
-- `total_amount = 0`
+- `total_amount` preserves the final eligible commercial item value
 - cancelled section shows cancelled item value
 
 ## Admin actions

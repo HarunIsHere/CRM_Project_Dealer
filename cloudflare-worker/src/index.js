@@ -5394,8 +5394,23 @@ async function getOrdersContext(env, closed = false) {
       customers.preferred_language,
       COUNT(i.id) AS item_count,
       COALESCE(
-        o.total_amount,
-        SUM(COALESCE(i.line_total, 0)),
+        NULLIF(o.total_amount, 0),
+        SUM(
+          CASE
+            WHEN COALESCE(
+              i.status_before_cancel,
+              i.item_status,
+              'confirmed'
+            ) IN (
+              'confirmed',
+              'approved',
+              'waiting_ready_to_pickup',
+              'scheduled_for_next_online_order'
+            )
+            THEN COALESCE(i.line_total, 0)
+            ELSE 0
+          END
+        ),
         0
       ) AS total_amount,
       json_group_array(
@@ -6414,7 +6429,6 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
             WHEN fulfillment_type = 'pickup' THEN 'cancelled'
             ELSE pickup_status
           END,
-          total_amount = 0,
           cancelled_at = CURRENT_TIMESTAMP,
           cancel_reason = ?,
           admin_status_note = ?,
@@ -9108,7 +9122,26 @@ async function getTelegramActionableOrders(env) {
       customers.username,
       customers.telegram_user_id,
       COUNT(i.id) AS item_count,
-      COALESCE(o.total_amount, SUM(COALESCE(i.line_total, 0)), 0) AS total_amount,
+      COALESCE(
+        NULLIF(o.total_amount, 0),
+        SUM(
+          CASE
+            WHEN COALESCE(
+              i.status_before_cancel,
+              i.item_status,
+              'confirmed'
+            ) IN (
+              'confirmed',
+              'approved',
+              'waiting_ready_to_pickup',
+              'scheduled_for_next_online_order'
+            )
+            THEN COALESCE(i.line_total, 0)
+            ELSE 0
+          END
+        ),
+        0
+      ) AS total_amount,
       json_group_array(
         json_object(
           'name', i.product_name,
@@ -11831,7 +11864,6 @@ async function handleApiAdminV2CancelOrder(request, env, orderId) {
           WHEN fulfillment_type = 'pickup' THEN 'cancelled'
           ELSE pickup_status
         END,
-        total_amount = 0,
         cancelled_at = CURRENT_TIMESTAMP,
         cancelled_by_admin_id = ?,
         cancel_reason = ?,
@@ -13811,7 +13843,29 @@ async function mapV2OrderForApi(env, order) {
     sectionTotals.pending_admin_approval.total_amount +
     sectionTotals.waiting_ready_to_pickup.total_amount +
     sectionTotals.scheduled_for_next_online_order.total_amount;
-  const displayTotal = confirmedTotal || Number(order.total_amount || 0) || activeTotal;
+  const historicalStatuses = new Set([
+    "confirmed",
+    "approved",
+    "waiting_ready_to_pickup",
+    "scheduled_for_next_online_order"
+  ]);
+  const historicalTotal = rawItems.reduce((total, item) => {
+    const historicalStatus =
+      item.status_before_cancel ||
+      item.item_status ||
+      "confirmed";
+
+    if (!historicalStatuses.has(historicalStatus)) {
+      return total;
+    }
+
+    return total + Number(item.line_total || 0);
+  }, 0);
+  const displayTotal =
+    confirmedTotal ||
+    Number(order.total_amount || 0) ||
+    activeTotal ||
+    historicalTotal;
 
   return {
     id: Number(order.id),
