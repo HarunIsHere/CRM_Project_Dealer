@@ -75,6 +75,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import kotlinx.coroutines.launch
 import androidx.compose.material3.TextButton
 import java.util.Locale
+import java.util.UUID
 
 private data class AdminLocalizedText(
     val languageCode: String,
@@ -359,7 +360,7 @@ private val adminTextAliases = mapOf(
     "itemLabel" to "item",
     "aliases" to "aliases",
     "quantity" to "quantity",
-    "unit" to "unit_price",
+    "unit" to "unit",
     "noCustomersLoaded" to "no_customers_loaded",
     "usernameLabel" to "username",
     "telegramLabel" to "telegram",
@@ -507,6 +508,9 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onOrderClick = viewModel::showOrderDetail,
                     onClosedOrderClick = viewModel::showClosedOrderDetail,
                     onOrderAction = viewModel::performSelectedOrderAction,
+                    onRecreateOrder = viewModel::recreateSelectedOrder,
+                    onConfirmRecreatedOrder =
+                        viewModel::confirmSelectedRecreatedOrder,
                     onApproveOrderGroup = viewModel::approveSelectedOrderGroup,
                     onRejectOrderGroup = viewModel::rejectSelectedOrderGroup,
                     onCustomerClick = viewModel::showCustomerDetail,
@@ -696,6 +700,8 @@ private fun AdminShell(
     onOrderClick: (Long) -> Unit,
     onClosedOrderClick: (Long) -> Unit,
     onOrderAction: (AdminOrderAction, String) -> Unit,
+    onRecreateOrder: (String, String) -> Unit,
+    onConfirmRecreatedOrder: () -> Unit,
     onApproveOrderGroup: (Long) -> Unit,
     onRejectOrderGroup: (Long, String) -> Unit,
     onCustomerClick: (Long) -> Unit,
@@ -880,6 +886,11 @@ private fun AdminShell(
                     },
                     ui = ui,
                     onAction = onOrderAction,
+                    onRecreateOrder = onRecreateOrder,
+                    onConfirmRecreatedOrder =
+                        onConfirmRecreatedOrder,
+                    onSourceOrderClick = onClosedOrderClick,
+                    onSuccessorOrderClick = onOrderClick,
                     onApproveGroup = onApproveOrderGroup,
                     onRejectGroup = onRejectOrderGroup
                 )
@@ -892,6 +903,11 @@ private fun AdminShell(
                     },
                     ui = ui,
                     onAction = onOrderAction,
+                    onRecreateOrder = onRecreateOrder,
+                    onConfirmRecreatedOrder =
+                        onConfirmRecreatedOrder,
+                    onSourceOrderClick = onClosedOrderClick,
+                    onSuccessorOrderClick = onOrderClick,
                     onApproveGroup = onApproveOrderGroup,
                     onRejectGroup = onRejectOrderGroup,
                     closedMode = true
@@ -1737,6 +1753,30 @@ private fun OrderCard(
             )
         }
 
+        val normalizedOrderStatus =
+            (order.orderStatus ?: order.status)
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+
+        if (
+            normalizedOrderStatus == "draft" &&
+            order.recreatedFromOrderId != null
+        ) {
+            Text(
+                "${
+                    adminText(ui, "recreated_from_order")
+                }: #${order.recreatedFromOrderId}"
+            )
+            Text(
+                adminText(
+                    ui,
+                    "recreation_awaiting_confirmation"
+                ),
+                color = AdminColors.TextSecondary
+            )
+        }
+
         if (fulfillment == "delivery") {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1819,12 +1859,22 @@ private fun OrderDetailScreen(
     onBack: () -> Unit,
     onRefresh: () -> Unit,
     onAction: (AdminOrderAction, String) -> Unit,
+    onRecreateOrder: (String, String) -> Unit,
+    onConfirmRecreatedOrder: () -> Unit,
+    onSourceOrderClick: (Long) -> Unit,
+    onSuccessorOrderClick: (Long) -> Unit,
     onApproveGroup: (Long) -> Unit,
     onRejectGroup: (Long, String) -> Unit,
     ui: AdminLocalizedText,
     closedMode: Boolean = false
 ) {
     val order = state.selectedOrder
+    var recreationReason by remember(order?.id) {
+        mutableStateOf("")
+    }
+    val recreationKey = remember(order?.id) {
+        UUID.randomUUID().toString()
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1898,6 +1948,35 @@ private fun OrderDetailScreen(
                     order.publicOrderCode
                         ?.takeIf { it.isNotBlank() }
                         ?.let { Text(it) }
+
+                    order.recreatedFromOrderId?.let {
+                        sourceOrderId ->
+                        AdminSecondaryButton(
+                            text = "${
+                                adminText(
+                                    ui,
+                                    "recreated_from_order"
+                                )
+                            } #$sourceOrderId",
+                            onClick = {
+                                onSourceOrderClick(sourceOrderId)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    order.recreationReason
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { reason ->
+                            Text(
+                                "${
+                                    adminText(
+                                        ui,
+                                        "recreation_reason"
+                                    )
+                                }: $reason"
+                            )
+                        }
 
                     Text(
                         "${adminText(ui, "customerLabel")}: ${
@@ -2052,14 +2131,119 @@ private fun OrderDetailScreen(
                             CircularProgressIndicator()
                         }
 
-                        closedMode &&
-                            orderStatus == "cancelled" -> {
+                        orderStatus == "draft" &&
+                            order.recreatedFromOrderId != null -> {
                             Text(
                                 adminText(
                                     ui,
-                                    "noAvailableAction"
+                                    "recreation_awaiting_confirmation"
                                 )
                             )
+
+                            AdminPrimaryButton(
+                                text = adminText(
+                                    ui,
+                                    "confirm_recreated_order"
+                                ),
+                                onClick =
+                                    onConfirmRecreatedOrder,
+                                modifier =
+                                    Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        closedMode &&
+                            orderStatus in setOf(
+                                "cancelled",
+                                "canceled"
+                            ) -> {
+                            val activeSuccessorId =
+                                order.activeRecreatedOrderId
+
+                            if (activeSuccessorId != null) {
+                                AdminSecondaryButton(
+                                    text =
+                                        AdminSharedTexts.text(
+                                            ui.languageCode,
+                                            "already_recreated_as"
+                                        ) +
+                                            " #$activeSuccessorId",
+                                    onClick = {
+                                        onSuccessorOrderClick(
+                                            activeSuccessorId
+                                        )
+                                    },
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                if (
+                                    order.recreatedOrderCount > 0
+                                ) {
+                                    Text(
+                                        AdminSharedTexts.text(
+                                            ui.languageCode,
+                                            "recreate_another_order_warning"
+                                        ),
+                                        color =
+                                            AdminColors
+                                                .TextSecondary
+                                    )
+                                }
+
+                                OutlinedTextField(
+                                    value = recreationReason,
+                                    onValueChange = { value ->
+                                        if (value.length <= 500) {
+                                            recreationReason = value
+                                        }
+                                    },
+                                    label = {
+                                        Text(
+                                            adminText(
+                                                ui,
+                                                "recreation_reason"
+                                            )
+                                        )
+                                    },
+                                    supportingText = {
+                                        Text(
+                                            "${recreationReason.length}/500"
+                                        )
+                                    },
+                                    minLines = 2,
+                                    maxLines = 4,
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                )
+
+                                AdminPrimaryButton(
+                                    text =
+                                        AdminSharedTexts.text(
+                                            ui.languageCode,
+                                            if (
+                                                order.recreatedOrderCount >
+                                                0
+                                            ) {
+                                                "recreate_another_order"
+                                            } else {
+                                                "recreate_order"
+                                            }
+                                        ),
+                                    onClick = {
+                                        onRecreateOrder(
+                                            recreationReason,
+                                            recreationKey
+                                        )
+                                    },
+                                    modifier =
+                                        Modifier.fillMaxWidth(),
+                                    enabled =
+                                        recreationReason
+                                            .trim()
+                                            .isNotEmpty()
+                                )
+                            }
                         }
 
                         closedMode &&
@@ -2375,6 +2559,16 @@ private fun OrderGroupCard(
         "initial_checkout" -> "group_type_initial_checkout"
         "customer_addition" -> "group_type_customer_addition"
         "admin_addition" -> "group_type_admin_addition"
+        "delivery_pending_addition" ->
+            "group_type_delivery_pending_addition"
+        "pickup_waiting_ready_confirmation" ->
+            "group_type_pickup_waiting_ready_confirmation"
+        "recreated_order" ->
+            "group_type_recreated_order"
+        "scheduled_next_online_order_delivery" ->
+            "group_type_scheduled_next_online_order_delivery"
+        "scheduled_next_online_order_pickup" ->
+            "group_type_scheduled_next_online_order_pickup"
         else -> null
     }
     val groupType = groupTypeKey

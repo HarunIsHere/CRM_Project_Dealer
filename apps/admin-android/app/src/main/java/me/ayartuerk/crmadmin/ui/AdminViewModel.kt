@@ -1543,6 +1543,125 @@ fun showDashboard() {
         }
     }
 
+    fun recreateSelectedOrder(
+        reason: String,
+        idempotencyKey: String
+    ) {
+        if (_state.value.loading) return
+
+        val token = _state.value.token
+        val sourceOrder = _state.value.selectedOrder
+        val normalizedReason = reason.trim()
+        val sourceStatus = (
+            sourceOrder?.orderStatus ?: sourceOrder?.status
+        )?.trim()?.lowercase()
+
+        if (
+            token.isNullOrBlank() ||
+            sourceOrder == null ||
+            sourceStatus !in setOf("cancelled", "canceled") ||
+            normalizedReason.isBlank() ||
+            normalizedReason.length > 500 ||
+            idempotencyKey.isBlank()
+        ) {
+            _state.value = _state.value.copy(
+                error = AdminUiMessage("recreation_failed")
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.recreateCancelledOrder(
+                    token = token,
+                    sourceOrderId = sourceOrder.id,
+                    reason = normalizedReason,
+                    idempotencyKey = idempotencyKey
+                )
+            }.onSuccess { recreated ->
+                _state.value = _state.value.copy(
+                    loading = false,
+                    screen = AdminScreen.ORDER_DETAIL,
+                    selectedOrder = recreated,
+                    orders = listOf(recreated) +
+                        _state.value.orders.filterNot {
+                            it.id == recreated.id
+                        },
+                    error = null
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = AdminUiMessage("recreation_failed")
+                )
+            }
+        }
+    }
+
+    fun confirmSelectedRecreatedOrder() {
+        if (_state.value.loading) return
+
+        val token = _state.value.token
+        val selectedOrder = _state.value.selectedOrder
+        val orderStatus = (
+            selectedOrder?.orderStatus ?: selectedOrder?.status
+        )?.trim()?.lowercase()
+
+        if (
+            token.isNullOrBlank() ||
+            selectedOrder == null ||
+            selectedOrder.recreatedFromOrderId == null ||
+            orderStatus != "draft"
+        ) {
+            _state.value = _state.value.copy(
+                error = AdminUiMessage("recreation_failed")
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.confirmRecreatedOrder(
+                    token = token,
+                    orderId = selectedOrder.id
+                )
+            }.onSuccess { confirmed ->
+                val currentOrders = _state.value.orders
+                val updatedOrders =
+                    if (currentOrders.any { it.id == confirmed.id }) {
+                        currentOrders.map {
+                            if (it.id == confirmed.id) confirmed else it
+                        }
+                    } else {
+                        listOf(confirmed) + currentOrders
+                    }
+
+                _state.value = _state.value.copy(
+                    loading = false,
+                    screen = AdminScreen.ORDER_DETAIL,
+                    selectedOrder = confirmed,
+                    orders = updatedOrders,
+                    error = null
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = AdminUiMessage("recreation_failed")
+                )
+            }
+        }
+    }
+
     fun performSelectedOrderAction(
         action: AdminOrderAction,
         note: String = ""

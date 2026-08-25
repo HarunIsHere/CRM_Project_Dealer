@@ -250,6 +250,19 @@ interface AdminApi {
         @Body body: CustomerAppOrderCancelRequest
     ): BasicResponse
 
+    @POST("admin/customer-app-orders/{orderId}/recreate")
+    suspend fun recreateCustomerAppOrder(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long,
+        @Body body: CustomerAppOrderRecreateRequest
+    ): CustomerAppOrderRecreationResponse
+
+    @POST("admin/customer-app-orders/{orderId}/confirm-recreation")
+    suspend fun confirmCustomerAppOrderRecreation(
+        @Header("Authorization") authorization: String,
+        @Path("orderId") orderId: Long
+    ): CustomerAppOrderRecreationResponse
+
     @POST("admin/customer-app-orders/{orderId}/delivered")
     suspend fun markCustomerAppOrderDeliveredV2(
         @Header("Authorization") authorization: String,
@@ -455,6 +468,16 @@ data class CustomerAppOrderDetailResponse(
 )
 
 @Serializable
+data class CustomerAppOrderRecreationResponse(
+    val ok: Boolean = false,
+    val order: CustomerAppOrder? = null,
+    @SerialName("source_order")
+    val sourceOrder: CustomerAppOrder? = null,
+    val replayed: Boolean = false,
+    val error: ApiErrorEnvelope? = null
+)
+
+@Serializable
 data class ProductsResponse(
     val ok: Boolean = false,
     val products: List<Product> = emptyList(),
@@ -639,6 +662,14 @@ data class CustomerAppOrderCancelRequest(
 )
 
 @Serializable
+data class CustomerAppOrderRecreateRequest(
+    @SerialName("recreation_reason")
+    val recreationReason: String,
+    @SerialName("idempotency_key")
+    val idempotencyKey: String
+)
+
+@Serializable
 data class CustomerAppOrderNotDeliveredRequest(
     @SerialName("admin_status_note")
     val adminStatusNote: String = ""
@@ -707,6 +738,18 @@ data class CustomerAppOrder(
     val currency: String? = null,
     val items: List<CustomerAppOrderItem> = emptyList(),
     val groups: List<CustomerAppOrderGroup> = emptyList(),
+    @SerialName("recreated_from_order_id")
+    val recreatedFromOrderId: Long? = null,
+    @SerialName("recreated_by_admin_id")
+    val recreatedByAdminId: Long? = null,
+    @SerialName("recreation_reason")
+    val recreationReason: String? = null,
+    @SerialName("recreation_confirmed_at")
+    val recreationConfirmedAt: String? = null,
+    @SerialName("active_recreated_order_id")
+    val activeRecreatedOrderId: Long? = null,
+    @SerialName("recreated_order_count")
+    val recreatedOrderCount: Int = 0,
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("updated_at")

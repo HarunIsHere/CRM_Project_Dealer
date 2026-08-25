@@ -22,11 +22,15 @@ submitted, preparing, scheduled_for_next_online_order, cancelled, closed
 | `POST .../ready-to-pickup` | sets pickup status to `ready_to_pickup` | fulfillment = pickup (`:10338`) |
 | `POST .../delivered` | sets `delivered` (delivery) / `picked_up` (pickup) final state | `order_status` not `cancelled` (`:10404`) |
 | `POST .../not-delivered` | sets `not_delivered` final state | `order_status` not `cancelled` (`:10436`) |
-| `POST .../cancel` | sets `cancelled` (`:10587`) | — |
+| `POST .../cancel` | sets `cancelled` and snapshots each group/item status in `status_before_cancel` | source order is not already cancelled |
+| `POST .../recreate` | creates a new linked `draft`; source remains `cancelled` | eligible items exist; every referenced product remains active; idempotency key is valid; no non-terminal successor exists |
+| `POST .../confirm-recreation` | recreated `draft` → `submitted` | products remain active and prices still match the reviewed draft |
 | `POST .../groups/{gid}/approve` | approve delivery group (`:10468`) | — |
 | `POST .../groups/{gid}/reject` | reject delivery group (`:10525`) | — |
 
 Every status change is recorded to `customer_order_status_history_v2` via `addV2OrderHistory` (`:10129`); the aggregate history is readable for admin detail views (`:5741`).
+
+Cancelled orders are immutable. Recreation creates a new draft order linked by `recreated_from_order_id`; a unique server-side `recreation_key` makes repeated submissions idempotent. A partial unique index enforces at most one non-terminal successor per cancelled source, including concurrent requests. Once that successor becomes terminal, an admin may explicitly create another successor after acknowledging the warning. Pre-cancellation group/item states are retained in `status_before_cancel` so rejected or pending additions are not silently promoted into the successor.
 
 ### Status label set (display)
 

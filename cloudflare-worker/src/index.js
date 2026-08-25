@@ -5365,6 +5365,25 @@ async function getOrdersContext(env, closed = false) {
       o.admin_status_note,
       o.created_at,
       o.updated_at,
+      (
+        SELECT successor.id
+        FROM customer_orders_v2 successor
+        WHERE successor.recreated_from_order_id = o.id
+          AND COALESCE(
+            successor.order_status,
+            successor.status,
+            ''
+          ) NOT IN ('cancelled', 'closed', 'delivered')
+        ORDER BY
+          datetime(successor.updated_at) DESC,
+          successor.id DESC
+        LIMIT 1
+      ) AS active_recreated_order_id,
+      (
+        SELECT COUNT(*)
+        FROM customer_orders_v2 successor
+        WHERE successor.recreated_from_order_id = o.id
+      ) AS recreated_order_count,
       COALESCE(
         NULLIF(customers.full_name, ''),
         NULLIF(o.customer_name, ''),
@@ -5497,19 +5516,84 @@ function renderAdminOrderLocationCell(order, ui = getAdminOrderUiText("en")) {
   return `${escapeHtml(locationLabel)}${mapLink}`;
 }
 
+function renderAdminCancelledOrderRecreationAction(
+  order,
+  ui = getAdminOrderUiText("en")
+) {
+  const activeSuccessorId =
+    Number(order.active_recreated_order_id || 0);
+
+  if (
+    Number.isSafeInteger(activeSuccessorId) &&
+    activeSuccessorId > 0
+  ) {
+    return `
+      <a href="/admin/orders/${activeSuccessorId}">
+        <button type="button">
+          ${ui.already_recreated_as} #${activeSuccessorId}
+        </button>
+      </a>
+    `;
+  }
+
+  const hasPreviousRecreation =
+    Number(order.recreated_order_count || 0) > 0;
+  const recreationKey = crypto.randomUUID();
+
+  return `
+    ${hasPreviousRecreation
+      ? `<p><strong>${ui.recreate_another_order_warning}</strong></p>`
+      : ""}
+    <form action="/admin/orders/${order.id}/recreate" method="post">
+      <input
+        type="hidden"
+        name="idempotency_key"
+        value="${escapeHtml(recreationKey)}"
+      >
+      <input
+        type="text"
+        name="recreation_reason"
+        required
+        maxlength="500"
+        placeholder="${escapeHtml(ui.recreation_reason)}"
+      >
+      <button type="submit">
+        ${hasPreviousRecreation
+          ? ui.recreate_another_order
+          : ui.recreate_order}
+      </button>
+    </form>
+  `;
+}
+
 function renderAdminOrderActionForms(order, closed = false, ui = getAdminOrderUiText("en")) {
   const currentStatus = order.order_status || order.status || "";
   const noteInput = `<input type="text" name="admin_status_note" value="${escapeHtml(order.admin_status_note || "")}" placeholder="${escapeHtml(ui.optional_admin_note)}">`;
 
   if (closed) {
     if (currentStatus === "cancelled") {
-      return `<em>${ui.no_action_cancelled}</em>`;
+      return renderAdminCancelledOrderRecreationAction(
+        order,
+        ui
+      );
     }
 
     return `
       <form action="/admin/orders/${order.id}/return" method="post" style="display:inline;">
         <button type="submit">${ui.return_not_delivered}</button>
       </form>
+    `;
+  }
+
+  if (
+    currentStatus === "draft" &&
+    order.recreated_from_order_id
+  ) {
+    return `
+      <a href="/admin/orders/${order.id}">
+        <button type="button">${ui.details}</button>
+      </a>
+      <div><em>${ui.recreation_awaiting_confirmation}</em></div>
     `;
   }
 
@@ -5849,7 +5933,27 @@ function renderAdminOrderDetailActions(order, ui = getAdminOrderUiText("en")) {
   const currentStatus = order.order_status || order.status || "";
 
   if (currentStatus === "cancelled") {
-    return `<em>${ui.no_lifecycle_action_cancelled}</em>`;
+    return renderAdminCancelledOrderRecreationAction(
+      order,
+      ui
+    );
+  }
+
+  if (
+    currentStatus === "draft" &&
+    order.recreated_from_order_id
+  ) {
+    return `
+      <p><em>${ui.recreation_awaiting_confirmation}</em></p>
+      <form
+        action="/admin/orders/${order.id}/confirm-recreation"
+        method="post"
+      >
+        <button type="submit">
+          ${ui.confirm_recreated_order}
+        </button>
+      </form>
+    `;
   }
 
   const forms = [];
@@ -5971,6 +6075,9 @@ ${renderOrdersNav(ui, session)}
   <h2>${ui.summary}</h2>
   <p>
     <strong>${ui.code}:</strong> ${escapeHtml(order.public_order_code || "")}
+    ${order.recreated_from_order_id
+      ? `<br><strong>${ui.recreated_from_order}:</strong> <a href="/admin/orders/${order.recreated_from_order_id}">#${escapeHtml(order.recreated_from_order_id)}</a>`
+      : ""}
     <br><strong>${ui.fulfillment}:</strong> ${escapeHtml(getAdminOrderValueLabel("fulfillment", order.fulfillment_type, ui))}
     <br><strong>${ui.order_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.order_status || order.status || "", ui))}
     <br><strong>${ui.delivery_status}:</strong> ${escapeHtml(getAdminOrderStatusLabel(order.delivery_status || "", ui))}
@@ -6317,7 +6424,12 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
 
     await env.DB.prepare(`
       UPDATE order_addition_groups_v2
-      SET group_status = 'cancelled',
+      SET status_before_cancel = CASE
+            WHEN group_status = 'cancelled'
+            THEN status_before_cancel
+            ELSE group_status
+          END,
+          group_status = 'cancelled',
           admin_decision = 'cancelled',
           admin_decision_note = ?,
           decided_at = CURRENT_TIMESTAMP,
@@ -6327,7 +6439,12 @@ async function updateOrderStatusByAdmin(env, orderId, status, note = "") {
 
     await env.DB.prepare(`
       UPDATE customer_order_items_v2
-      SET item_status = 'cancelled',
+      SET status_before_cancel = CASE
+            WHEN item_status = 'cancelled'
+            THEN status_before_cancel
+            ELSE item_status
+          END,
+          item_status = 'cancelled',
           admin_decision = 'cancelled',
           admin_decision_note = ?,
           decided_at = CURRENT_TIMESTAMP
@@ -6376,6 +6493,114 @@ async function handleAdminReturnClosedOrder(env, orderId) {
 
   await updateOrderStatusByAdmin(env, orderId, "not_delivered", "Returned from closed orders");
   return redirectResponse("/admin/orders");
+}
+
+async function renderAdminOrderRecreationFailure(
+  env,
+  session,
+  error
+) {
+  const language =
+    await getSetting(env, "admin_view_language") ||
+    "en";
+  const ui = getAdminUiText(language);
+  const status = Number(error?.httpStatus || 500);
+
+  return htmlResponse(`<!DOCTYPE html>
+<html>
+<head>
+  <title>${escapeHtml(ui.recreation_failed)}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+  ${renderOrdersNav(ui, session)}
+  <h1>${escapeHtml(ui.recreation_failed)}</h1>
+  <p>
+    <a href="/admin/closedorders">
+      ${escapeHtml(ui.closed_orders)}
+    </a>
+  </p>
+</body>
+</html>`, status);
+}
+
+async function handleAdminRecreateCancelledOrder(
+  request,
+  env,
+  orderId,
+  session
+) {
+  const form = await request.formData();
+  const recreationKey = String(
+    form.get("idempotency_key") || ""
+  ).trim();
+  const reason = String(
+    form.get("recreation_reason") || ""
+  ).trim();
+
+  try {
+    const result = await recreateCancelledV2Order(
+      env,
+      orderId,
+      session,
+      recreationKey,
+      reason
+    );
+
+    await logAdminAction(
+      env,
+      request,
+      session,
+      result.replayed
+        ? "admin_order_recreation_replayed"
+        : "admin_order_recreated",
+      `source_order:${orderId}:new_order:${result.order.id}`
+    );
+
+    return redirectResponse(
+      `/admin/orders/${result.order.id}`
+    );
+  } catch (error) {
+    return renderAdminOrderRecreationFailure(
+      env,
+      session,
+      error
+    );
+  }
+}
+
+async function handleAdminConfirmRecreatedOrder(
+  request,
+  env,
+  orderId,
+  session
+) {
+  try {
+    const result = await confirmRecreatedV2Order(
+      env,
+      orderId,
+      session
+    );
+
+    await logAdminAction(
+      env,
+      request,
+      session,
+      result.replayed
+        ? "admin_order_recreation_confirmation_replayed"
+        : "admin_order_recreation_confirmed",
+      `order:${orderId}`
+    );
+
+    return redirectResponse(`/admin/orders/${orderId}`);
+  } catch (error) {
+    return renderAdminOrderRecreationFailure(
+      env,
+      session,
+      error
+    );
+  }
 }
 
 async function handleAdminOrderGroupApprove(env, orderId, groupId, session = {}) {
@@ -10138,6 +10363,25 @@ async function getV2AdminOrders(env, orderId = null) {
   const stmt = env.DB.prepare(`
     SELECT
       o.*,
+      (
+        SELECT successor.id
+        FROM customer_orders_v2 successor
+        WHERE successor.recreated_from_order_id = o.id
+          AND COALESCE(
+            successor.order_status,
+            successor.status,
+            ''
+          ) NOT IN ('cancelled', 'closed', 'delivered')
+        ORDER BY
+          datetime(successor.updated_at) DESC,
+          successor.id DESC
+        LIMIT 1
+      ) AS active_recreated_order_id,
+      (
+        SELECT COUNT(*)
+        FROM customer_orders_v2 successor
+        WHERE successor.recreated_from_order_id = o.id
+      ) AS recreated_order_count,
       c.id AS customer_id,
       c.full_name AS customer_full_name,
       c.username AS customer_username,
@@ -10646,6 +10890,909 @@ async function handleApiAdminV2RejectGroup(request, env, orderId, groupId) {
   });
 }
 
+function createOrderRecreationError(
+  code,
+  message,
+  httpStatus = 400,
+  details = null
+) {
+  const error = new Error(message);
+  error.code = code;
+  error.httpStatus = httpStatus;
+  error.details = details;
+  return error;
+}
+
+function normalizeOrderRecreationKey(value) {
+  const key = String(value || "").trim();
+
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(key)) {
+    throw createOrderRecreationError(
+      "invalid_recreation_key",
+      "A valid idempotency key containing 8-128 safe characters is required."
+    );
+  }
+
+  return key;
+}
+
+async function resolveAdminActorId(env, session = {}) {
+  const directId = Number(
+    session.admin?.id ||
+    session.id ||
+    0
+  );
+
+  if (Number.isSafeInteger(directId) && directId > 0) {
+    return directId;
+  }
+
+  const username = String(
+    session.admin?.username ||
+    session.username ||
+    ""
+  ).trim();
+
+  if (!username) return null;
+
+  const row = await env.DB.prepare(
+    "SELECT id FROM admin_users WHERE username = ?"
+  ).bind(username).first();
+
+  return row?.id ? Number(row.id) : null;
+}
+
+function getOrderRecreationAdminUsername(session = {}) {
+  return String(
+    session.admin?.username ||
+    session.username ||
+    ""
+  ).trim();
+}
+
+async function getExistingRecreatedOrder(
+  env,
+  recreationKey
+) {
+  return await env.DB.prepare(`
+    SELECT *
+    FROM customer_orders_v2
+    WHERE recreation_key = ?
+  `).bind(recreationKey).first();
+}
+
+async function getActiveRecreatedOrder(
+  env,
+  sourceOrderId
+) {
+  return await env.DB.prepare(`
+    SELECT *
+    FROM customer_orders_v2
+    WHERE recreated_from_order_id = ?
+      AND COALESCE(
+        order_status,
+        status,
+        ''
+      ) NOT IN ('cancelled', 'closed', 'delivered')
+    ORDER BY datetime(updated_at) DESC, id DESC
+    LIMIT 1
+  `).bind(sourceOrderId).first();
+}
+
+function activeRecreatedOrderError(order) {
+  return createOrderRecreationError(
+    "active_recreated_order_exists",
+    "This cancelled order already has an active recreated order.",
+    409,
+    {
+      active_order_id: Number(order.id)
+    }
+  );
+}
+
+async function getSourceOrderRecreationItems(env, sourceOrderId) {
+  const result = await env.DB.prepare(`
+    SELECT
+      i.id,
+      i.product_id,
+      i.shop_id,
+      i.quantity,
+      i.item_status,
+      i.status_before_cancel,
+      p.name AS current_product_name,
+      p.price AS current_product_price,
+      p.shop_id AS current_shop_id,
+      p.is_active AS current_product_active
+    FROM customer_order_items_v2 i
+    LEFT JOIN products p
+      ON p.id = i.product_id
+    WHERE i.customer_order_id = ?
+    ORDER BY i.id
+  `).bind(sourceOrderId).all();
+
+  return result.results || [];
+}
+
+function buildRecreatedOrderItems(sourceItems) {
+  const eligibleStatuses = new Set([
+    "confirmed",
+    "approved",
+    "waiting_ready_to_pickup",
+    "scheduled_for_next_online_order"
+  ]);
+
+  const eligible = sourceItems.filter((item) => {
+    const effectiveStatus = String(
+      item.status_before_cancel ||
+      item.item_status ||
+      ""
+    );
+
+    return eligibleStatuses.has(effectiveStatus);
+  });
+
+  if (!eligible.length) {
+    throw createOrderRecreationError(
+      "no_eligible_items",
+      "The cancelled order has no eligible items to recreate."
+    );
+  }
+
+  const unavailable = eligible
+    .filter((item) =>
+      !item.current_product_name ||
+      Number(item.current_product_active || 0) !== 1
+    )
+    .map((item) => ({
+      item_id: Number(item.id),
+      product_id: Number(item.product_id)
+    }));
+
+  if (unavailable.length) {
+    throw createOrderRecreationError(
+      "products_unavailable",
+      "One or more products are no longer available.",
+      409,
+      { products: unavailable }
+    );
+  }
+
+  const grouped = new Map();
+
+  for (const item of eligible) {
+    const productId = Number(item.product_id);
+    const shopId = item.current_shop_id ?? item.shop_id ?? null;
+    const key = `${productId}:${shopId ?? ""}`;
+    const quantity = Number(item.quantity || 0);
+    const unitPrice = Number(item.current_product_price);
+
+    if (
+      !Number.isSafeInteger(productId) ||
+      productId <= 0 ||
+      !Number.isFinite(quantity) ||
+      quantity <= 0 ||
+      !Number.isFinite(unitPrice) ||
+      unitPrice < 0
+    ) {
+      throw createOrderRecreationError(
+        "invalid_source_item",
+        "The cancelled order contains an invalid item.",
+        409,
+        { item_id: Number(item.id || 0) }
+      );
+    }
+
+    const current = grouped.get(key) || {
+      product_id: productId,
+      product_name: String(item.current_product_name),
+      shop_id: shopId === null ? null : Number(shopId),
+      quantity: 0,
+      unit_price: unitPrice,
+      line_total: 0
+    };
+
+    current.quantity += quantity;
+    current.line_total = current.quantity * unitPrice;
+    grouped.set(key, current);
+  }
+
+  return [...grouped.values()];
+}
+
+async function recreateCancelledV2Order(
+  env,
+  sourceOrderId,
+  session,
+  recreationKeyValue,
+  reasonValue
+) {
+  const recreationKey =
+    normalizeOrderRecreationKey(recreationKeyValue);
+  const reason = String(reasonValue || "").trim();
+
+  if (!reason || reason.length > 500) {
+    throw createOrderRecreationError(
+      "invalid_recreation_reason",
+      "A recreation reason of 1-500 characters is required."
+    );
+  }
+
+  const existing = await getExistingRecreatedOrder(
+    env,
+    recreationKey
+  );
+
+  if (existing) {
+    if (
+      Number(existing.recreated_from_order_id) !==
+      Number(sourceOrderId)
+    ) {
+      throw createOrderRecreationError(
+        "recreation_key_conflict",
+        "The idempotency key belongs to another source order.",
+        409
+      );
+    }
+
+    return {
+      order: await getV2AdminOrder(env, existing.id),
+      replayed: true
+    };
+  }
+
+  const source = await getV2RawOrder(env, sourceOrderId);
+
+  if (!source) {
+    throw createOrderRecreationError(
+      "source_order_not_found",
+      "The source order was not found.",
+      404
+    );
+  }
+
+  if (
+    String(source.order_status || source.status || "") !==
+    "cancelled"
+  ) {
+    throw createOrderRecreationError(
+      "source_order_not_cancelled",
+      "Only cancelled orders can be recreated.",
+      409
+    );
+  }
+
+  const activeSuccessor = await getActiveRecreatedOrder(
+    env,
+    sourceOrderId
+  );
+
+  if (activeSuccessor) {
+    throw activeRecreatedOrderError(activeSuccessor);
+  }
+
+  const sourceItems =
+    await getSourceOrderRecreationItems(env, sourceOrderId);
+  const recreatedItems =
+    buildRecreatedOrderItems(sourceItems);
+  const totalAmount = recreatedItems.reduce(
+    (sum, item) => sum + item.line_total,
+    0
+  );
+
+  const publicOrderCode = makePublicOrderCode();
+  const actorId = await resolveAdminActorId(env, session);
+  const actorUsername =
+    getOrderRecreationAdminUsername(session);
+  const now = new Date().toISOString();
+  const fulfillmentType =
+    String(source.fulfillment_type || "");
+  const deliveryStatus =
+    fulfillmentType === "delivery" ? "not_started" : null;
+  const pickupStatus =
+    fulfillmentType === "pickup" ? "preparing" : null;
+
+  const statements = [
+    env.DB.prepare(`
+      INSERT INTO customer_orders_v2 (
+        public_order_code,
+        session_token,
+        status,
+        order_status,
+        fulfillment_type,
+        delivery_status,
+        pickup_status,
+        delivery_location_id,
+        delivery_location_label,
+        delivery_google_maps_link,
+        delivery_address,
+        scheduled_for_next_online_order,
+        next_online_order_at,
+        active_shop_id,
+        total_amount,
+        currency,
+        customer_name,
+        phone,
+        payment_method_code,
+        notes,
+        admin_status_note,
+        recreated_from_order_id,
+        recreation_key,
+        recreated_by_admin_id,
+        recreation_reason,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?
+      )
+    `).bind(
+      publicOrderCode,
+      source.session_token,
+      "draft",
+      "draft",
+      fulfillmentType,
+      deliveryStatus,
+      pickupStatus,
+      source.delivery_location_id || null,
+      source.delivery_location_label || "",
+      source.delivery_google_maps_link || "",
+      source.delivery_address || "",
+      0,
+      null,
+      source.active_shop_id || null,
+      totalAmount,
+      source.currency || "EUR",
+      source.customer_name || "",
+      source.phone || "",
+      source.payment_method_code || "",
+      source.notes || "",
+      reason,
+      sourceOrderId,
+      recreationKey,
+      actorId,
+      reason,
+      now,
+      now
+    ),
+    env.DB.prepare(`
+      INSERT INTO order_addition_groups_v2 (
+        customer_order_id,
+        group_type,
+        group_status,
+        fulfillment_type,
+        requires_admin_approval,
+        scheduled_for_next_online_order,
+        next_online_order_at,
+        admin_decision_note
+      )
+      VALUES (
+        (
+          SELECT id
+          FROM customer_orders_v2
+          WHERE recreation_key = ?
+        ),
+        ?, ?, ?, 0, 0, NULL, ?
+      )
+    `).bind(
+      recreationKey,
+      "recreated_order",
+      "draft",
+      fulfillmentType,
+      reason
+    )
+  ];
+
+  for (const item of recreatedItems) {
+    statements.push(
+      env.DB.prepare(`
+        INSERT INTO customer_order_items_v2 (
+          customer_order_id,
+          group_id,
+          product_id,
+          product_name,
+          shop_id,
+          quantity,
+          unit_price,
+          line_total,
+          item_status,
+          added_phase,
+          requires_admin_approval
+        )
+        VALUES (
+          (
+            SELECT id
+            FROM customer_orders_v2
+            WHERE recreation_key = ?
+          ),
+          (
+            SELECT g.id
+            FROM order_addition_groups_v2 g
+            JOIN customer_orders_v2 o
+              ON o.id = g.customer_order_id
+            WHERE o.recreation_key = ?
+              AND g.group_type = 'recreated_order'
+            ORDER BY g.id DESC
+            LIMIT 1
+          ),
+          ?, ?, ?, ?, ?, ?, ?, ?, 0
+        )
+      `).bind(
+        recreationKey,
+        recreationKey,
+        item.product_id,
+        item.product_name,
+        item.shop_id,
+        item.quantity,
+        item.unit_price,
+        item.line_total,
+        "draft",
+        "recreated_order"
+      )
+    );
+  }
+
+  statements.push(
+    env.DB.prepare(`
+      INSERT INTO customer_order_status_history_v2 (
+        order_id,
+        previous_status,
+        new_status,
+        changed_by_admin_id,
+        changed_by_admin_username,
+        note,
+        created_at
+      )
+      VALUES (
+        (
+          SELECT id
+          FROM customer_orders_v2
+          WHERE recreation_key = ?
+        ),
+        NULL,
+        'draft',
+        ?,
+        ?,
+        ?,
+        ?
+      )
+    `).bind(
+      recreationKey,
+      actorId,
+      actorUsername || null,
+      `Recreated from order ${sourceOrderId}: ${reason}`,
+      now
+    )
+  );
+
+  try {
+    await env.DB.batch(statements);
+  } catch (error) {
+    const raced = await getExistingRecreatedOrder(
+      env,
+      recreationKey
+    );
+
+    if (
+      raced &&
+      Number(raced.recreated_from_order_id) ===
+        Number(sourceOrderId)
+    ) {
+      return {
+        order: await getV2AdminOrder(env, raced.id),
+        replayed: true
+      };
+    }
+
+    const racedActiveSuccessor =
+      await getActiveRecreatedOrder(
+        env,
+        sourceOrderId
+      );
+
+    if (racedActiveSuccessor) {
+      throw activeRecreatedOrderError(
+        racedActiveSuccessor
+      );
+    }
+
+    throw error;
+  }
+
+  const created = await getExistingRecreatedOrder(
+    env,
+    recreationKey
+  );
+
+  if (!created) {
+    throw createOrderRecreationError(
+      "recreation_failed",
+      "The recreated order could not be loaded.",
+      500
+    );
+  }
+
+  return {
+    order: await getV2AdminOrder(env, created.id),
+    replayed: false
+  };
+}
+
+function getV2RecreatedOrderConfirmedText(
+  language,
+  publicOrderCode
+) {
+  const code = String(publicOrderCode || "");
+  const messages = {
+    en: `Your cancelled order was recreated and confirmed as ${code}.`,
+    de: `Ihre stornierte Bestellung wurde als ${code} neu erstellt und bestätigt.`,
+    tr: `İptal edilen siparişiniz ${code} olarak yeniden oluşturuldu ve onaylandı.`,
+    ar: `تمت إعادة إنشاء طلبك الملغي وتأكيده بالرمز ${code}.`,
+    ru: `Ваш отменённый заказ был создан заново и подтверждён как ${code}.`
+  };
+
+  return messages[safeLang(language)] || messages.en;
+}
+
+async function notifyCustomerForConfirmedRecreation(
+  env,
+  order
+) {
+  const customer = await getCustomerForV2Order(env, order);
+  if (!customer) return;
+
+  const language =
+    customer.preferred_language ||
+    customer.language ||
+    "en";
+  const text = getV2RecreatedOrderConfirmedText(
+    language,
+    order.public_order_code
+  );
+
+  await saveMessage(
+    env,
+    customer.id,
+    "outgoing",
+    text,
+    language,
+    "order_recreated",
+    "telegram"
+  );
+
+  if (customer.telegram_user_id) {
+    await sendTelegramMessage(
+      env,
+      customer.telegram_user_id,
+      text
+    );
+  }
+}
+
+async function confirmRecreatedV2Order(
+  env,
+  orderId,
+  session
+) {
+  const order = await getV2RawOrder(env, orderId);
+
+  if (!order) {
+    throw createOrderRecreationError(
+      "order_not_found",
+      "The recreated order was not found.",
+      404
+    );
+  }
+
+  if (!order.recreated_from_order_id) {
+    throw createOrderRecreationError(
+      "not_recreated_order",
+      "Only recreated orders can use this confirmation route.",
+      409
+    );
+  }
+
+  if (
+    order.recreation_confirmed_at &&
+    String(order.order_status || order.status || "") !== "draft"
+  ) {
+    return {
+      order: await getV2AdminOrder(env, orderId),
+      replayed: true
+    };
+  }
+
+  if (
+    String(order.order_status || order.status || "") !== "draft"
+  ) {
+    throw createOrderRecreationError(
+      "recreated_order_not_draft",
+      "Only a draft recreated order can be confirmed.",
+      409
+    );
+  }
+
+  const itemResult = await env.DB.prepare(`
+    SELECT
+      i.id,
+      i.product_id,
+      i.unit_price,
+      p.price AS current_price,
+      p.is_active
+    FROM customer_order_items_v2 i
+    LEFT JOIN products p
+      ON p.id = i.product_id
+    WHERE i.customer_order_id = ?
+  `).bind(orderId).all();
+
+  const items = itemResult.results || [];
+
+  if (!items.length) {
+    throw createOrderRecreationError(
+      "recreated_order_empty",
+      "The recreated order has no items.",
+      409
+    );
+  }
+
+  const changedProducts = items
+    .filter((item) =>
+      Number(item.is_active || 0) !== 1 ||
+      Number(item.current_price) !== Number(item.unit_price)
+    )
+    .map((item) => ({
+      item_id: Number(item.id),
+      product_id: Number(item.product_id)
+    }));
+
+  if (changedProducts.length) {
+    throw createOrderRecreationError(
+      "recreated_products_changed",
+      "Product availability or pricing changed after recreation.",
+      409,
+      { products: changedProducts }
+    );
+  }
+
+  const fulfillmentType =
+    String(order.fulfillment_type || "");
+  const nextGroupStatus =
+    fulfillmentType === "pickup"
+      ? "waiting_ready_to_pickup"
+      : "confirmed";
+  const nextItemStatus = nextGroupStatus;
+  const actorId = await resolveAdminActorId(env, session);
+  const actorUsername =
+    getOrderRecreationAdminUsername(session);
+  const now = new Date().toISOString();
+
+  const confirmationResults = await env.DB.batch([
+    env.DB.prepare(`
+      UPDATE customer_orders_v2
+      SET status = 'submitted',
+          order_status = 'submitted',
+          delivery_status = CASE
+            WHEN fulfillment_type = 'delivery'
+            THEN 'not_started'
+            ELSE delivery_status
+          END,
+          pickup_status = CASE
+            WHEN fulfillment_type = 'pickup'
+            THEN 'preparing'
+            ELSE pickup_status
+          END,
+          recreation_confirmed_at = ?,
+          updated_at = ?
+      WHERE id = ?
+        AND order_status = 'draft'
+        AND recreated_from_order_id IS NOT NULL
+    `).bind(now, now, orderId),
+    env.DB.prepare(`
+      UPDATE order_addition_groups_v2
+      SET group_status = ?,
+          admin_decision = 'approved',
+          admin_decision_note = NULL,
+          decided_at = ?,
+          updated_at = ?
+      WHERE customer_order_id = ?
+        AND group_type = 'recreated_order'
+        AND group_status = 'draft'
+    `).bind(
+      nextGroupStatus,
+      now,
+      now,
+      orderId
+    ),
+    env.DB.prepare(`
+      UPDATE customer_order_items_v2
+      SET item_status = ?,
+          admin_decision = 'approved',
+          admin_decision_note = NULL,
+          decided_at = ?
+      WHERE customer_order_id = ?
+        AND added_phase = 'recreated_order'
+        AND item_status = 'draft'
+    `).bind(
+      nextItemStatus,
+      now,
+      orderId
+    ),
+    env.DB.prepare(`
+      INSERT INTO customer_order_status_history_v2 (
+        order_id,
+        previous_status,
+        new_status,
+        changed_by_admin_id,
+        changed_by_admin_username,
+        note,
+        created_at
+      )
+      SELECT ?, 'draft', 'submitted', ?, ?, ?, ?
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM customer_order_status_history_v2
+        WHERE order_id = ?
+          AND previous_status = 'draft'
+          AND new_status = 'submitted'
+      )
+    `).bind(
+      orderId,
+      actorId,
+      actorUsername || null,
+      `Recreated order confirmed from source ${order.recreated_from_order_id}`,
+      now,
+      orderId
+    )
+  ]);
+
+  const confirmationApplied =
+    Number(confirmationResults?.[0]?.meta?.changes || 0) === 1;
+
+  const confirmed = await getV2AdminOrder(env, orderId);
+
+  if (!confirmationApplied) {
+    return {
+      order: confirmed,
+      replayed: true
+    };
+  }
+
+  await notifyCustomerForConfirmedRecreation(
+    env,
+    confirmed
+  );
+
+  return {
+    order: confirmed,
+    replayed: false
+  };
+}
+
+function orderRecreationApiError(error) {
+  return apiError(
+    error?.code || "order_recreation_failed",
+    error?.message || "Order recreation failed.",
+    Number(error?.httpStatus || 500),
+    error?.details ?? null
+  );
+}
+
+async function handleApiAdminV2RecreateOrder(
+  request,
+  env,
+  orderId
+) {
+  if (request.method !== "POST") {
+    return apiError(
+      "method_not_allowed",
+      "Method not allowed.",
+      405
+    );
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError(
+      "unauthorized",
+      "Valid admin bearer token is required.",
+      401
+    );
+  }
+
+  const body = await readJsonBody(request) || {};
+  const recreationKey =
+    request.headers.get("idempotency-key") ||
+    body.idempotency_key ||
+    body.recreation_key;
+  const reason =
+    body.reason ||
+    body.recreation_reason ||
+    body.note;
+
+  try {
+    const result = await recreateCancelledV2Order(
+      env,
+      orderId,
+      session,
+      recreationKey,
+      reason
+    );
+
+    await logAdminAction(
+      env,
+      request,
+      session,
+      result.replayed
+        ? "api_v2_order_recreation_replayed"
+        : "api_v2_order_recreated",
+      `source_order:${orderId}:new_order:${result.order.id}`
+    );
+
+    return apiOk(
+      {
+        order: result.order,
+        source_order:
+          await getV2AdminOrder(env, orderId),
+        replayed: result.replayed
+      },
+      result.replayed ? 200 : 201
+    );
+  } catch (error) {
+    return orderRecreationApiError(error);
+  }
+}
+
+async function handleApiAdminV2ConfirmRecreation(
+  request,
+  env,
+  orderId
+) {
+  if (request.method !== "POST") {
+    return apiError(
+      "method_not_allowed",
+      "Method not allowed.",
+      405
+    );
+  }
+
+  const session = await requireApiAdminSession(request, env);
+
+  if (!session) {
+    return apiError(
+      "unauthorized",
+      "Valid admin bearer token is required.",
+      401
+    );
+  }
+
+  try {
+    const result = await confirmRecreatedV2Order(
+      env,
+      orderId,
+      session
+    );
+
+    await logAdminAction(
+      env,
+      request,
+      session,
+      result.replayed
+        ? "api_v2_order_recreation_confirmation_replayed"
+        : "api_v2_order_recreation_confirmed",
+      `order:${orderId}`
+    );
+
+    return apiOk({
+      order: result.order,
+      replayed: result.replayed
+    });
+  } catch (error) {
+    return orderRecreationApiError(error);
+  }
+}
+
 async function handleApiAdminV2CancelOrder(request, env, orderId) {
   if (request.method !== "POST") {
     return apiError("method_not_allowed", "Method not allowed.", 405);
@@ -10700,7 +11847,12 @@ async function handleApiAdminV2CancelOrder(request, env, orderId) {
 
   await env.DB.prepare(`
     UPDATE order_addition_groups_v2
-    SET group_status = 'cancelled',
+    SET status_before_cancel = CASE
+          WHEN group_status = 'cancelled'
+          THEN status_before_cancel
+          ELSE group_status
+        END,
+        group_status = 'cancelled',
         admin_decision = 'cancelled',
         admin_decision_note = ?,
         decided_at = CURRENT_TIMESTAMP,
@@ -10710,7 +11862,12 @@ async function handleApiAdminV2CancelOrder(request, env, orderId) {
 
   await env.DB.prepare(`
     UPDATE customer_order_items_v2
-    SET item_status = 'cancelled',
+    SET status_before_cancel = CASE
+          WHEN item_status = 'cancelled'
+          THEN status_before_cancel
+          ELSE item_status
+        END,
+        item_status = 'cancelled',
         admin_decision = 'cancelled',
         admin_decision_note = ?,
         decided_at = CURRENT_TIMESTAMP
@@ -12685,6 +13842,26 @@ async function mapV2OrderForApi(env, order) {
     admin_status_note: order.admin_status_note || "",
     cancelled_at: order.cancelled_at || "",
     cancel_reason: order.cancel_reason || "",
+    recreated_from_order_id:
+      order.recreated_from_order_id === null ||
+      order.recreated_from_order_id === undefined
+        ? null
+        : Number(order.recreated_from_order_id),
+    recreated_by_admin_id:
+      order.recreated_by_admin_id === null ||
+      order.recreated_by_admin_id === undefined
+        ? null
+        : Number(order.recreated_by_admin_id),
+    recreation_reason: order.recreation_reason || "",
+    recreation_confirmed_at:
+      order.recreation_confirmed_at || "",
+    active_recreated_order_id:
+      order.active_recreated_order_id === null ||
+      order.active_recreated_order_id === undefined
+        ? null
+        : Number(order.active_recreated_order_id),
+    recreated_order_count:
+      Number(order.recreated_order_count || 0),
     currency: order.currency || "EUR",
     total_amount: displayTotal,
     total_formatted: formatPrice(displayTotal),
@@ -13575,6 +14752,16 @@ async function handleApiV1(request, env) {
     return handleApiAdminV2OrderNotDelivered(request, env, Number(adminV2OrderNotDeliveredMatch[1]));
   }
 
+  const adminV2OrderRecreateMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/recreate$/);
+  if (adminV2OrderRecreateMatch) {
+    return handleApiAdminV2RecreateOrder(request, env, Number(adminV2OrderRecreateMatch[1]));
+  }
+
+  const adminV2OrderConfirmRecreationMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/confirm-recreation$/);
+  if (adminV2OrderConfirmRecreationMatch) {
+    return handleApiAdminV2ConfirmRecreation(request, env, Number(adminV2OrderConfirmRecreationMatch[1]));
+  }
+
   const adminV2OrderCancelMatch = url.pathname.match(/^\/api\/v1\/admin\/customer-app-orders\/(\d+)\/cancel$/);
   if (adminV2OrderCancelMatch) {
     return handleApiAdminV2CancelOrder(request, env, Number(adminV2OrderCancelMatch[1]));
@@ -13869,6 +15056,26 @@ async function routeRequest(request, env, ctx) {
 
   const adminOrderDetail = url.pathname.match(/^\/admin\/orders\/(\d+)$/);
   if (adminOrderDetail && request.method === "GET") return handleAdminOrderDetailPage(env, adminSession, Number(adminOrderDetail[1]));
+
+  const orderRecreate = url.pathname.match(/^\/admin\/orders\/(\d+)\/recreate$/);
+  if (orderRecreate && request.method === "POST") {
+    return handleAdminRecreateCancelledOrder(
+      request,
+      env,
+      Number(orderRecreate[1]),
+      adminSession
+    );
+  }
+
+  const orderConfirmRecreation = url.pathname.match(/^\/admin\/orders\/(\d+)\/confirm-recreation$/);
+  if (orderConfirmRecreation && request.method === "POST") {
+    return handleAdminConfirmRecreatedOrder(
+      request,
+      env,
+      Number(orderConfirmRecreation[1]),
+      adminSession
+    );
+  }
 
   const orderGroupApprove = url.pathname.match(/^\/admin\/orders\/(\d+)\/groups\/(\d+)\/approve$/);
   if (orderGroupApprove && request.method === "POST") {

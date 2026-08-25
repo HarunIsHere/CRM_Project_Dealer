@@ -606,6 +606,49 @@ class AdminRepository(
         return response.order
     }
 
+    suspend fun recreateCancelledOrder(
+        token: String,
+        sourceOrderId: Long,
+        reason: String,
+        idempotencyKey: String
+    ): CustomerAppOrder {
+        val response = api.recreateCustomerAppOrder(
+            authorization = bearer(token),
+            orderId = sourceOrderId,
+            body = me.ayartuerk.crmadmin.api.CustomerAppOrderRecreateRequest(
+                recreationReason = reason.trim(),
+                idempotencyKey = idempotencyKey
+            )
+        )
+
+        if (!response.ok || response.order == null) {
+            throw IllegalStateException(
+                response.error?.message ?: "Order recreation failed"
+            )
+        }
+
+        return response.order
+    }
+
+    suspend fun confirmRecreatedOrder(
+        token: String,
+        orderId: Long
+    ): CustomerAppOrder {
+        val response = api.confirmCustomerAppOrderRecreation(
+            authorization = bearer(token),
+            orderId = orderId
+        )
+
+        if (!response.ok || response.order == null) {
+            throw IllegalStateException(
+                response.error?.message
+                    ?: "Recreated order confirmation failed"
+            )
+        }
+
+        return response.order
+    }
+
     suspend fun performOrderAction(
         token: String,
         orderId: Long,

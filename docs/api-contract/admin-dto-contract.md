@@ -275,6 +275,12 @@ Wire shape is produced by `mapV2OrderForApi` (`:12531`), `mapV2OrderItemForApi` 
   "admin_status_note": "",
   "cancelled_at": "",
   "cancel_reason": "",
+  "recreated_from_order_id": null,
+  "recreated_by_admin_id": null,
+  "recreation_reason": "",
+  "recreation_confirmed_at": "",
+  "active_recreated_order_id": null,
+  "recreated_order_count": 0,
   "currency": "EUR",
   "total_amount": 12.5,
   "total_formatted": "12,50 €",
@@ -299,6 +305,7 @@ Key facts:
 - `scheduled_for_next_online_order` is a 0/1 integer in the payload (JS `Number(...) === 1` is used internally but the raw numeric value is emitted).
 - **`status_history` is never emitted in JSON responses** — the V2 history table (`customer_order_status_history_v2`) is only rendered by the Web Admin HTML template (`:5741`). Do not design client DTOs that expect it.
 - **No `locations` array** — location data is flat (`delivery_location_id`, `delivery_location_label`, `delivery_google_maps_link`, `delivery_address`).
+- Cancelled orders remain immutable. A recreated successor identifies its source with `recreated_from_order_id`; `recreation_key` remains server-internal and is never emitted. `active_recreated_order_id` links to the source order's current non-terminal successor, while `recreated_order_count` records whether earlier successors exist.
 
 ### CustomerAppOrderItem
 
@@ -318,6 +325,8 @@ Key facts:
 - `POST /api/v1/admin/customer-app-orders/{id}/delivered` — body `{ note | admin_status_note }`; marks `delivered` (delivery) / `picked_up` (pickup) final state → `{ ok: true, order }`
 - `POST /api/v1/admin/customer-app-orders/{id}/not-delivered` — body `{ note | admin_status_note | reason }`; marks `not_delivered` final state → `{ ok: true, order }`
 - `POST /api/v1/admin/customer-app-orders/{id}/cancel` — body `{ reason | cancel_reason | note }` → `{ ok: true, order }`
+- `POST /api/v1/admin/customer-app-orders/{id}/recreate` — cancelled source only; body `{ reason | recreation_reason | note, idempotency_key | recreation_key }` or `Idempotency-Key` header; validates current product availability/pricing and creates a linked `draft` successor → 201 `{ ok: true, order, source_order, replayed: false }`; retry with the same key → 200 and `replayed: true`. A source may have only one non-terminal successor; attempts made while one exists return HTTP 409 with `code = "active_recreated_order_exists"` and `details.active_order_id`. Another successor may be created explicitly after the preceding successor becomes terminal.
+- `POST /api/v1/admin/customer-app-orders/{id}/confirm-recreation` — recreated draft only; revalidates product availability/pricing, changes the successor to `submitted`, and notifies the customer → `{ ok: true, order, replayed }`
 - `POST /api/v1/admin/customer-app-orders/{id}/groups/{groupId}/approve` — group must be `pending_admin_approval` → `{ ok: true, order }`
 - `POST /api/v1/admin/customer-app-orders/{id}/groups/{groupId}/reject` — body `{ note | admin_decision_note }`; group must be `pending_admin_approval` → `{ ok: true, order }`
 

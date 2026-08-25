@@ -56,7 +56,9 @@ Legacy orders are being superseded by the canonical V2 lifecycle; do not build n
 | POST | `/api/v1/admin/customer-app-orders/{id}/ready-to-pickup` | admin | `handleApiAdminV2ReadyToPickup` (`:10338`) | Pickup: ready |
 | POST | `/api/v1/admin/customer-app-orders/{id}/delivered` | admin | `handleApiAdminV2OrderDelivered` (`:10404`) | Mark delivered / picked up (final) |
 | POST | `/api/v1/admin/customer-app-orders/{id}/not-delivered` | admin | `handleApiAdminV2OrderNotDelivered` (`:10436`) | Mark not delivered (final) |
-| POST | `/api/v1/admin/customer-app-orders/{id}/cancel` | admin | `handleApiAdminV2CancelOrder` (`:10587`) | Cancel V2 order |
+| POST | `/api/v1/admin/customer-app-orders/{id}/cancel` | admin | `handleApiAdminV2CancelOrder` | Cancel V2 order |
+| POST | `/api/v1/admin/customer-app-orders/{id}/recreate` | admin | `handleApiAdminV2RecreateOrder` | Create an idempotent draft successor from a cancelled order; rejects with 409 while an active successor exists |
+| POST | `/api/v1/admin/customer-app-orders/{id}/confirm-recreation` | admin | `handleApiAdminV2ConfirmRecreation` | Confirm a reviewed recreated draft |
 | POST | `/api/v1/admin/customer-app-orders/{id}/groups/{gid}/approve` | admin | `handleApiAdminV2ApproveGroup` (`:10468`) | Approve delivery group |
 | POST | `/api/v1/admin/customer-app-orders/{id}/groups/{gid}/reject` | admin | `handleApiAdminV2RejectGroup` (`:10525`) | Reject delivery group |
 
