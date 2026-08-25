@@ -302,7 +302,7 @@ Wire shape is produced by `mapV2OrderForApi` (`:12531`), `mapV2OrderItemForApi` 
 Key facts:
 - There is **no `order_number`** — the public identifier is `public_order_code`.
 - `total_amount` and all money fields are JSON numbers (can be fractional EUR); `total_formatted` is the display string.
-- Cancellation preserves the eligible commercial total. For historical rows whose stored total is zero, the API reconstructs it from item snapshots using `status_before_cancel`, excluding rejected or ineligible additions.
+- Terminal orders preserve their eligible commercial total. Historical terminal rows whose stored total is zero are backfilled and reconstructed from eligible item snapshots. Empty `status_before_cancel` values are treated as missing and fall back to `item_status`; rejected and otherwise ineligible additions remain excluded.
 - `scheduled_for_next_online_order` is a 0/1 integer in the payload (JS `Number(...) === 1` is used internally but the raw numeric value is emitted).
 - **`status_history` is never emitted in JSON responses** — the V2 history table (`customer_order_status_history_v2`) is only rendered by the Web Admin HTML template (`:5741`). Do not design client DTOs that expect it.
 - **No `locations` array** — location data is flat (`delivery_location_id`, `delivery_location_label`, `delivery_google_maps_link`, `delivery_address`).

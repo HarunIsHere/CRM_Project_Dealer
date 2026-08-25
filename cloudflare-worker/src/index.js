@@ -5398,8 +5398,8 @@ async function getOrdersContext(env, closed = false) {
         SUM(
           CASE
             WHEN COALESCE(
-              i.status_before_cancel,
-              i.item_status,
+              NULLIF(TRIM(i.status_before_cancel), ''),
+              NULLIF(TRIM(i.item_status), ''),
               'confirmed'
             ) IN (
               'confirmed',
@@ -9127,8 +9127,8 @@ async function getTelegramActionableOrders(env) {
         SUM(
           CASE
             WHEN COALESCE(
-              i.status_before_cancel,
-              i.item_status,
+              NULLIF(TRIM(i.status_before_cancel), ''),
+              NULLIF(TRIM(i.item_status), ''),
               'confirmed'
             ) IN (
               'confirmed',

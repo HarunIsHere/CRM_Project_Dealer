@@ -107,6 +107,14 @@ Pickup cancellation:
 - `total_amount` preserves the final eligible commercial item value
 - cancelled section shows cancelled item value
 
+## Commercial totals
+
+- During the active lifecycle, stored `total_amount` represents confirmed eligible commercial value.
+- Pending approval and waiting pickup items remain separate until their lifecycle transition confirms them.
+- Admin API and Web list displays may reconstruct an eligible item total when an older row still stores zero.
+- Terminal orders preserve their eligible commercial value. Historical terminal rows with a zero stored total are backfilled from item snapshots.
+- An empty `status_before_cancel` is treated as missing and falls back to `item_status`.
+
 ## Admin actions
 
 Active V2 admin customer-app routes:
