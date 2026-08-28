@@ -1,35 +1,51 @@
-# CRM Delivery
+# CRM Delivery Platform
 
-Telegram-first CRM and delivery coordination system for customer message handling, product requests, customer delivery locations, admin notifications, working-hours control, admin-side request tracking, and admin-to-customer replies.
+A production-deployed, multi-client CRM and order-management platform built around one shared backend and a canonical customer, cart, order, fulfillment, and location lifecycle.
 
-Production admin URL:
+The platform connects a Telegram bot, Telegram Mini App, responsive Web Admin, native Android applications, and iOS clients to a Cloudflare Worker API backed by Cloudflare D1. It demonstrates backend architecture, REST API design, relational data modeling, authentication, multilingual UX, production operations, and cross-platform integration.
 
-    https://crm.ayartuerk.me/admin/
+## Engineering highlights
 
-Orders URL:
+- Designed a shared backend that keeps pricing, orders, customers, locations, permissions, and lifecycle rules consistent across every client.
+- Built versioned REST endpoints under `/api/v1/` for mobile and web integrations.
+- Consolidated legacy cart and order flows into a dedicated canonical V2 data model with status history and transactional lifecycle handling.
+- Implemented authenticated Admin and Superadmin workflows, account recovery, role management, and audit logging.
+- Delivered equivalent localization architecture for English, German, Turkish, Arabic, and Russian, including RTL-aware Arabic interfaces.
+- Added delivery-area validation, saved customer locations, meeting-point fulfillment, address search, and map integration.
+- Developed native Android interfaces with Kotlin and Jetpack Compose and iOS interfaces with Swift and SwiftUI.
+- Added automated syntax, localization, smoke, API, and lifecycle verification for production-critical flows.
 
-    https://crm.ayartuerk.me/admin/orders
+## Architecture
 
-Closed Orders URL:
+```text
+Telegram Bot / Mini App     Customer Android / iOS     Admin Web / Android / iOS
+              \                     |                         /
+               \                    |                        /
+                 Cloudflare Worker + versioned REST APIs
+                                  |
+                         Cloudflare D1 database
+```
 
-    https://crm.ayartuerk.me/admin/closedorders
+The backend is the source of truth. Clients consume the same business rules instead of duplicating order, pricing, customer, location, or fulfillment logic locally.
 
-Open Requests URL:
+## Technology stack
 
-    https://crm.ayartuerk.me/admin/openrequests/
+| Area | Technologies |
+| --- | --- |
+| Backend | JavaScript, Cloudflare Workers, REST APIs |
+| Database | Cloudflare D1, SQL, versioned migrations |
+| Web | Server-rendered responsive Admin UI |
+| Android | Kotlin, Jetpack Compose |
+| iOS | Swift, SwiftUI |
+| Integrations | Telegram Bot API, OpenStreetMap/Nominatim, optional OpenAI fallback |
+| Engineering | Git, API contracts, smoke tests, lifecycle verification, localization checks |
 
-Superadmin URL:
+## Live system
 
-    https://crm.ayartuerk.me/admin/superadmin
-
-Bot:
-
-    Delivery Bot
-    @SpecialDeliveryBerlinBot
-
-Direct bot link:
-
-    https://t.me/SpecialDeliveryBerlinBot
+- Admin: https://crm.ayartuerk.me/admin/
+- Orders: https://crm.ayartuerk.me/admin/orders
+- Open Requests: https://crm.ayartuerk.me/admin/openrequests/
+- Telegram bot: https://t.me/SpecialDeliveryBerlinBot
 
 ## Current status
 
