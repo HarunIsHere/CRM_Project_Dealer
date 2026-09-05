@@ -14,11 +14,11 @@ import { resolveCanonicalSession } from "../repository.js";
 import { prepareEncryptedOutboxInsert } from "../email/outbox-repository.js";
 import { createSessionHashesForIssuance } from "../session-keyring.js";
 import {
-  readScopedCookieAuthentication,
+  readScopedSessionAuthentication,
   serializeScopedAuthCookieClears,
   serializeScopedAuthCookies,
   validateRequestedSessionTransport,
-  verifyScopedCookieCsrf
+  verifyScopedSessionMutation
 } from "../transport.js";
 
 export const STAFF_RECOVERY_START_ROUTE =
@@ -622,7 +622,7 @@ export async function handleStaffRecoveryVerify(request, env) {
     validateRequestedSessionTransport(request, {
       sessionTransport,
       clientPlatform,
-      nativeBearerEnabled: false,
+      nativeBearerEnabled: true,
       env
     });
 
@@ -673,6 +673,12 @@ export async function handleStaffRecoveryVerify(request, env) {
         maxAgeSeconds: SESSION_LIFETIME_SECONDS
       })
       : [];
+
+    if (sessionTransport === "bearer") {
+      issued.body.access_token = issued.sessionToken;
+      issued.body.token_type = "Bearer";
+    }
+
     return responseWithCookies(
       request,
       env,
@@ -733,7 +739,10 @@ export async function handleStaffRecoveryPassword(request, env) {
     if (request.method !== "PUT") {
       protocolError("method_not_allowed", 405, "The HTTP method is not allowed.");
     }
-    const authentication = readScopedCookieAuthentication(request, "staff_recovery");
+    const authentication = readScopedSessionAuthentication(
+      request,
+      "staff_recovery"
+    );
     const session = await resolveCanonicalSession(
       env,
       authentication.sessionToken,
@@ -743,7 +752,13 @@ export async function handleStaffRecoveryPassword(request, env) {
     if (!session || session.scope !== "staff_recovery_email") {
       protocolError("unauthorized", 401, "A valid recovery session is required.");
     }
-    await verifyScopedCookieCsrf(request, env, session, "staff_recovery");
+    await verifyScopedSessionMutation(
+      request,
+      env,
+      session,
+      "staff_recovery",
+      authentication
+    );
 
     const body = await readIdentityJson(request, {
       allowedFields: ["new_password", "confirm_password"],
@@ -875,6 +890,11 @@ export async function handleStaffRecoveryPassword(request, env) {
       outbox.statement
     ]);
 
+    const responseCookies =
+      authentication.sessionTransport === "cookie"
+        ? serializeScopedAuthCookieClears("staff_recovery")
+        : [];
+
     return responseWithCookies(
       request,
       env,
@@ -885,7 +905,7 @@ export async function handleStaffRecoveryPassword(request, env) {
         login_required: true
       },
       200,
-      serializeScopedAuthCookieClears("staff_recovery")
+      responseCookies
     );
   } catch (error) {
     return errorResponse(request, env, error, context.requestId);
@@ -898,7 +918,10 @@ export async function handleStaffRecoveryLogout(request, env) {
     if (request.method !== "POST") {
       protocolError("method_not_allowed", 405, "The HTTP method is not allowed.");
     }
-    const authentication = readScopedCookieAuthentication(request, "staff_recovery");
+    const authentication = readScopedSessionAuthentication(
+      request,
+      "staff_recovery"
+    );
     const session = await resolveCanonicalSession(
       env,
       authentication.sessionToken,
@@ -906,7 +929,13 @@ export async function handleStaffRecoveryLogout(request, env) {
       { now: new Date() }
     );
     if (session) {
-      await verifyScopedCookieCsrf(request, env, session, "staff_recovery");
+      await verifyScopedSessionMutation(
+        request,
+        env,
+        session,
+        "staff_recovery",
+        authentication
+      );
       await requireDatabase(env).prepare(`
         UPDATE auth_sessions
         SET revoked_at = ?,
@@ -921,13 +950,18 @@ export async function handleStaffRecoveryLogout(request, env) {
         session.auth_account_id
       ).run();
     }
+    const responseCookies =
+      authentication.sessionTransport === "cookie"
+        ? serializeScopedAuthCookieClears("staff_recovery")
+        : [];
+
     return responseWithCookies(
       request,
       env,
       context.requestId,
       { ok: true, logged_out: true },
       200,
-      serializeScopedAuthCookieClears("staff_recovery")
+      responseCookies
     );
   } catch (error) {
     return errorResponse(request, env, error, context.requestId);

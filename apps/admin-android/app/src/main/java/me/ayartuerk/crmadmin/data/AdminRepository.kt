@@ -19,7 +19,9 @@ import kotlinx.serialization.json.JsonArray
 import me.ayartuerk.crmadmin.api.AdminApi
 import me.ayartuerk.crmadmin.api.AiUsageStats
 import me.ayartuerk.crmadmin.api.LearnedPattern
+import me.ayartuerk.crmadmin.api.AdminIdentityRecoveryPasswordRequest
 import me.ayartuerk.crmadmin.api.AdminIdentityRecoveryStartRequest
+import me.ayartuerk.crmadmin.api.AdminIdentityRecoveryVerifyRequest
 import me.ayartuerk.crmadmin.api.Customer
 import me.ayartuerk.crmadmin.api.CustomerAppOrder
 import me.ayartuerk.crmadmin.api.CustomerDetailResponse
@@ -62,6 +64,56 @@ class AdminRepository(
         )
         if (!response.ok) {
             val message = response.error?.message ?: "Recovery email request failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun verifyIdentityRecovery(
+        username: String,
+        manualCode: String
+    ): String {
+        val response = api.verifyIdentityRecovery(
+            AdminIdentityRecoveryVerifyRequest(
+                username = username,
+                manualCode = manualCode,
+                sessionTransport = "bearer",
+                clientPlatform = "admin_android"
+            )
+        )
+        val accessToken = response.accessToken
+        if (
+            !response.ok ||
+            accessToken.isNullOrBlank() ||
+            response.session?.transport != "bearer"
+        ) {
+            val message = response.error?.message ?: "Recovery verification failed"
+            throw IllegalStateException(message)
+        }
+        return accessToken
+    }
+
+    suspend fun completeIdentityRecovery(
+        recoveryToken: String,
+        newPassword: String,
+        confirmPassword: String
+    ) {
+        val response = api.completeIdentityRecovery(
+            bearer(recoveryToken),
+            AdminIdentityRecoveryPasswordRequest(
+                newPassword = newPassword,
+                confirmPassword = confirmPassword
+            )
+        )
+        if (!response.ok || !response.passwordChanged) {
+            val message = response.error?.message ?: "Password recovery failed"
+            throw IllegalStateException(message)
+        }
+    }
+
+    suspend fun logoutIdentityRecovery(recoveryToken: String) {
+        val response = api.logoutIdentityRecovery(bearer(recoveryToken))
+        if (!response.ok) {
+            val message = response.error?.message ?: "Recovery logout failed"
             throw IllegalStateException(message)
         }
     }

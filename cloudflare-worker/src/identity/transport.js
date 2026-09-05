@@ -180,6 +180,96 @@ export function readScopedCookieAuthentication(request, scope) {
   });
 }
 
+export function readScopedBearerAuthentication(request, scope) {
+  scopeDefinition(scope);
+
+  if (requestHasBrowserMetadata(request)) {
+    throw protocolError(
+      "invalid_session_transport",
+      400,
+      "Browser requests must use cookie session transport."
+    );
+  }
+
+  const authorization = String(
+    request?.headers?.get("authorization") ?? ""
+  );
+  const match = /^Bearer ([A-Za-z0-9_-]{32,256})$/i.exec(
+    authorization
+  );
+  const sessionToken = requireOpaqueToken(
+    match?.[1],
+    "unauthorized",
+    401,
+    "A valid authentication session is required."
+  );
+
+  return Object.freeze({
+    scope: String(scope),
+    sessionToken,
+    csrfCookieToken: null,
+    csrfHeaderToken: null,
+    sessionTransport: "bearer"
+  });
+}
+
+export function readScopedSessionAuthentication(request, scope) {
+  const authorization = request?.headers?.get("authorization");
+
+  if (authorization !== null && authorization !== undefined) {
+    return readScopedBearerAuthentication(request, scope);
+  }
+
+  return Object.freeze({
+    ...readScopedCookieAuthentication(request, scope),
+    sessionTransport: "cookie"
+  });
+}
+
+export async function verifyScopedSessionMutation(
+  request,
+  env,
+  session,
+  scope,
+  suppliedAuthentication = null
+) {
+  const definition = scopeDefinition(scope);
+  const authentication =
+    suppliedAuthentication
+    ?? readScopedSessionAuthentication(request, scope);
+
+  if (
+    !session
+    || session.realm !== definition.realm
+    || !definition.sessionScopes.includes(session.scope)
+    || session.session_transport !== authentication.sessionTransport
+  ) {
+    throw protocolError(
+      "unauthorized",
+      401,
+      "A valid authentication session is required."
+    );
+  }
+
+  if (authentication.sessionTransport === "cookie") {
+    await verifyScopedCookieCsrf(request, env, session, scope);
+    return authentication;
+  }
+
+  if (
+    authentication.sessionTransport === "bearer"
+    && NATIVE_PLATFORMS.has(String(session.client_platform ?? ""))
+  ) {
+    return authentication;
+  }
+
+  throw protocolError(
+    "unauthorized",
+    401,
+    "A valid authentication session is required."
+  );
+}
+
 export async function verifyScopedCookieCsrf(request, env, session, scope) {
   assertAllowedBrowserMutationOrigin(request, env);
   const definition = scopeDefinition(scope);
