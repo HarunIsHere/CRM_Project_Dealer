@@ -192,7 +192,7 @@ test("service dispatches only exact preview and acceptance paths", async () => {
       env
     );
     assert.equal(response.status, 503);
-    assert.equal((await response.json()).error.code, "feature_disabled");
+    assert.equal((await response.json()).error.code, "feature_not_ready");
   }
 });
 
