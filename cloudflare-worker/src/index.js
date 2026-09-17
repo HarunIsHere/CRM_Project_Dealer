@@ -19,6 +19,7 @@ import {
 import { getAdminSharedText } from "./i18n/admin-shared.generated.js";
 import { createOpaqueId } from "./identity/crypto.js";
 import { normalizeEmailAddress } from "./identity/email/normalization.js";
+import { upsertCanonicalTelegramCustomer } from "./identity/repository.js";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
 const TELEGRAM_MINI_APP_URL = "https://crm-delivery-mini-app.pages.dev";
@@ -1212,33 +1213,16 @@ async function editMessageReplyMarkup(env, chatId, messageId, replyMarkup) {
   });
 }
 
-async function upsertCustomer(env, telegramUser, detectedLanguage = "unknown") {
-  const telegramUserId = String(telegramUser.id);
-  const username = telegramUser.username || null;
-  const fullName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(" ") || null;
-  const existing = await env.DB.prepare("SELECT * FROM customers WHERE telegram_user_id = ?").bind(telegramUserId).first();
-
-  if (existing) {
-    await env.DB.prepare(
-      "UPDATE customers SET username = ?, full_name = ?, last_seen_at = CURRENT_TIMESTAMP WHERE telegram_user_id = ?"
-    ).bind(username, fullName, telegramUserId).run();
-    return existing;
-  }
-
-  const preferred = detectedLanguage !== "unknown" ? detectedLanguage : "en";
-  const result = await env.DB.prepare(
-    "INSERT INTO customers (telegram_user_id, username, full_name, language, preferred_language) VALUES (?, ?, ?, ?, ?)"
-  ).bind(telegramUserId, username, fullName, detectedLanguage, preferred).run();
-
-  return {
-    id: result.meta.last_row_id,
-    telegram_user_id: telegramUserId,
-    username,
-    full_name: fullName,
-    language: detectedLanguage,
-    preferred_language: preferred,
-    conversation_state: null
-  };
+async function upsertCustomer(
+  env,
+  telegramUser,
+  detectedLanguage = "unknown"
+) {
+  return upsertCanonicalTelegramCustomer(
+    env,
+    telegramUser,
+    detectedLanguage
+  );
 }
 
 async function updateCustomerLanguage(env, customerId, language) {
