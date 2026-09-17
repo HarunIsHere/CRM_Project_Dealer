@@ -1,6 +1,7 @@
 import SwiftUI
 import Shared
 import Foundation
+import Security
 
 @main
 struct CustomerApp: App {
@@ -12,15 +13,25 @@ struct CustomerApp: App {
 }
 
 struct CustomerShopView: View {
-    private let deviceId = "ios_customer_\(Int(Date().timeIntervalSince1970))"
+    private let sessionStore: CustomerSessionStore
+    private let deviceId: String
 
     @State private var selectedLanguage = defaultSupportedLanguage()
     @State private var accessToken: String?
+    @State private var verifiedAccessToken: String?
     @State private var products: [CustomerProduct] = []
     @State private var orders: [CustomerOrderSummary] = []
     @State private var cart: CustomerCart?
     @State private var message = ""
     @State private var isLoading = false
+
+    init() {
+        let store = CustomerSessionStore()
+        sessionStore = store
+        deviceId = store.installationId()
+        _accessToken = State(initialValue: store.readAccessToken())
+        _verifiedAccessToken = State(initialValue: nil)
+    }
 
     var body: some View {
         NavigationStack {
@@ -119,7 +130,6 @@ struct CustomerShopView: View {
             }
             .navigationTitle(t("customer_shop_title"))
             .task(id: selectedLanguage) {
-                accessToken = nil
                 await load()
             }
             .overlay {
@@ -147,7 +157,20 @@ struct CustomerShopView: View {
 
     private func ensureSession() async throws -> String {
         if let accessToken, !accessToken.isEmpty {
-            return accessToken
+            if verifiedAccessToken == accessToken {
+                return accessToken
+            }
+
+            if let response = try? await CustomerApiClient
+                .verifyCustomerSession(accessToken: accessToken),
+               response.valid {
+                verifiedAccessToken = accessToken
+                return accessToken
+            }
+
+            sessionStore.clearAccessToken()
+            self.accessToken = nil
+            verifiedAccessToken = nil
         }
 
         let response = try await CustomerApiClient.startCustomerSession(
@@ -160,6 +183,8 @@ struct CustomerShopView: View {
         )
 
         accessToken = response.session.accessToken
+        verifiedAccessToken = response.session.accessToken
+        try sessionStore.writeAccessToken(response.session.accessToken)
         return response.session.accessToken
     }
 
@@ -241,4 +266,86 @@ private extension String {
     var takeIfNotBlank: String? {
         isEmpty ? nil : self
     }
+}
+
+private struct CustomerSessionStore {
+    private let service = "com.horizend.crmdelivery.customer.session"
+    private let account = "customer_access_token"
+    private let installationIdKey = "customer_installation_id"
+
+    func installationId() -> String {
+        if let existing = UserDefaults.standard.string(
+            forKey: installationIdKey
+        ), !existing.isEmpty {
+            return existing
+        }
+
+        let value = "ios_customer_\(UUID().uuidString.lowercased())"
+        UserDefaults.standard.set(value, forKey: installationIdKey)
+        return value
+    }
+
+    func readAccessToken() -> String? {
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(
+            baseQuery([
+                kSecReturnData as String: true,
+                kSecMatchLimit as String: kSecMatchLimitOne
+            ]) as CFDictionary,
+            &result
+        )
+
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let value = String(data: data, encoding: .utf8),
+              !value.isEmpty else {
+            return nil
+        }
+
+        return value
+    }
+
+    func writeAccessToken(_ accessToken: String) throws {
+        guard !accessToken.isEmpty,
+              let data = accessToken.data(using: .utf8) else {
+            throw SessionStoreError.invalidToken
+        }
+
+        clearAccessToken()
+
+        let status = SecItemAdd(
+            baseQuery([
+                kSecValueData as String: data,
+                kSecAttrAccessible as String:
+                    kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            ]) as CFDictionary,
+            nil
+        )
+
+        guard status == errSecSuccess else {
+            throw SessionStoreError.keychain(status)
+        }
+    }
+
+    func clearAccessToken() {
+        SecItemDelete(baseQuery() as CFDictionary)
+    }
+
+    private func baseQuery(
+        _ additions: [String: Any] = [:]
+    ) -> [String: Any] {
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+
+        additions.forEach { query[$0.key] = $0.value }
+        return query
+    }
+}
+
+private enum SessionStoreError: Error {
+    case invalidToken
+    case keychain(OSStatus)
 }

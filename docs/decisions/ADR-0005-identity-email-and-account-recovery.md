@@ -26,7 +26,9 @@ The current public Admin forgot-password flow stores one global plaintext five-d
 Customer identity is also transitional:
 
 - `customers.telegram_user_id` contains both real Telegram user IDs and synthetic `app:<uuid>` values.
-- `POST /api/v1/customer/session/start` can locate an existing customer from a caller-supplied `device_id` and issue a new 90-day bearer token.
+- `POST /api/v1/customer/session/start` creates a new guest account and session.
+  Caller-supplied `device_id` is retained only as non-authoritative device
+  metadata and can never locate or restore an account.
 - A device identifier is therefore acting as an identity credential even though it is not secret or verified.
 - The Telegram Mini App derives identity from client-visible Telegram data without sending the raw signed `initData` to the Worker for server-side verification.
 

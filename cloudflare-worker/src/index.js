@@ -13201,48 +13201,10 @@ function createCustomerRawToken() {
   return base64UrlEncode(bytes);
 }
 
-async function getExistingAppCustomerByDeviceId(env, deviceId) {
-  const cleanDeviceId = String(deviceId || "").trim();
-
-  if (!cleanDeviceId) return null;
-
-  return env.DB.prepare(`
-    SELECT c.*
-    FROM customer_app_sessions s
-    JOIN customers c ON c.id = s.customer_id
-    WHERE s.device_id = ?
-      AND c.telegram_user_id LIKE 'app:%'
-    ORDER BY s.last_seen_at DESC, s.created_at DESC
-    LIMIT 1
-  `).bind(cleanDeviceId).first();
-}
-
 async function createAppCustomer(env, body) {
   const preferredLanguage = normalizeCustomerAppLanguage(body.language || body.preferred_language || "en");
   const fullName = String(body.full_name || body.name || "").trim() || null;
   const username = String(body.username || "").trim() || null;
-  const deviceId = String(body.device_id || "").trim();
-  const existing = await getExistingAppCustomerByDeviceId(env, deviceId);
-
-  if (existing) {
-    await env.DB.prepare(
-      `UPDATE customers
-       SET username = ?,
-           full_name = ?,
-           language = ?,
-           preferred_language = ?,
-           last_seen_at = CURRENT_TIMESTAMP
-       WHERE id = ?`
-    ).bind(
-      username || existing.username || null,
-      fullName || existing.full_name || null,
-      preferredLanguage,
-      preferredLanguage,
-      existing.id
-    ).run();
-
-    return env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(existing.id).first();
-  }
 
   const mobileIdentity = makeMobileCustomerIdentity();
 
@@ -13296,9 +13258,16 @@ async function getApiCustomerSession(request, env) {
        s.is_active,
        c.*
      FROM customer_app_sessions s
-     JOIN customers c ON c.id = s.customer_id
+     JOIN customers c
+       ON c.id = s.customer_id
+      AND c.auth_account_id = s.auth_account_id
+     JOIN auth_accounts a
+       ON a.id = s.auth_account_id
+      AND a.realm = 'customer'
+      AND a.status = 'active'
      WHERE s.token_hash = ?
        AND s.is_active = 1
+       AND s.issued_auth_version = a.auth_version
        AND datetime(s.expires_at) > datetime('now')
      LIMIT 1`
   ).bind(tokenHash).first();

@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -56,10 +57,19 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun CustomerShopScreen() {
     val scope = rememberCoroutineScope()
-    val deviceId = remember { "android_customer_${System.currentTimeMillis()}" }
+    val context = LocalContext.current
+    val sessionStore = remember {
+        CustomerSessionStore(context.applicationContext)
+    }
+    val deviceId = remember { sessionStore.installationId() }
 
     var selectedLanguage by remember { mutableStateOf(SupportedLanguages.resolve(null)) }
-    var accessToken by remember(selectedLanguage) { mutableStateOf<String?>(null) }
+    var accessToken by remember {
+        mutableStateOf(sessionStore.readAccessToken())
+    }
+    var verifiedAccessToken by remember {
+        mutableStateOf<String?>(null)
+    }
     var products by remember { mutableStateOf<List<CustomerProduct>>(emptyList()) }
     var orders by remember { mutableStateOf<List<CustomerOrderSummary>>(emptyList()) }
     var cart by remember { mutableStateOf<CustomerCart?>(null) }
@@ -77,7 +87,22 @@ private fun CustomerShopScreen() {
     }
 
     suspend fun ensureSession(): String {
-        accessToken?.takeIf { it.isNotBlank() }?.let { return it }
+        accessToken?.takeIf { it.isNotBlank() }?.let { storedToken ->
+            if (verifiedAccessToken == storedToken) return storedToken
+
+            val isValid = runCatching {
+                CustomerApiClient.verifyCustomerSession(storedToken).valid
+            }.getOrDefault(false)
+
+            if (isValid) {
+                verifiedAccessToken = storedToken
+                return storedToken
+            }
+
+            sessionStore.clearAccessToken()
+            accessToken = null
+            verifiedAccessToken = null
+        }
 
         val response = CustomerApiClient.startCustomerSession(
             deviceId = deviceId,
@@ -89,6 +114,8 @@ private fun CustomerShopScreen() {
         )
 
         accessToken = response.session.accessToken
+        verifiedAccessToken = response.session.accessToken
+        sessionStore.writeAccessToken(response.session.accessToken)
         return response.session.accessToken
     }
 
@@ -138,7 +165,6 @@ private fun CustomerShopScreen() {
 
     LaunchedEffect(selectedLanguage) {
         loading = true
-        accessToken = null
         runCatching {
             val token = ensureSession()
             products = CustomerApiClient.getCustomerProducts()
