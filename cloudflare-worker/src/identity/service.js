@@ -36,11 +36,22 @@ import {
   STAFF_RECOVERY_START_ROUTE,
   STAFF_RECOVERY_VERIFY_ROUTE
 } from "./staff/recovery-http.js";
+import {
+  CUSTOMER_TELEGRAM_AUTH_ROUTE,
+  handleCustomerTelegramAuthentication
+} from "./customer/telegram-http.js";
 
 const IDENTITY_PATH = /^\/api\/v1\/(customer|admin)\/(auth|security)(?:\/|$)/;
 const STAFF_ENROLLMENT_RECOVERY_CODE_ACK_PATH =
   /^\/api\/v1\/admin\/auth\/enrollment\/recovery-code-sets\/([0-9a-f]{32})\/acknowledge$/;
 const IMPLEMENTED_ROUTES = new Map([
+  [
+    CUSTOMER_TELEGRAM_AUTH_ROUTE,
+    Object.freeze({
+      feature: "telegram_init_data_verification",
+      handler: handleCustomerTelegramAuthentication
+    })
+  ],
   [
     BOOTSTRAP_INVITATION_PREVIEW_ROUTE,
     Object.freeze({

@@ -267,24 +267,23 @@ export function getPublicMeetingPoints(): Promise<PublicMeetingPointsResponse> {
   return fetchJson<PublicMeetingPointsResponse>(`${API_BASE_URL}/public/meeting-points`);
 }
 
-export function startCustomerSession(input: {
-  deviceId: string;
-  fullName: string;
-  username: string;
-  language: string;
+export function authenticateTelegramMiniApp(input: {
+  initData: string;
+  idempotencyKey: string;
 }): Promise<CustomerSessionStartResponse> {
-  return fetchJson<CustomerSessionStartResponse>(`${API_BASE_URL}/customer/session/start`, {
+  return fetchJson<CustomerSessionStartResponse>(`${API_BASE_URL}/customer/auth/telegram`, {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
+      "idempotency-key": input.idempotencyKey
     },
     body: JSON.stringify({
-      device_id: input.deviceId,
-      platform: "telegram-mini-app",
-      app_version: "0.1.0",
-      full_name: input.fullName,
-      username: input.username,
-      language: input.language
+      init_data: input.initData,
+      session_transport: "bearer",
+      client: {
+        platform: "telegram_mini_app",
+        app_version: "0.1.0"
+      }
     })
   });
 }

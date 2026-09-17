@@ -9662,7 +9662,7 @@ async function handlePublicShopsApi(env) {
       })
   }));
 
-  return jsonResponse({ shops });
+  return apiOk({ shops });
 }
 
 async function handlePublicPaymentMethodsApi(env) {
@@ -9673,7 +9673,7 @@ async function handlePublicPaymentMethodsApi(env) {
     ORDER BY id ASC
   `).all();
 
-  return jsonResponse({
+  return apiOk({
     payment_methods: (result.results || []).map((method) => ({
       code: method.code || "",
       name: method.name || "",
@@ -14951,6 +14951,8 @@ async function routeRequest(request, env, ctx) {
   const url = new URL(request.url);
 
   if (request.method === "OPTIONS" && url.pathname.startsWith("/api/v1/")) {
+    const identityResponse = await handleIdentityApi(request, env, ctx);
+    if (identityResponse) return identityResponse;
     return apiCorsPreflight();
   }
 

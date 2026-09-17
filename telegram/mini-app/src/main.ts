@@ -15,9 +15,8 @@ import {
   getPublicShops,
   logoutCustomerSession,
   removeCustomerCartItem,
-  startCustomerSession,
+  authenticateTelegramMiniApp,
   updateCustomerCartItem,
-  updateCustomerProfile,
   verifyCustomerSession,
   type CustomerCart,
   type CustomerLocation,
@@ -35,15 +34,7 @@ declare global {
       WebApp?: {
         ready: () => void;
         expand: () => void;
-        initDataUnsafe?: {
-          user?: {
-            id?: number;
-            first_name?: string;
-            last_name?: string;
-            username?: string;
-            language_code?: string;
-          };
-        };
+        initData?: string;
       };
     };
   }
@@ -53,11 +44,23 @@ const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
 
-const telegramUser = tg?.initDataUnsafe?.user;
-const deviceId = `telegram_${telegramUser?.id ?? "browser_demo"}`;
-const tokenStorageKey = `crm_customer_access_token_${deviceId}`;
+const telegramInitData = tg?.initData || "";
+const telegramAuthenticationStorageKey =
+  "crm_telegram_authentication_idempotency_key";
+const storedTelegramAuthenticationKey = sessionStorage.getItem(
+  telegramAuthenticationStorageKey
+);
+const telegramAuthenticationIdempotencyKey =
+  storedTelegramAuthenticationKey || crypto.randomUUID();
+if (!storedTelegramAuthenticationKey) {
+  sessionStorage.setItem(
+    telegramAuthenticationStorageKey,
+    telegramAuthenticationIdempotencyKey
+  );
+}
 
-let accessToken = localStorage.getItem(tokenStorageKey) || "";
+let accessToken = "";
+let loggedOut = false;
 let profile: CustomerProfile | null = null;
 let products: Product[] = [];
 let shops: Shop[] = [];
@@ -100,18 +103,6 @@ function displayOrderStatus(order: CustomerOrderSummary): string {
   return order.order_status_label || order.order_status || order.status || "new";
 }
 
-function defaultFullName(): string {
-  return [telegramUser?.first_name, telegramUser?.last_name].filter(Boolean).join(" ") || "Telegram Mini App Customer";
-}
-
-function defaultUsername(): string {
-  return telegramUser?.username || "";
-}
-
-function defaultLanguage(): string {
-  return (telegramUser?.language_code || "en").slice(0, 2);
-}
-
 function firstActiveMeetingPoint(): MeetingPoint | null {
   return meetingPoints.find((point) => point.is_active && point.is_default) || meetingPoints.find((point) => point.is_active) || null;
 }
@@ -151,12 +142,11 @@ function renderProfile(): string {
   return `
     <section class="card">
       <h2>Profile</h2>
-      <p>Name: <strong>${escapeHtml(profile?.full_name || defaultFullName())}</strong></p>
-      <p class="muted">Username: ${escapeHtml(profile?.username || defaultUsername() || "-")}</p>
-      <p class="muted">Language: ${escapeHtml(profile?.preferred_language || profile?.language || defaultLanguage())}</p>
+      <p>Name: <strong>${escapeHtml(profile?.full_name || "Telegram customer")}</strong></p>
+      <p class="muted">Username: ${escapeHtml(profile?.username || "-")}</p>
+      <p class="muted">Language: ${escapeHtml(profile?.preferred_language || profile?.language || "en")}</p>
       <div class="actions">
         <button id="refresh-profile-button">Refresh profile</button>
-        <button id="update-profile-button">Sync Telegram profile</button>
         <button id="logout-button">Logout</button>
       </div>
     </section>
@@ -381,10 +371,6 @@ function bindEvents() {
     await loadProfile();
   });
 
-  app.querySelector<HTMLButtonElement>("#update-profile-button")?.addEventListener("click", async () => {
-    await syncProfile();
-  });
-
   app.querySelector<HTMLButtonElement>("#logout-button")?.addEventListener("click", async () => {
     await logout();
   });
@@ -399,7 +385,7 @@ function render() {
         <p class="eyebrow">CRM Delivery</p>
         <h1>Customer Shop</h1>
         <p>${escapeHtml(message)}</p>
-        <p class="muted">Device: ${escapeHtml(deviceId)}</p>
+        <p class="muted">Identity verified by Telegram</p>
       </section>
 
       ${renderProfile()}
@@ -414,6 +400,9 @@ function render() {
 }
 
 async function ensureSession() {
+  if (loggedOut) {
+    throw new Error("Close and reopen the Mini App to sign in again.");
+  }
   if (accessToken) {
     try {
       const verifyResponse = await verifyCustomerSession(accessToken);
@@ -422,21 +411,21 @@ async function ensureSession() {
         return accessToken;
       }
     } catch {
-      localStorage.removeItem(tokenStorageKey);
       accessToken = "";
     }
   }
 
-  const response = await startCustomerSession({
-    deviceId,
-    fullName: defaultFullName(),
-    username: defaultUsername(),
-    language: defaultLanguage()
+  if (!telegramInitData) {
+    throw new Error("Open this Mini App from Telegram to authenticate.");
+  }
+
+  const response = await authenticateTelegramMiniApp({
+    initData: telegramInitData,
+    idempotencyKey: telegramAuthenticationIdempotencyKey
   });
 
   accessToken = response.session.access_token;
   profile = response.customer ?? profile;
-  localStorage.setItem(tokenStorageKey, accessToken);
 
   return accessToken;
 }
@@ -449,23 +438,6 @@ async function loadProfile() {
     message = "Profile loaded";
   } catch (error) {
     message = `Profile loading failed: ${error instanceof Error ? error.message : String(error)}`;
-  }
-
-  render();
-}
-
-async function syncProfile() {
-  try {
-    const token = await ensureSession();
-    const profileResponse = await updateCustomerProfile(token, {
-      fullName: defaultFullName(),
-      username: defaultUsername(),
-      preferredLanguage: defaultLanguage()
-    });
-    profile = profileResponse.customer;
-    message = "Profile synced";
-  } catch (error) {
-    message = `Profile sync failed: ${error instanceof Error ? error.message : String(error)}`;
   }
 
   render();
@@ -569,8 +541,6 @@ async function load() {
 
     message = "Mini App loaded";
   } catch (error) {
-    localStorage.removeItem(tokenStorageKey);
-    accessToken = "";
     message = `Loading failed: ${error instanceof Error ? error.message : String(error)}`;
   }
 
@@ -679,15 +649,15 @@ async function logout() {
     // Local logout still proceeds.
   }
 
-  localStorage.removeItem(tokenStorageKey);
   accessToken = "";
+  loggedOut = true;
   profile = null;
   cart = null;
   orders = [];
   selectedOrder = null;
   customerLocations = [];
   selectedDeliveryLocationId = "";
-  message = "Logged out locally";
+  message = "Logged out. Close and reopen the Mini App to sign in again.";
 
   render();
 }

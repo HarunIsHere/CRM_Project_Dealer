@@ -30,7 +30,7 @@ Customer identity is also transitional:
   Caller-supplied `device_id` is retained only as non-authoritative device
   metadata and can never locate or restore an account.
 - A device identifier is therefore acting as an identity credential even though it is not secret or verified.
-- The Telegram Mini App derives identity from client-visible Telegram data without sending the raw signed `initData` to the Worker for server-side verification.
+- The Telegram Mini App sends raw signed `initData` to the Worker, which verifies its signature, freshness, and one-time replay fingerprint before resolving the canonical Telegram identity. Its short-lived runtime bearer is kept in memory and is not persisted in browser storage.
 
 The project needs:
 
