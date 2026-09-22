@@ -139,6 +139,28 @@ export type CustomerProfileResponse = {
   customer: CustomerProfile;
 };
 
+export type CustomerEmailEnrollment = {
+  present: boolean;
+  masked?: string | null;
+  verified: boolean;
+  verified_at?: string | null;
+};
+
+export type CustomerEmailEnrollmentResponse = {
+  ok: boolean;
+  email: CustomerEmailEnrollment;
+};
+
+export type CustomerEmailEnrollmentStartResponse = {
+  ok: boolean;
+  email?: CustomerEmailEnrollment;
+  challenge?: {
+    id: string;
+    email: string;
+    expires_at: string;
+  };
+};
+
 export type CustomerCartItem = {
   id?: number | null;
   product_id?: number | null;
@@ -306,6 +328,47 @@ export function getCustomerProfile(accessToken: string): Promise<CustomerProfile
   return fetchJson<CustomerProfileResponse>(`${API_BASE_URL}/customer/me`, {
     headers: authHeaders(accessToken)
   });
+}
+
+export function getCustomerEmailEnrollment(
+  accessToken: string
+): Promise<CustomerEmailEnrollmentResponse> {
+  return fetchJson<CustomerEmailEnrollmentResponse>(
+    `${API_BASE_URL}/customer/security/email`,
+    { headers: authHeaders(accessToken) }
+  );
+}
+
+export function startCustomerEmailEnrollment(
+  accessToken: string,
+  email: string
+): Promise<CustomerEmailEnrollmentStartResponse> {
+  return fetchJson<CustomerEmailEnrollmentStartResponse>(
+    `${API_BASE_URL}/customer/security/email/enrollment`,
+    {
+      method: "POST",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({ email })
+    }
+  );
+}
+
+export function verifyCustomerEmailEnrollment(
+  accessToken: string,
+  challengeId: string,
+  manualCode: string
+): Promise<CustomerEmailEnrollmentResponse> {
+  return fetchJson<CustomerEmailEnrollmentResponse>(
+    `${API_BASE_URL}/customer/security/email/enrollment/complete`,
+    {
+      method: "POST",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        manual_code: manualCode
+      })
+    }
+  );
 }
 
 export function updateCustomerProfile(

@@ -40,11 +40,40 @@ import {
   CUSTOMER_TELEGRAM_AUTH_ROUTE,
   handleCustomerTelegramAuthentication
 } from "./customer/telegram-http.js";
+import {
+  CUSTOMER_EMAIL_ENROLLMENT_ROUTE,
+  CUSTOMER_EMAIL_ENROLLMENT_START_ROUTE,
+  CUSTOMER_EMAIL_ENROLLMENT_VERIFY_ROUTE,
+  handleCustomerEmailEnrollmentStart,
+  handleCustomerEmailEnrollmentStatus,
+  handleCustomerEmailEnrollmentVerify
+} from "./customer/email-enrollment-http.js";
 
 const IDENTITY_PATH = /^\/api\/v1\/(customer|admin)\/(auth|security)(?:\/|$)/;
 const STAFF_ENROLLMENT_RECOVERY_CODE_ACK_PATH =
   /^\/api\/v1\/admin\/auth\/enrollment\/recovery-code-sets\/([0-9a-f]{32})\/acknowledge$/;
 const IMPLEMENTED_ROUTES = new Map([
+  [
+    CUSTOMER_EMAIL_ENROLLMENT_ROUTE,
+    Object.freeze({
+      feature: "customer_email",
+      handler: handleCustomerEmailEnrollmentStatus
+    })
+  ],
+  [
+    CUSTOMER_EMAIL_ENROLLMENT_START_ROUTE,
+    Object.freeze({
+      feature: "customer_email",
+      handler: handleCustomerEmailEnrollmentStart
+    })
+  ],
+  [
+    CUSTOMER_EMAIL_ENROLLMENT_VERIFY_ROUTE,
+    Object.freeze({
+      feature: "customer_email",
+      handler: handleCustomerEmailEnrollmentVerify
+    })
+  ],
   [
     CUSTOMER_TELEGRAM_AUTH_ROUTE,
     Object.freeze({

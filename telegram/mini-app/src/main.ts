@@ -9,6 +9,7 @@ import {
   getCustomerOrderDetail,
   getCustomerOrders,
   getCustomerProfile,
+  getCustomerEmailEnrollment,
   getPublicCatalog,
   getPublicMeetingPoints,
   getPublicPaymentMethods,
@@ -16,12 +17,15 @@ import {
   logoutCustomerSession,
   removeCustomerCartItem,
   authenticateTelegramMiniApp,
+  startCustomerEmailEnrollment,
   updateCustomerCartItem,
   verifyCustomerSession,
+  verifyCustomerEmailEnrollment,
   type CustomerCart,
   type CustomerLocation,
   type CustomerOrderSummary,
   type CustomerProfile,
+  type CustomerEmailEnrollment,
   type MeetingPoint,
   type PaymentMethod,
   type Product,
@@ -62,6 +66,8 @@ if (!storedTelegramAuthenticationKey) {
 let accessToken = "";
 let loggedOut = false;
 let profile: CustomerProfile | null = null;
+let customerEmail: CustomerEmailEnrollment | null = null;
+let emailChallengeId = "";
 let products: Product[] = [];
 let shops: Shop[] = [];
 let paymentMethods: PaymentMethod[] = [];
@@ -149,6 +155,33 @@ function renderProfile(): string {
         <button id="refresh-profile-button">Refresh profile</button>
         <button id="logout-button">Logout</button>
       </div>
+    </section>
+  `;
+}
+
+function renderEmailEnrollment(): string {
+  if (customerEmail?.verified) {
+    return `
+      <section class="card">
+        <h2>Email access</h2>
+        <p><strong>${escapeHtml(customerEmail.masked || "Verified")}</strong></p>
+        <p class="muted">Verified email is linked to this same customer account.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="card">
+      <h2>Add email access</h2>
+      <p class="muted">Enter the eight-digit code from the verification email on this device.</p>
+      <input id="email-enrollment-input" type="email" autocomplete="email" placeholder="Email address">
+      <button id="email-enrollment-start-button">Send verification email</button>
+      ${emailChallengeId ? `
+        <div class="checkout-box">
+          <input id="email-enrollment-code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="8-digit code">
+          <button id="email-enrollment-verify-button">Verify email</button>
+        </div>
+      ` : ""}
     </section>
   `;
 }
@@ -374,6 +407,14 @@ function bindEvents() {
   app.querySelector<HTMLButtonElement>("#logout-button")?.addEventListener("click", async () => {
     await logout();
   });
+
+  app.querySelector<HTMLButtonElement>("#email-enrollment-start-button")?.addEventListener("click", async () => {
+    await startEmailEnrollment();
+  });
+
+  app.querySelector<HTMLButtonElement>("#email-enrollment-verify-button")?.addEventListener("click", async () => {
+    await verifyEmailEnrollment();
+  });
 }
 
 function render() {
@@ -389,6 +430,7 @@ function render() {
       </section>
 
       ${renderProfile()}
+      ${renderEmailEnrollment()}
       ${renderCart()}
       ${renderOrders()}
       ${renderPublicInfo()}
@@ -440,6 +482,39 @@ async function loadProfile() {
     message = `Profile loading failed: ${error instanceof Error ? error.message : String(error)}`;
   }
 
+  render();
+}
+
+async function startEmailEnrollment() {
+  try {
+    const token = await ensureSession();
+    const email = app?.querySelector<HTMLInputElement>("#email-enrollment-input")?.value.trim() || "";
+    const response = await startCustomerEmailEnrollment(token, email);
+    if (response.email?.verified) {
+      customerEmail = response.email;
+      emailChallengeId = "";
+      message = "Email is already verified";
+    } else if (response.challenge) {
+      emailChallengeId = response.challenge.id;
+      message = `Verification sent to ${response.challenge.email}`;
+    }
+  } catch (error) {
+    message = `Email setup failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  render();
+}
+
+async function verifyEmailEnrollment() {
+  try {
+    const token = await ensureSession();
+    const code = app?.querySelector<HTMLInputElement>("#email-enrollment-code-input")?.value.trim() || "";
+    const response = await verifyCustomerEmailEnrollment(token, emailChallengeId, code);
+    customerEmail = response.email;
+    emailChallengeId = "";
+    message = "Email verified and linked to this customer account";
+  } catch (error) {
+    message = `Email verification failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
   render();
 }
 
@@ -519,12 +594,13 @@ async function load() {
   try {
     const token = await ensureSession();
 
-    const [catalogResponse, shopsResponse, paymentMethodsResponse, meetingPointsResponse, profileResponse, cartResponse, ordersResponse, locationsResponse] = await Promise.all([
+    const [catalogResponse, shopsResponse, paymentMethodsResponse, meetingPointsResponse, profileResponse, emailResponse, cartResponse, ordersResponse, locationsResponse] = await Promise.all([
       getPublicCatalog(),
       getPublicShops(),
       getPublicPaymentMethods(),
       getPublicMeetingPoints(),
       getCustomerProfile(token),
+      getCustomerEmailEnrollment(token),
       getCustomerCart(token),
       getCustomerOrders(token),
       getCustomerLocations(token)
@@ -535,6 +611,7 @@ async function load() {
     paymentMethods = paymentMethodsResponse.payment_methods;
     meetingPoints = meetingPointsResponse.meeting_points;
     profile = profileResponse.customer;
+    customerEmail = emailResponse.email;
     cart = cartResponse.cart;
     orders = ordersResponse.orders;
     customerLocations = locationsResponse.locations;
@@ -652,6 +729,8 @@ async function logout() {
   accessToken = "";
   loggedOut = true;
   profile = null;
+  customerEmail = null;
+  emailChallengeId = "";
   cart = null;
   orders = [];
   selectedOrder = null;

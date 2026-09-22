@@ -16,6 +16,10 @@ import {
   ADMIN_RECOVERY_LANDING_ROUTE,
   handleAdminRecoveryLanding
 } from "./identity/staff/recovery-page.js";
+import {
+  CUSTOMER_EMAIL_ENROLLMENT_LANDING_ROUTE,
+  handleCustomerEmailEnrollmentLanding
+} from "./identity/customer/email-enrollment-page.js";
 import { getAdminSharedText } from "./i18n/admin-shared.generated.js";
 import { createOpaqueId } from "./identity/crypto.js";
 import { normalizeEmailAddress } from "./identity/email/normalization.js";
@@ -15058,6 +15062,13 @@ async function routeRequest(request, env, ctx) {
 
   if (url.pathname === ADMIN_RECOVERY_LANDING_ROUTE && getIdentityCapabilities(env).staff_recovery === true) {
     return handleAdminRecoveryLanding(request);
+  }
+
+  if (
+    url.pathname === CUSTOMER_EMAIL_ENROLLMENT_LANDING_ROUTE
+    && getIdentityCapabilities(env).customer_email === true
+  ) {
+    return handleCustomerEmailEnrollmentLanding(request);
   }
 
   if (url.pathname === "/admin/login" && request.method === "GET") return handleLoginPage();

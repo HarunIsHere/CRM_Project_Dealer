@@ -34,6 +34,12 @@ Customer identity is also transitional:
 - Successful Telegram verification issues a canonical `customer_verified`
   session. Legacy `customer_app_sessions` remain readable only for clients
   created before the staged session migration.
+- A verified Telegram customer may now progressively enroll one email from the
+  Telegram Mini App. The challenge is bound to the initiating canonical
+  customer session, sends both a first-party link and an eight-digit code, and
+  attaches the address only when proof returns with that same session. A
+  verified address already owned by another customer account produces an
+  explicit linking conflict; it never creates or silently merges an account.
 
 The project needs:
 
@@ -62,6 +68,15 @@ The following rules are accepted:
 9. Recovery, identity linking, credential changes, and session revocation are backend security responsibilities. Clients must not implement competing local rules.
 10. Identity migration will be staged, but the final system will not retain permanent parallel legacy and canonical authentication models.
 11. Retirement of the existing Telegram recovery path is a separate owner-controlled decision. Building or activating verified-email recovery does not itself authorize disabling or removing Telegram recovery.
+
+The first customer-email rollout exposes the contract routes
+`GET /api/v1/customer/security/email`,
+`POST /api/v1/customer/security/email/enrollment`, and
+`POST /api/v1/customer/security/email/enrollment/complete`. The Mini App uses
+the manual code on its in-memory bearer session. Until customer Web sessions
+exist, the email landing page removes the fragment token and directs the user
+back to the initiating device instead of attaching an address without its
+bound session.
 
 ## Canonical identity model
 
