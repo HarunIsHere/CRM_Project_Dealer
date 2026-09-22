@@ -19,7 +19,10 @@ import {
 import { getAdminSharedText } from "./i18n/admin-shared.generated.js";
 import { createOpaqueId } from "./identity/crypto.js";
 import { normalizeEmailAddress } from "./identity/email/normalization.js";
-import { upsertCanonicalTelegramCustomer } from "./identity/repository.js";
+import {
+  resolveCanonicalSession,
+  upsertCanonicalTelegramCustomer
+} from "./identity/repository.js";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
 const TELEGRAM_MINI_APP_URL = "https://crm-delivery-mini-app.pages.dev";
@@ -13250,6 +13253,47 @@ async function getApiCustomerSession(request, env) {
   const token = getCustomerBearerToken(request);
   if (!token) return null;
 
+  let canonicalSession = null;
+  try {
+    canonicalSession = await resolveCanonicalSession(
+      env,
+      token,
+      "customer"
+    );
+  } catch {
+    // Legacy customer sessions remain available during the staged migration.
+  }
+
+  if (canonicalSession) {
+    const customer = await env.DB.prepare(`
+      SELECT *
+      FROM customers
+      WHERE auth_account_id = ?
+      LIMIT 1
+    `).bind(canonicalSession.auth_account_id).first();
+    if (!customer) return null;
+
+    await env.DB.batch([
+      env.DB.prepare(`
+        UPDATE auth_sessions
+        SET last_seen_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(canonicalSession.id),
+      env.DB.prepare(`
+        UPDATE customers
+        SET last_seen_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(customer.id)
+    ]);
+
+    return {
+      session_id: canonicalSession.id,
+      expires_at: canonicalSession.expires_at,
+      scope: canonicalSession.scope,
+      customer
+    };
+  }
+
   const tokenHash = await hashCustomerSessionToken(env, token);
   const row = await env.DB.prepare(
     `SELECT
@@ -13326,9 +13370,32 @@ async function handleApiCustomerSessionLogout(request, env) {
     return apiError("unauthorized", "Valid customer bearer token is required.", 401);
   }
 
-  const tokenHash = await hashCustomerSessionToken(env, token);
+  let canonicalSession = null;
+  try {
+    canonicalSession = await resolveCanonicalSession(
+      env,
+      token,
+      "customer"
+    );
+  } catch {
+    // A legacy token is checked below.
+  }
 
-  const result = await env.DB.prepare(
+  let revokedCount = 0;
+  if (canonicalSession) {
+    const canonicalResult = await env.DB.prepare(`
+      UPDATE auth_sessions
+      SET revoked_at = CURRENT_TIMESTAMP,
+          revocation_reason = 'customer_logout',
+          last_seen_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+        AND revoked_at IS NULL
+    `).bind(canonicalSession.id).run();
+    revokedCount += Number(canonicalResult.meta?.changes || 0);
+  }
+
+  const tokenHash = await hashCustomerSessionToken(env, token);
+  const legacyResult = await env.DB.prepare(
     `UPDATE customer_app_sessions
      SET is_active = 0,
          revoked_at = CURRENT_TIMESTAMP,
@@ -13336,10 +13403,11 @@ async function handleApiCustomerSessionLogout(request, env) {
      WHERE token_hash = ?
        AND is_active = 1`
   ).bind(tokenHash).run();
+  revokedCount += Number(legacyResult.meta?.changes || 0);
 
   return apiOk({
     logged_out: true,
-    revoked_count: Number(result.meta?.changes || 0)
+    revoked_count: revokedCount
   });
 }
 

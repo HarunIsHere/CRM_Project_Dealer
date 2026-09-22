@@ -23,6 +23,7 @@ import {
   TELEGRAM_INIT_DATA_MAX_AGE_SECONDS,
   verifyTelegramMiniAppInitData
 } from "./telegram-init-data.js";
+import { createSessionHashesForIssuance } from "../session-keyring.js";
 
 export const CUSTOMER_TELEGRAM_AUTH_ROUTE =
   "/api/v1/customer/auth/telegram";
@@ -30,7 +31,6 @@ export const CUSTOMER_TELEGRAM_AUTH_ROUTE =
 const APP_VERSION = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,39}$/;
 const FINGERPRINT_VERSION = 1;
 const SESSION_LIFETIME_SECONDS = 90 * 24 * 60 * 60;
-const textEncoder = new TextEncoder();
 
 function protocolError(code, status, message) {
   throw new IdentityProtocolError(code, status, message);
@@ -89,21 +89,6 @@ function rawSessionToken() {
     .replace(/=+$/g, "");
 }
 
-async function customerSessionTokenHash(env, token) {
-  const secret = String(env?.ADMIN_JWT_SECRET ?? "");
-  if (!secret) {
-    protocolError("temporarily_unavailable", 503, "Customer sessions are unavailable.");
-  }
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    textEncoder.encode(`${secret}:customer:${token}`)
-  );
-  return Array.from(
-    new Uint8Array(digest),
-    (byte) => byte.toString(16).padStart(2, "0")
-  ).join("");
-}
-
 function mapCustomer(customer) {
   const language = customer.preferred_language || customer.language || "en";
   return {
@@ -132,36 +117,61 @@ async function issueCustomerSession(env, customer, client) {
   }
 
   const token = rawSessionToken();
-  const tokenHash = await customerSessionTokenHash(env, token);
+  const sessionId = createOpaqueId();
+  const transitionId = createOpaqueId();
+  const sessionHashes = await createSessionHashesForIssuance(env, {
+    sessionToken: token
+  });
+  const nowAt = new Date().toISOString();
   const expiresAt = new Date(
     Date.now() + SESSION_LIFETIME_SECONDS * 1000
   ).toISOString();
 
   await env.DB.prepare(`
-    INSERT INTO customer_app_sessions (
-      customer_id,
-      token_hash,
-      device_id,
-      platform,
-      app_version,
-      expires_at,
-      last_seen_at,
+    INSERT INTO auth_sessions (
+      id,
       auth_account_id,
-      issued_auth_version
-    ) VALUES (?, ?, NULL, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
+      realm,
+      token_hash,
+      token_hash_version,
+      created_transition_id,
+      issued_auth_version,
+      scope,
+      assurance_level,
+      auth_methods_json,
+      authorization_context_json,
+      session_transport,
+      csrf_token_hash,
+      client_platform,
+      app_version,
+      authenticated_at,
+      created_at,
+      expires_at,
+      last_seen_at
+    ) VALUES (
+      ?, ?, 'customer', ?, ?, ?, ?, 'customer_verified', 1,
+      '["telegram"]', '{}', 'bearer', NULL, ?, ?, ?, ?, ?, ?
+    )
   `).bind(
-    customer.id,
-    tokenHash,
+    sessionId,
+    account.id,
+    sessionHashes.tokenHash,
+    sessionHashes.tokenHashVersion,
+    transitionId,
+    account.auth_version,
     client.platform,
     client.appVersion,
+    nowAt,
+    nowAt,
     expiresAt,
-    account.id,
-    account.auth_version
+    nowAt
   ).run();
 
   return {
+    id: sessionId,
     access_token: token,
     token_type: "Bearer",
+    scope: "customer_verified",
     expires_at: expiresAt
   };
 }

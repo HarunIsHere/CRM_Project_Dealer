@@ -1346,8 +1346,12 @@ CREATE TABLE auth_sessions (
   ),
   CHECK (
     (
-      client_platform IN ('admin_web', 'customer_web', 'telegram_mini_app')
+      client_platform IN ('admin_web', 'customer_web')
       AND session_transport = 'cookie'
+    )
+    OR (
+      client_platform = 'telegram_mini_app'
+      AND session_transport IN ('cookie', 'bearer')
     )
     OR (
       client_platform IN (

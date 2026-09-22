@@ -31,6 +31,9 @@ Customer identity is also transitional:
   metadata and can never locate or restore an account.
 - A device identifier is therefore acting as an identity credential even though it is not secret or verified.
 - The Telegram Mini App sends raw signed `initData` to the Worker, which verifies its signature, freshness, and one-time replay fingerprint before resolving the canonical Telegram identity. Its short-lived runtime bearer is kept in memory and is not persisted in browser storage.
+- Successful Telegram verification issues a canonical `customer_verified`
+  session. Legacy `customer_app_sessions` remain readable only for clients
+  created before the staged session migration.
 
 The project needs:
 

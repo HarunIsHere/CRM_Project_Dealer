@@ -103,6 +103,21 @@ test("Mini App uses the exact Telegram auth route and keeps bearer state out of 
   );
   assert.match(serviceSource, /handleCustomerTelegramAuthentication/);
   assert.match(
+    serviceSource,
+    /CUSTOMER_TELEGRAM_AUTH_ROUTE/
+  );
+  const telegramHttpSource = await readFile(
+    new URL(
+      "../../src/identity/customer/telegram-http.js",
+      import.meta.url
+    ),
+    "utf8"
+  );
+  assert.match(telegramHttpSource, /INSERT INTO auth_sessions/);
+  assert.match(telegramHttpSource, /'customer_verified'/);
+  assert.doesNotMatch(telegramHttpSource, /INSERT INTO customer_app_sessions/);
+  assert.match(indexSource, /resolveCanonicalSession/);
+  assert.match(
     indexSource,
     /request\.method === "OPTIONS"[\s\S]*handleIdentityApi\(request, env, ctx\)/
   );
