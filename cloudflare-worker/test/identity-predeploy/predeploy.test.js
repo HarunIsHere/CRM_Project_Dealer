@@ -36,7 +36,7 @@ function validate(configSource = CONFIG, migration0014 = MIGRATION_0014, migrati
   });
 }
 
-test("current staged identity configuration passes static predeployment policy", () => {
+test("current deployed identity configuration passes static predeployment policy", () => {
   assert.deepEqual(validate().errors, []);
 });
 
@@ -64,12 +64,18 @@ test("TOML subset parser reads multiline secret arrays and binding records", () 
   assert.equal(parsed.arrays["queues.producers"][0].remote, false);
 });
 
-test("guard fails closed when any staged identity flag is enabled", () => {
-  const changed = CONFIG.replace(
-    'CRM_AUTH_STAFF_RECOVERY = "false"',
-    'CRM_AUTH_STAFF_RECOVERY = "true"'
+test("guard rejects identity feature-flag drift in either direction", () => {
+  const disabled = CONFIG.replace(
+    'CRM_AUTH_STAFF_RECOVERY = "true"',
+    'CRM_AUTH_STAFF_RECOVERY = "false"'
   );
-  assert.match(validate(changed).errors.join("\n"), /CRM_AUTH_STAFF_RECOVERY/);
+  assert.match(validate(disabled).errors.join("\n"), /CRM_AUTH_STAFF_RECOVERY must equal "true"/);
+
+  const enabled = CONFIG.replace(
+    'CRM_AUTH_STAFF_ENROLLMENT = "false"',
+    'CRM_AUTH_STAFF_ENROLLMENT = "true"'
+  );
+  assert.match(validate(enabled).errors.join("\n"), /CRM_AUTH_STAFF_ENROLLMENT must equal "false"/);
 });
 
 test("guard rejects missing controlled-delivery secret declaration", () => {
@@ -90,8 +96,8 @@ test("guard rejects a remote email binding in offline configuration", () => {
 
 test("guard rejects a permanently enabled or externally scripted maintenance runner", () => {
   const permanentGate = CONFIG.replace(
-    'CRM_AUTH_STAFF_RECOVERY = "false"',
-    'CRM_AUTH_STAFF_RECOVERY = "false"\nCRM_AUTH_STAFF_RECONCILIATION_MAINTENANCE = "enabled"'
+    'CRM_AUTH_STAFF_RECOVERY = "true"',
+    'CRM_AUTH_STAFF_RECOVERY = "true"\nCRM_AUTH_STAFF_RECONCILIATION_MAINTENANCE = "enabled"'
   );
   assert.match(
     validate(permanentGate).errors.join("\n"),
