@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.security.KeyStore
+import java.security.SecureRandom
 import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -83,6 +84,15 @@ internal class CustomerSessionStore(context: Context) {
             .remove(TOKEN_KEY)
             .remove(TOKEN_IV_KEY)
             .apply()
+    }
+
+    fun newInitiationNonce(): String {
+        val bytes = ByteArray(32)
+        SecureRandom().nextBytes(bytes)
+        return Base64.encodeToString(
+            bytes,
+            Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP
+        )
     }
 
     private fun getOrCreateSecretKey(): SecretKey {

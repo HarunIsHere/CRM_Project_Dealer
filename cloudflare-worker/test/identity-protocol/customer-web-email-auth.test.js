@@ -90,7 +90,39 @@ test("customer Web auth registers unknown emails and issues canonical cookie ses
   assert.match(source, /'customer', 'pending'/);
   assert.match(source, /INSERT INTO auth_email_addresses/);
   assert.match(source, /INSERT INTO customers/);
-  assert.match(source, /`web:\$\{createOpaqueId\(\)\}`/);
+  assert.match(source, /customer_android.*\? "app" : "web"/);
   assert.match(source, /email_in_use/);
   assert.doesNotMatch(source, /UPDATE customers[\s\S]*auth_account_id/);
+});
+
+test("customer Android email authentication is bearer-only and readiness gated", async () => {
+  const nativeRequest = () => new Request(`${ORIGIN}${CUSTOMER_EMAIL_AUTH_START_ROUTE}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": "0123456789abcdef0123456789abcdef"
+    },
+    body: JSON.stringify({
+      email: "customer@example.com",
+      intent: "sign_in",
+      locale: "en",
+      return_to: "home",
+      initiation_nonce: "A".repeat(43),
+      session_transport: "bearer",
+      client: { platform: "customer_android", app_version: "0.1.0" }
+    })
+  });
+  const disabled = await handleIdentityApi(nativeRequest(), {
+    ...environment(true),
+    CRM_AUTH_CLIENT_READY_CUSTOMER_ANDROID: "false"
+  });
+  assert.equal(disabled.status, 503);
+  assert.equal((await disabled.json()).error.code, "capability_disabled");
+
+  const enabled = await handleIdentityApi(nativeRequest(), {
+    ...environment(true),
+    CRM_AUTH_CLIENT_READY_CUSTOMER_ANDROID: "true"
+  });
+  assert.equal(enabled.status, 503);
+  assert.equal((await enabled.json()).error.code, "temporarily_unavailable");
 });

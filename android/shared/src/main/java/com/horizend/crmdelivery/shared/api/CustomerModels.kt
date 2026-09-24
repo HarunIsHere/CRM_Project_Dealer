@@ -47,7 +47,8 @@ data class CustomerProfile(
     @SerialName("created_at")
     val createdAt: String? = null,
     @SerialName("last_seen_at")
-    val lastSeenAt: String? = null
+    val lastSeenAt: String? = null,
+    val email: String? = null
 )
 
 @Serializable
@@ -57,6 +58,81 @@ data class CustomerSessionVerifyResponse(
     @SerialName("expires_at")
     val expiresAt: String? = null,
     val customer: CustomerProfile? = null
+)
+
+@Serializable
+data class CustomerIdentityClient(
+    val platform: String,
+    @SerialName("app_version")
+    val appVersion: String
+)
+
+@Serializable
+data class CustomerEmailAuthStartRequest(
+    val email: String,
+    val intent: String = "sign_in",
+    val locale: String,
+    @SerialName("return_to")
+    val returnTo: String = "home",
+    @SerialName("initiation_nonce")
+    val initiationNonce: String,
+    @SerialName("session_transport")
+    val sessionTransport: String = "bearer",
+    val client: CustomerIdentityClient = CustomerIdentityClient(
+        platform = "customer_android",
+        appVersion = "0.1.0"
+    )
+)
+
+@Serializable
+data class CustomerEmailAuthStartResponse(
+    val ok: Boolean,
+    val accepted: Boolean,
+    @SerialName("attempt_id")
+    val attemptId: String,
+    @SerialName("expires_in")
+    val expiresIn: Int
+)
+
+@Serializable
+data class CustomerEmailAuthCompleteRequest(
+    @SerialName("attempt_id")
+    val attemptId: String,
+    @SerialName("manual_code")
+    val manualCode: String,
+    @SerialName("initiation_nonce")
+    val initiationNonce: String,
+    @SerialName("session_transport")
+    val sessionTransport: String = "bearer",
+    val client: CustomerIdentityClient = CustomerIdentityClient(
+        platform = "customer_android",
+        appVersion = "0.1.0"
+    )
+)
+
+@Serializable
+data class CustomerEmailAuthCompleteResponse(
+    val ok: Boolean,
+    @SerialName("confirmation_required")
+    val confirmationRequired: Boolean = false,
+    val session: CustomerSession,
+    val customer: CustomerProfile,
+    @SerialName("return_to")
+    val returnTo: String = "home"
+)
+
+@Serializable
+data class CustomerEmailAuthSessionSummary(
+    val scope: String,
+    @SerialName("expires_at")
+    val expiresAt: String? = null
+)
+
+@Serializable
+data class CustomerEmailAuthSessionResponse(
+    val ok: Boolean,
+    val session: CustomerEmailAuthSessionSummary,
+    val customer: CustomerProfile
 )
 
 @Serializable

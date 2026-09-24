@@ -91,6 +91,12 @@ the link or eight-digit code proves control of the address. Existing verified
 addresses continue through sign-in, and registration never silently merges a
 new email identity into a Telegram customer account.
 
+Customer Android consumes the same email challenge contract through a
+readiness-gated native bearer transport. The app keeps its initiation nonce
+and resulting bearer token in device-protected storage, while browser clients
+continue to require first-party origin, cookie, and CSRF protections. Enabling
+the Android readiness flag is a separate deployment checkpoint.
+
 ## Canonical identity model
 
 The planned first schema migration for this work is:

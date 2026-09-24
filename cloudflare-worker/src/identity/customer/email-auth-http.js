@@ -122,14 +122,14 @@ async function codeVerifier(env, accountId, challengeId, code) {
   };
 }
 
-function exactWebClient(body, request, env) {
+function exactCustomerClient(body, request, env) {
   const client = body?.client;
   if (
     !client
     || typeof client !== "object"
     || Array.isArray(client)
     || Object.keys(client).sort().join(",") !== "app_version,platform"
-    || client.platform !== "customer_web"
+    || !["customer_web", "customer_android"].includes(client.platform)
     || !APP_VERSION.test(String(client.app_version || ""))
   ) {
     protocolError("invalid_request", 400, "The request shape is invalid.");
@@ -137,9 +137,15 @@ function exactWebClient(body, request, env) {
   validateRequestedSessionTransport(request, {
     sessionTransport: body.session_transport,
     clientPlatform: client.platform,
+    nativeBearerEnabled: client.platform === "customer_android"
+      && String(env?.CRM_AUTH_CLIENT_READY_CUSTOMER_ANDROID || "").toLowerCase() === "true",
     env
   });
-  return { platform: client.platform, appVersion: String(client.app_version) };
+  return {
+    platform: client.platform,
+    appVersion: String(client.app_version),
+    sessionTransport: body.session_transport
+  };
 }
 
 function cookieValue(request, name) {
@@ -270,10 +276,13 @@ function mapCustomer(row) {
 
 async function issueSession(env, database, challenge, client, nowAt) {
   const sessionToken = opaqueToken();
-  const csrfToken = opaqueToken();
+  const csrfToken = client.sessionTransport === "cookie" ? opaqueToken() : null;
   const sessionId = createOpaqueId();
   const expiresAt = new Date(Date.parse(nowAt) + SESSION_LIFETIME_SECONDS * 1000).toISOString();
-  const hashes = await createSessionHashesForIssuance(env, { sessionToken, csrfToken });
+  const hashes = await createSessionHashesForIssuance(env, {
+    sessionToken,
+    ...(csrfToken ? { csrfToken } : {})
+  });
   const registration = challenge.account_status === "pending"
     && challenge.email_status === "pending";
   if (registration) {
@@ -319,7 +328,7 @@ async function issueSession(env, database, challenge, client, nowAt) {
           last_seen_at, created_at, auth_account_id
         ) VALUES (?, NULL, ?, ?, ?, ?, ?)
       `).bind(
-        `web:${createOpaqueId()}`,
+        `${client.platform === "customer_android" ? "app" : "web"}:${createOpaqueId()}`,
         challenge.locale || "en",
         challenge.locale || "en",
         nowAt,
@@ -337,7 +346,7 @@ async function issueSession(env, database, challenge, client, nowAt) {
       created_at, expires_at, last_seen_at
     ) VALUES (
       ?, ?, 'customer', ?, ?, ?, ?, 'customer_verified', 1,
-      '["email"]', '{}', 'cookie', ?, 'customer_web', ?, ?, ?, ?, ?
+      '["email"]', '{}', ?, ?, ?, ?, ?, ?, ?, ?
     )
   `).bind(
     sessionId,
@@ -346,7 +355,9 @@ async function issueSession(env, database, challenge, client, nowAt) {
     hashes.tokenHashVersion,
     createOpaqueId(),
     Number(challenge.expected_auth_version),
-    hashes.csrfTokenHash,
+    client.sessionTransport,
+    hashes.csrfTokenHash || null,
+    client.platform,
     client.appVersion,
     nowAt,
     nowAt,
@@ -378,9 +389,13 @@ async function issueSession(env, database, challenge, client, nowAt) {
       session: {
         id: sessionId,
         scope: "customer_verified",
-        transport: "cookie",
+        transport: client.sessionTransport,
         expires_at: expiresAt,
-        csrf_token: csrfToken
+        ...(csrfToken ? { csrf_token: csrfToken } : {}),
+        ...(client.sessionTransport === "bearer" ? {
+          access_token: sessionToken,
+          token_type: "Bearer"
+        } : {})
       },
       customer: mapCustomer(customer),
       return_to: challenge.redirect_path || "home"
@@ -448,8 +463,8 @@ async function challengeByCode(env, database, attemptId, code, nowAt) {
   return challenge;
 }
 
-async function initiationMatches(env, request, challenge) {
-  const raw = cookieValue(request, INITIATION_COOKIE);
+async function initiationMatches(env, request, challenge, initiationNonce = null) {
+  const raw = initiationNonce || cookieValue(request, INITIATION_COOKIE);
   if (!raw || !challenge.initiation_state_hash) return false;
   const hashes = await createAcceptedChallengeTokenHashes(env, raw, "customer_login");
   for (const value of hashes) {
@@ -458,10 +473,14 @@ async function initiationMatches(env, request, challenge) {
   return false;
 }
 
-async function requireCustomerCookieSession(request, env) {
+async function requireCustomerSession(request, env) {
   const authentication = readScopedSessionAuthentication(request, "customer");
   const session = await resolveCanonicalSession(env, authentication.sessionToken, "customer");
-  if (!session || session.scope !== "customer_verified" || session.session_transport !== "cookie") {
+  if (
+    !session
+    || session.scope !== "customer_verified"
+    || session.session_transport !== authentication.sessionTransport
+  ) {
     protocolError("unauthorized", 401, "A valid customer session is required.");
   }
   return { authentication, session };
@@ -471,14 +490,21 @@ export async function handleCustomerEmailAuthStart(request, env) {
   const context = createIdentityRequestContext(request);
   try {
     if (request.method !== "POST") protocolError("method_not_allowed", 405, "The HTTP method is not allowed.");
-    requireOrigin(request, env);
     readIdempotencyKey(request);
     const body = await readIdentityJson(request, {
       allowedFields: ["email", "intent", "locale", "return_to", "initiation_nonce", "session_transport", "client"],
       requiredFields: ["email", "intent", "locale", "return_to", "session_transport", "client"]
     });
-    exactWebClient(body, request, env);
-    if (body.intent !== "sign_in" || body.initiation_nonce !== undefined && body.initiation_nonce !== null) {
+    const client = exactCustomerClient(body, request, env);
+    if (client.sessionTransport === "cookie") requireOrigin(request, env);
+    const suppliedInitiation = body.initiation_nonce === null || body.initiation_nonce === undefined
+      ? null
+      : String(body.initiation_nonce);
+    if (
+      body.intent !== "sign_in"
+      || client.sessionTransport === "cookie" && suppliedInitiation !== null
+      || client.sessionTransport === "bearer" && !TOKEN_PATTERN.test(suppliedInitiation || "")
+    ) {
       protocolError("invalid_request", 400, "The request shape is invalid.");
     }
     const returnTo = String(body.return_to || "home");
@@ -491,7 +517,7 @@ export async function handleCustomerEmailAuthStart(request, env) {
     }
     const database = requireDatabase(env);
     const nowAt = new Date().toISOString();
-    const initiation = opaqueToken();
+    const initiation = suppliedInitiation || opaqueToken();
     const initiationHash = await createVersionedChallengeTokenHash(env, initiation, "customer_login");
     const preferredLocale = locale(body.locale);
     let account = await verifiedEmailAccount(database, normalized.normalizedEmail);
@@ -632,7 +658,7 @@ export async function handleCustomerEmailAuthStart(request, env) {
       context.requestId,
       { ok: true, accepted: true, attempt_id: challengeId, expires_in: CHALLENGE_LIFETIME_SECONDS },
       202,
-      [initiationCookie(initiation)]
+      client.sessionTransport === "cookie" ? [initiationCookie(initiation)] : []
     );
   } catch (error) {
     return errorResponse(request, env, error, context.requestId);
@@ -643,13 +669,22 @@ export async function handleCustomerEmailAuthComplete(request, env) {
   const context = createIdentityRequestContext(request);
   try {
     if (request.method !== "POST") protocolError("method_not_allowed", 405, "The HTTP method is not allowed.");
-    requireOrigin(request, env);
     readIdempotencyKey(request);
     const body = await readIdentityJson(request, {
-      allowedFields: ["token", "attempt_id", "manual_code", "session_transport", "client"],
+      allowedFields: ["token", "attempt_id", "manual_code", "initiation_nonce", "session_transport", "client"],
       requiredFields: ["session_transport", "client"]
     });
-    const client = exactWebClient(body, request, env);
+    const client = exactCustomerClient(body, request, env);
+    if (client.sessionTransport === "cookie") requireOrigin(request, env);
+    const initiationNonce = body.initiation_nonce === null || body.initiation_nonce === undefined
+      ? null
+      : String(body.initiation_nonce);
+    if (
+      client.sessionTransport === "cookie" && initiationNonce !== null
+      || client.sessionTransport === "bearer" && !TOKEN_PATTERN.test(initiationNonce || "")
+    ) {
+      protocolError("invalid_request", 400, "The request shape is invalid.");
+    }
     const token = String(body.token || "").trim();
     const attemptId = String(body.attempt_id || "").trim();
     const code = String(body.manual_code || "").trim();
@@ -670,7 +705,7 @@ export async function handleCustomerEmailAuthComplete(request, env) {
     if (!challenge || Number(challenge.expected_auth_version) !== Number(challenge.auth_version)) {
       protocolError("invalid_challenge", 401, "The sign-in request is invalid or expired.");
     }
-    if (await initiationMatches(env, request, challenge)) {
+    if (await initiationMatches(env, request, challenge, initiationNonce)) {
       const issued = await issueSession(env, database, challenge, client, nowAt);
       return responseWithCookies(
         request,
@@ -678,14 +713,14 @@ export async function handleCustomerEmailAuthComplete(request, env) {
         context.requestId,
         issued.body,
         200,
-        [
+        client.sessionTransport === "cookie" ? [
           ...serializeScopedAuthCookies("customer", {
             sessionToken: issued.sessionToken,
             csrfToken: issued.csrfToken,
             maxAgeSeconds: SESSION_LIFETIME_SECONDS
           }),
           clearInitiationCookie()
-        ]
+        ] : []
       );
     }
     const confirmationToken = opaqueToken();
@@ -732,13 +767,13 @@ export async function handleCustomerEmailAuthConfirm(request, env) {
   const context = createIdentityRequestContext(request);
   try {
     if (request.method !== "POST") protocolError("method_not_allowed", 405, "The HTTP method is not allowed.");
-    requireOrigin(request, env);
     readIdempotencyKey(request);
     const body = await readIdentityJson(request, {
       allowedFields: ["confirmation_token", "confirmation", "session_transport", "client"],
       requiredFields: ["confirmation_token", "confirmation", "session_transport", "client"]
     });
-    const client = exactWebClient(body, request, env);
+    const client = exactCustomerClient(body, request, env);
+    if (client.sessionTransport === "cookie") requireOrigin(request, env);
     const token = String(body.confirmation_token || "").trim();
     if (!TOKEN_PATTERN.test(token) || body.confirmation !== "continue") {
       protocolError("invalid_request", 400, "The request shape is invalid.");
@@ -774,14 +809,14 @@ export async function handleCustomerEmailAuthConfirm(request, env) {
       context.requestId,
       issued.body,
       200,
-      [
+      client.sessionTransport === "cookie" ? [
         ...serializeScopedAuthCookies("customer", {
           sessionToken: issued.sessionToken,
           csrfToken: issued.csrfToken,
           maxAgeSeconds: SESSION_LIFETIME_SECONDS
         }),
         clearInitiationCookie()
-      ]
+      ] : []
     );
   } catch (error) {
     return errorResponse(request, env, error, context.requestId);
@@ -792,7 +827,7 @@ export async function handleCustomerAuthSession(request, env) {
   const context = createIdentityRequestContext(request);
   try {
     if (request.method !== "GET") protocolError("method_not_allowed", 405, "The HTTP method is not allowed.");
-    const { session } = await requireCustomerCookieSession(request, env);
+    const { session } = await requireCustomerSession(request, env);
     const customer = await requireDatabase(env).prepare(`
       SELECT c.id AS customer_id, c.full_name, c.username,
         c.preferred_language, c.language, a.locale,
@@ -822,8 +857,8 @@ export async function handleCustomerAuthLogout(request, env) {
   const context = createIdentityRequestContext(request);
   try {
     if (request.method !== "POST") protocolError("method_not_allowed", 405, "The HTTP method is not allowed.");
-    requireOrigin(request, env);
-    const { authentication, session } = await requireCustomerCookieSession(request, env);
+    const { authentication, session } = await requireCustomerSession(request, env);
+    if (session.session_transport === "cookie") requireOrigin(request, env);
     await verifyScopedSessionMutation(request, env, session, "customer", authentication);
     await requireDatabase(env).prepare(`
       UPDATE auth_sessions
@@ -836,7 +871,9 @@ export async function handleCustomerAuthLogout(request, env) {
       context.requestId,
       { ok: true, logged_out: true },
       200,
-      serializeScopedAuthCookieClears("customer")
+      session.session_transport === "cookie"
+        ? serializeScopedAuthCookieClears("customer")
+        : []
     );
   } catch (error) {
     return errorResponse(request, env, error, context.requestId);

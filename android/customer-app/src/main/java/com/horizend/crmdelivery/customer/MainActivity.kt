@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -21,6 +22,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.CompositionLocalProvider
@@ -75,6 +79,11 @@ private fun CustomerShopScreen() {
     var cart by remember { mutableStateOf<CustomerCart?>(null) }
     var message by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
+    var authEmail by remember { mutableStateOf("") }
+    var authCode by remember { mutableStateOf("") }
+    var authAttemptId by remember { mutableStateOf<String?>(null) }
+    var authInitiationNonce by remember { mutableStateOf<String?>(null) }
+    var signedInEmail by remember { mutableStateOf<String?>(null) }
 
     fun t(key: String): String = CustomerSharedTexts.text(selectedLanguage, key)
 
@@ -170,6 +179,11 @@ private fun CustomerShopScreen() {
             products = CustomerApiClient.getCustomerProducts()
             cart = CustomerApiClient.getCustomerCart(token).cart
             orders = CustomerApiClient.getCustomerOrders(token).orders
+            runCatching {
+                CustomerApiClient.getCustomerEmailAuthenticationSession(token)
+            }.onSuccess { response ->
+                signedInEmail = response.customer.email
+            }
         }.onSuccess {
             message = t("shop_loaded")
         }.onFailure {
@@ -199,6 +213,155 @@ private fun CustomerShopScreen() {
 
             if (loading) {
                 CircularProgressIndicator()
+            }
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(t("email_access"), style = MaterialTheme.typography.titleLarge)
+                    val currentEmail = signedInEmail
+                    if (currentEmail != null) {
+                        Text(template("signed_in_email_template", "email" to currentEmail))
+                        OutlinedButton(
+                            enabled = !loading,
+                            onClick = {
+                                scope.launch {
+                                    loading = true
+                                    runCatching {
+                                        val token = requireNotNull(accessToken)
+                                        CustomerApiClient.logoutCustomerEmailAuthentication(token)
+                                        sessionStore.clearAccessToken()
+                                        accessToken = null
+                                        verifiedAccessToken = null
+                                        signedInEmail = null
+                                        authEmail = ""
+                                        val guestToken = ensureSession()
+                                        cart = CustomerApiClient.getCustomerCart(guestToken).cart
+                                        orders = CustomerApiClient.getCustomerOrders(guestToken).orders
+                                    }.onSuccess {
+                                        message = t("signed_out")
+                                    }.onFailure {
+                                        message = template(
+                                            "email_access_failed_template",
+                                            "error" to (it.message ?: it.localizedMessage ?: "unknown")
+                                        )
+                                    }
+                                    loading = false
+                                }
+                            }
+                        ) {
+                            Text(t("sign_out"))
+                        }
+                    } else {
+                        OutlinedTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = authEmail,
+                            onValueChange = { authEmail = it },
+                            enabled = !loading && authAttemptId == null,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            label = { Text(t("email_address")) }
+                        )
+                        if (authAttemptId == null) {
+                            Button(
+                                enabled = !loading && authEmail.isNotBlank(),
+                                onClick = {
+                                    scope.launch {
+                                        loading = true
+                                        val nonce = sessionStore.newInitiationNonce()
+                                        runCatching {
+                                            CustomerApiClient.startCustomerEmailAuthentication(
+                                                email = authEmail.trim(),
+                                                language = selectedLanguage,
+                                                initiationNonce = nonce
+                                            )
+                                        }.onSuccess { response ->
+                                            authAttemptId = response.attemptId
+                                            authInitiationNonce = nonce
+                                            authCode = ""
+                                            message = t("verification_code_sent")
+                                        }.onFailure {
+                                            message = template(
+                                                "email_access_failed_template",
+                                                "error" to (it.message ?: it.localizedMessage ?: "unknown")
+                                            )
+                                        }
+                                        loading = false
+                                    }
+                                }
+                            ) {
+                                Text(t("send_verification_code"))
+                            }
+                        } else {
+                            OutlinedTextField(
+                                modifier = Modifier.fillMaxWidth(),
+                                value = authCode,
+                                onValueChange = { value ->
+                                    authCode = value.filter(Char::isDigit).take(8)
+                                },
+                                enabled = !loading,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.NumberPassword,
+                                    imeAction = ImeAction.Done
+                                ),
+                                label = { Text(t("eight_digit_code")) }
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    enabled = !loading && authCode.length == 8,
+                                    onClick = {
+                                        scope.launch {
+                                            loading = true
+                                            runCatching {
+                                                CustomerApiClient.completeCustomerEmailAuthentication(
+                                                    attemptId = requireNotNull(authAttemptId),
+                                                    manualCode = authCode,
+                                                    initiationNonce = requireNotNull(authInitiationNonce)
+                                                )
+                                            }.onSuccess { response ->
+                                                accessToken = response.session.accessToken
+                                                verifiedAccessToken = response.session.accessToken
+                                                sessionStore.writeAccessToken(response.session.accessToken)
+                                                signedInEmail = response.customer.email ?: authEmail.trim()
+                                                authAttemptId = null
+                                                authInitiationNonce = null
+                                                authCode = ""
+                                                message = t("email_access_ready")
+                                                products = CustomerApiClient.getCustomerProducts()
+                                                cart = CustomerApiClient.getCustomerCart(response.session.accessToken).cart
+                                                orders = CustomerApiClient.getCustomerOrders(response.session.accessToken).orders
+                                            }.onFailure {
+                                                message = template(
+                                                    "email_access_failed_template",
+                                                    "error" to (it.message ?: it.localizedMessage ?: "unknown")
+                                                )
+                                            }
+                                            loading = false
+                                        }
+                                    }
+                                ) {
+                                    Text(t("verify_and_continue"))
+                                }
+                                OutlinedButton(
+                                    enabled = !loading,
+                                    onClick = {
+                                        authAttemptId = null
+                                        authInitiationNonce = null
+                                        authCode = ""
+                                    }
+                                ) {
+                                    Text(t("use_another_email"))
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Card(modifier = Modifier.fillMaxWidth()) {
