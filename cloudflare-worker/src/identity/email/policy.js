@@ -58,7 +58,7 @@ export const IDENTITY_EMAIL_TEMPLATE_POLICIES = Object.freeze({
     CHALLENGE,
     "customer_login",
     "/auth/customer/continue",
-    ["verified"]
+    ["pending", "verified"]
   ),
   "auth.customer.recovery.start.v1": policy(
     "customer",

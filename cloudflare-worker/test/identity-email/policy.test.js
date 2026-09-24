@@ -11,7 +11,7 @@ import { listIdentityEmailTemplateKeys } from "../../src/identity/email/template
 
 const CHALLENGE_MAPPINGS = Object.freeze({
   "auth.customer.sign_in.v1": [
-    "customer", "customer_login", "/auth/customer/continue", ["verified"]
+    "customer", "customer_login", "/auth/customer/continue", ["pending", "verified"]
   ],
   "auth.customer.recovery.start.v1": [
     "customer", "customer_recovery", "/auth/customer/continue", ["verified"]

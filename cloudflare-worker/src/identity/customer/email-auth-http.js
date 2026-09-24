@@ -228,6 +228,34 @@ async function verifiedEmailAccount(database, normalizedEmail) {
   `).bind(normalizedEmail).first();
 }
 
+async function pendingEmailRegistration(database, normalizedEmail) {
+  return database.prepare(`
+    SELECT
+      a.id AS auth_account_id,
+      a.auth_version,
+      a.locale,
+      e.id AS email_address_id,
+      e.display_email,
+      e.normalized_email
+    FROM auth_email_addresses e
+    JOIN auth_accounts a
+      ON a.id = e.auth_account_id
+     AND a.realm = 'customer'
+     AND a.status = 'pending'
+    LEFT JOIN customers c ON c.auth_account_id = a.id
+    WHERE e.realm = 'customer'
+      AND e.normalized_email = ?
+      AND e.status = 'pending'
+      AND e.verified_at IS NULL
+      AND e.replaced_at IS NULL
+      AND e.revoked_at IS NULL
+      AND e.deleted_at IS NULL
+      AND c.id IS NULL
+    ORDER BY e.created_at DESC
+    LIMIT 1
+  `).bind(normalizedEmail).first();
+}
+
 function mapCustomer(row) {
   const language = row.preferred_language || row.language || row.locale || "en";
   return {
@@ -246,6 +274,14 @@ async function issueSession(env, database, challenge, client, nowAt) {
   const sessionId = createOpaqueId();
   const expiresAt = new Date(Date.parse(nowAt) + SESSION_LIFETIME_SECONDS * 1000).toISOString();
   const hashes = await createSessionHashesForIssuance(env, { sessionToken, csrfToken });
+  const registration = challenge.account_status === "pending"
+    && challenge.email_status === "pending";
+  if (registration) {
+    const conflict = await verifiedEmailAccount(database, challenge.normalized_email);
+    if (conflict && conflict.auth_account_id !== challenge.auth_account_id) {
+      protocolError("email_in_use", 409, "This email is already connected to another customer account.");
+    }
+  }
   const consumed = await database.prepare(`
     UPDATE auth_challenges
     SET status = 'consumed', consumed_at = ?, transition_id = ?
@@ -263,7 +299,36 @@ async function issueSession(env, database, challenge, client, nowAt) {
   if (Number(consumed.meta?.changes || 0) !== 1) {
     protocolError("invalid_challenge", 401, "The sign-in request is invalid or expired.");
   }
-  await database.prepare(`
+  const statements = [];
+  if (registration) {
+    statements.push(
+      database.prepare(`
+        UPDATE auth_accounts
+        SET status = 'active', updated_at = ?, last_transition_id = ?
+        WHERE id = ? AND realm = 'customer' AND status = 'pending'
+      `).bind(nowAt, createOpaqueId(), challenge.auth_account_id),
+      database.prepare(`
+        UPDATE auth_email_addresses
+        SET status = 'verified', is_primary = 1, verified_at = ?, updated_at = ?
+        WHERE id = ? AND auth_account_id = ? AND realm = 'customer'
+          AND status = 'pending' AND verified_at IS NULL
+      `).bind(nowAt, nowAt, challenge.email_address_id, challenge.auth_account_id),
+      database.prepare(`
+        INSERT INTO customers (
+          telegram_user_id, full_name, language, preferred_language,
+          last_seen_at, created_at, auth_account_id
+        ) VALUES (?, NULL, ?, ?, ?, ?, ?)
+      `).bind(
+        `web:${createOpaqueId()}`,
+        challenge.locale || "en",
+        challenge.locale || "en",
+        nowAt,
+        nowAt,
+        challenge.auth_account_id
+      )
+    );
+  }
+  statements.push(database.prepare(`
     INSERT INTO auth_sessions (
       id, auth_account_id, realm, token_hash, token_hash_version,
       created_transition_id, issued_auth_version, scope, assurance_level,
@@ -287,7 +352,23 @@ async function issueSession(env, database, challenge, client, nowAt) {
     nowAt,
     expiresAt,
     nowAt
-  ).run();
+  ));
+  await database.batch(statements);
+  const customer = await database.prepare(`
+    SELECT c.id AS customer_id, c.full_name, c.username,
+      c.preferred_language, c.language, a.locale, e.display_email
+    FROM customers c
+    JOIN auth_accounts a ON a.id = c.auth_account_id AND a.realm = 'customer' AND a.status = 'active'
+    JOIN auth_email_addresses e
+      ON e.auth_account_id = a.id AND e.realm = 'customer'
+     AND e.status = 'verified' AND e.is_primary = 1
+     AND e.replaced_at IS NULL AND e.revoked_at IS NULL AND e.deleted_at IS NULL
+    WHERE c.auth_account_id = ? AND COALESCE(c.is_blocked, 0) = 0
+    LIMIT 1
+  `).bind(challenge.auth_account_id).first();
+  if (!customer) {
+    protocolError("invalid_challenge", 401, "The sign-in request is invalid or expired.");
+  }
   return {
     sessionToken,
     csrfToken,
@@ -301,7 +382,7 @@ async function issueSession(env, database, challenge, client, nowAt) {
         expires_at: expiresAt,
         csrf_token: csrfToken
       },
-      customer: mapCustomer(challenge),
+      customer: mapCustomer(customer),
       return_to: challenge.redirect_path || "home"
     }
   };
@@ -310,31 +391,41 @@ async function issueSession(env, database, challenge, client, nowAt) {
 async function challengeByToken(env, database, token, nowAt) {
   const hashes = await createAcceptedChallengeTokenHashes(env, token, "customer_login");
   return database.prepare(`
-    SELECT c.*, a.auth_version, e.display_email,
+    SELECT c.*, a.auth_version, a.status AS account_status,
+      e.status AS email_status, e.display_email, e.normalized_email,
       p.id AS customer_id, p.full_name, p.username,
       p.preferred_language, p.language
     FROM auth_challenges c
-    JOIN auth_accounts a ON a.id = c.auth_account_id AND a.realm = 'customer' AND a.status = 'active'
-    JOIN auth_email_addresses e ON e.id = c.email_address_id AND e.status = 'verified'
-    JOIN customers p ON p.auth_account_id = a.id AND COALESCE(p.is_blocked, 0) = 0
+    JOIN auth_accounts a ON a.id = c.auth_account_id AND a.realm = 'customer'
+    JOIN auth_email_addresses e ON e.id = c.email_address_id
+    LEFT JOIN customers p ON p.auth_account_id = a.id AND COALESCE(p.is_blocked, 0) = 0
     WHERE c.token_hash IN (${hashes.map(() => "?").join(", ")})
       AND c.realm = 'customer' AND c.purpose = 'customer_login'
       AND c.status = 'pending' AND datetime(c.expires_at) > datetime(?)
+      AND (
+        (a.status = 'active' AND e.status = 'verified' AND p.id IS NOT NULL)
+        OR (a.status = 'pending' AND e.status = 'pending' AND p.id IS NULL)
+      )
     ORDER BY c.created_at DESC LIMIT 1
   `).bind(...hashes, nowAt).first();
 }
 
 async function challengeByCode(env, database, attemptId, code, nowAt) {
   const challenge = await database.prepare(`
-    SELECT c.*, a.auth_version, e.display_email,
+    SELECT c.*, a.auth_version, a.status AS account_status,
+      e.status AS email_status, e.display_email, e.normalized_email,
       p.id AS customer_id, p.full_name, p.username,
       p.preferred_language, p.language
     FROM auth_challenges c
-    JOIN auth_accounts a ON a.id = c.auth_account_id AND a.realm = 'customer' AND a.status = 'active'
-    JOIN auth_email_addresses e ON e.id = c.email_address_id AND e.status = 'verified'
-    JOIN customers p ON p.auth_account_id = a.id AND COALESCE(p.is_blocked, 0) = 0
+    JOIN auth_accounts a ON a.id = c.auth_account_id AND a.realm = 'customer'
+    JOIN auth_email_addresses e ON e.id = c.email_address_id
+    LEFT JOIN customers p ON p.auth_account_id = a.id AND COALESCE(p.is_blocked, 0) = 0
     WHERE c.id = ? AND c.realm = 'customer' AND c.purpose = 'customer_login'
       AND c.status = 'pending' AND datetime(c.expires_at) > datetime(?)
+      AND (
+        (a.status = 'active' AND e.status = 'verified' AND p.id IS NOT NULL)
+        OR (a.status = 'pending' AND e.status = 'pending' AND p.id IS NULL)
+      )
     LIMIT 1
   `).bind(attemptId, nowAt).first();
   if (!challenge) return null;
@@ -402,17 +493,52 @@ export async function handleCustomerEmailAuthStart(request, env) {
     const nowAt = new Date().toISOString();
     const initiation = opaqueToken();
     const initiationHash = await createVersionedChallengeTokenHash(env, initiation, "customer_login");
-    const account = await verifiedEmailAccount(database, normalized.normalizedEmail);
-    const fakeAttemptId = createOpaqueId();
+    const preferredLocale = locale(body.locale);
+    let account = await verifiedEmailAccount(database, normalized.normalizedEmail);
+    let registrationStatements = [];
     if (!account) {
-      return responseWithCookies(
-        request,
-        env,
-        context.requestId,
-        { ok: true, accepted: true, attempt_id: fakeAttemptId, expires_in: CHALLENGE_LIFETIME_SECONDS },
-        202,
-        [initiationCookie(initiation)]
-      );
+      account = await pendingEmailRegistration(database, normalized.normalizedEmail);
+    }
+    if (!account) {
+      const authAccountId = createOpaqueId();
+      const emailAddressId = createOpaqueId();
+      account = {
+        auth_account_id: authAccountId,
+        auth_version: 1,
+        locale: preferredLocale,
+        email_address_id: emailAddressId,
+        display_email: normalized.displayEmail,
+        normalized_email: normalized.normalizedEmail
+      };
+      registrationStatements = [
+        database.prepare(`
+          INSERT INTO auth_accounts (
+            id, webauthn_user_handle, realm, status, auth_version,
+            enrollment_state, last_transition_id, locale, created_at, updated_at
+          ) VALUES (?, ?, 'customer', 'pending', 1, 'not_required', ?, ?, ?, ?)
+        `).bind(
+          authAccountId,
+          createOpaqueId(),
+          createOpaqueId(),
+          preferredLocale,
+          nowAt,
+          nowAt
+        ),
+        database.prepare(`
+          INSERT INTO auth_email_addresses (
+            id, auth_account_id, realm, normalized_email, normalization_version,
+            display_email, status, is_primary, created_at, updated_at
+          ) VALUES (?, ?, 'customer', ?, ?, ?, 'pending', 0, ?, ?)
+        `).bind(
+          emailAddressId,
+          authAccountId,
+          normalized.normalizedEmail,
+          normalized.normalizationVersion,
+          normalized.displayEmail,
+          nowAt,
+          nowAt
+        )
+      ];
     }
     const active = await database.prepare(`
       SELECT id, resend_not_before, expires_at
@@ -439,7 +565,7 @@ export async function handleCustomerEmailAuthStart(request, env) {
       createVersionedChallengeTokenHash(env, token, "customer_login"),
       codeVerifier(env, account.auth_account_id, challengeId, code)
     ]);
-    const preferredLocale = locale(body.locale || account.locale);
+    const messageLocale = locale(body.locale || account.locale);
     const outbox = await prepareEncryptedOutboxInsert(
       env,
       {
@@ -449,7 +575,7 @@ export async function handleCustomerEmailAuthStart(request, env) {
         realm: "customer",
         templateKey: "auth.customer.sign_in.v1",
         challengePurpose: "customer_login",
-        locale: preferredLocale,
+        locale: messageLocale,
         dedupeKey: `customer-login:${challengeId}`,
         maxAttempts: 5,
         availableAt: nowAt,
@@ -462,6 +588,7 @@ export async function handleCustomerEmailAuthStart(request, env) {
       }
     );
     await database.batch([
+      ...registrationStatements,
       database.prepare(`
         UPDATE auth_challenges
         SET status = 'invalidated', invalidated_at = ?, transition_id = COALESCE(transition_id, ?)
@@ -491,7 +618,7 @@ export async function handleCustomerEmailAuthStart(request, env) {
         verifier.version,
         positiveVersion(env?.CRM_AUTH_FINGERPRINT_ACTIVE_KEY_VERSION || "1"),
         returnTo,
-        preferredLocale,
+        messageLocale,
         createOpaqueId(),
         resendNotBefore,
         expiresAt,
@@ -620,16 +747,21 @@ export async function handleCustomerEmailAuthConfirm(request, env) {
     const nowAt = new Date().toISOString();
     const hashes = await createAcceptedChallengeTokenHashes(env, token, "customer_login");
     const challenge = await database.prepare(`
-      SELECT c.*, a.auth_version, e.display_email,
+      SELECT c.*, a.auth_version, a.status AS account_status,
+        e.status AS email_status, e.display_email, e.normalized_email,
         p.id AS customer_id, p.full_name, p.username,
         p.preferred_language, p.language
       FROM auth_challenges c
-      JOIN auth_accounts a ON a.id = c.auth_account_id AND a.realm = 'customer' AND a.status = 'active'
-      JOIN auth_email_addresses e ON e.id = c.email_address_id AND e.status = 'verified'
-      JOIN customers p ON p.auth_account_id = a.id AND COALESCE(p.is_blocked, 0) = 0
+      JOIN auth_accounts a ON a.id = c.auth_account_id AND a.realm = 'customer'
+      JOIN auth_email_addresses e ON e.id = c.email_address_id
+      LEFT JOIN customers p ON p.auth_account_id = a.id AND COALESCE(p.is_blocked, 0) = 0
       WHERE c.continuation_token_hash IN (${hashes.map(() => "?").join(", ")})
         AND c.realm = 'customer' AND c.purpose = 'customer_login'
         AND c.status = 'verified' AND datetime(c.expires_at) > datetime(?)
+        AND (
+          (a.status = 'active' AND e.status = 'verified' AND p.id IS NOT NULL)
+          OR (a.status = 'pending' AND e.status = 'pending' AND p.id IS NULL)
+        )
       ORDER BY c.verified_at DESC LIMIT 1
     `).bind(...hashes, nowAt).first();
     if (!challenge || Number(challenge.expected_auth_version) !== Number(challenge.auth_version)) {

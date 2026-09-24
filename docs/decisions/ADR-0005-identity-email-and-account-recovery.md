@@ -84,6 +84,13 @@ the canonical customer cookie/CSRF session. A link opened without the browser's
 one-time initiation cookie requires an explicit account confirmation before a
 session is issued; it never silently switches the customer in that browser.
 
+The same Web entry point also supports email-first customer registration. An
+unknown address creates only a pending authentication root and pending email
+record. The customer business profile and verified session are created after
+the link or eight-digit code proves control of the address. Existing verified
+addresses continue through sign-in, and registration never silently merges a
+new email identity into a Telegram customer account.
+
 ## Canonical identity model
 
 The planned first schema migration for this work is:

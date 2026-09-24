@@ -74,7 +74,7 @@ test("customer Web page supports code, same-browser link, and explicit cross-bro
   }
 });
 
-test("customer Web auth issues canonical cookie sessions without merging accounts", async () => {
+test("customer Web auth registers unknown emails and issues canonical cookie sessions", async () => {
   const source = await readFile(
     new URL("../../src/identity/customer/email-auth-http.js", import.meta.url),
     "utf8"
@@ -86,6 +86,11 @@ test("customer Web auth issues canonical cookie sessions without merging account
   assert.match(source, /__Host-crm_customer_auth_initiation/);
   assert.match(source, /confirmation_required: true/);
   assert.match(source, /status = 'verified'/);
-  assert.doesNotMatch(source, /INSERT INTO customers/);
+  assert.match(source, /INSERT INTO auth_accounts/);
+  assert.match(source, /'customer', 'pending'/);
+  assert.match(source, /INSERT INTO auth_email_addresses/);
+  assert.match(source, /INSERT INTO customers/);
+  assert.match(source, /`web:\$\{createOpaqueId\(\)\}`/);
+  assert.match(source, /email_in_use/);
   assert.doesNotMatch(source, /UPDATE customers[\s\S]*auth_account_id/);
 });
