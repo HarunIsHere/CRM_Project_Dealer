@@ -48,11 +48,43 @@ import {
   handleCustomerEmailEnrollmentStatus,
   handleCustomerEmailEnrollmentVerify
 } from "./customer/email-enrollment-http.js";
+import {
+  CUSTOMER_AUTH_LOGOUT_ROUTE,
+  CUSTOMER_AUTH_SESSION_ROUTE,
+  CUSTOMER_EMAIL_AUTH_COMPLETE_ROUTE,
+  CUSTOMER_EMAIL_AUTH_CONFIRM_ROUTE,
+  CUSTOMER_EMAIL_AUTH_START_ROUTE,
+  handleCustomerAuthLogout,
+  handleCustomerAuthSession,
+  handleCustomerEmailAuthComplete,
+  handleCustomerEmailAuthConfirm,
+  handleCustomerEmailAuthStart
+} from "./customer/email-auth-http.js";
 
 const IDENTITY_PATH = /^\/api\/v1\/(customer|admin)\/(auth|security)(?:\/|$)/;
 const STAFF_ENROLLMENT_RECOVERY_CODE_ACK_PATH =
   /^\/api\/v1\/admin\/auth\/enrollment\/recovery-code-sets\/([0-9a-f]{32})\/acknowledge$/;
 const IMPLEMENTED_ROUTES = new Map([
+  [
+    CUSTOMER_EMAIL_AUTH_START_ROUTE,
+    Object.freeze({ feature: "customer_email", handler: handleCustomerEmailAuthStart })
+  ],
+  [
+    CUSTOMER_EMAIL_AUTH_COMPLETE_ROUTE,
+    Object.freeze({ feature: "customer_email", handler: handleCustomerEmailAuthComplete })
+  ],
+  [
+    CUSTOMER_EMAIL_AUTH_CONFIRM_ROUTE,
+    Object.freeze({ feature: "customer_email", handler: handleCustomerEmailAuthConfirm })
+  ],
+  [
+    CUSTOMER_AUTH_SESSION_ROUTE,
+    Object.freeze({ feature: "customer_email", handler: handleCustomerAuthSession })
+  ],
+  [
+    CUSTOMER_AUTH_LOGOUT_ROUTE,
+    Object.freeze({ feature: "customer_email", handler: handleCustomerAuthLogout })
+  ],
   [
     CUSTOMER_EMAIL_ENROLLMENT_ROUTE,
     Object.freeze({

@@ -78,6 +78,12 @@ exist, the email landing page removes the fragment token and directs the user
 back to the initiating device instead of attaching an address without its
 bound session.
 
+The customer Web rollout adds passwordless sign-in for an existing verified
+customer email. `/shop` accepts an email link or eight-digit code and issues
+the canonical customer cookie/CSRF session. A link opened without the browser's
+one-time initiation cookie requires an explicit account confirmation before a
+session is issued; it never silently switches the customer in that browser.
+
 ## Canonical identity model
 
 The planned first schema migration for this work is:

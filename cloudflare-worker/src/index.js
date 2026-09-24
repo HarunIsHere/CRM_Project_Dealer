@@ -20,6 +20,11 @@ import {
   CUSTOMER_EMAIL_ENROLLMENT_LANDING_ROUTE,
   handleCustomerEmailEnrollmentLanding
 } from "./identity/customer/email-enrollment-page.js";
+import {
+  CUSTOMER_EMAIL_CONTINUE_ROUTE,
+  CUSTOMER_SHOP_ROUTE,
+  handleCustomerEmailAuthPage
+} from "./identity/customer/email-auth-page.js";
 import { getAdminSharedText } from "./i18n/admin-shared.generated.js";
 import { createOpaqueId } from "./identity/crypto.js";
 import { normalizeEmailAddress } from "./identity/email/normalization.js";
@@ -15069,6 +15074,13 @@ async function routeRequest(request, env, ctx) {
     && getIdentityCapabilities(env).customer_email === true
   ) {
     return handleCustomerEmailEnrollmentLanding(request);
+  }
+
+  if (
+    (url.pathname === CUSTOMER_SHOP_ROUTE || url.pathname === CUSTOMER_EMAIL_CONTINUE_ROUTE)
+    && getIdentityCapabilities(env).customer_email === true
+  ) {
+    return handleCustomerEmailAuthPage(request);
   }
 
   if (url.pathname === "/admin/login" && request.method === "GET") return handleLoginPage();
