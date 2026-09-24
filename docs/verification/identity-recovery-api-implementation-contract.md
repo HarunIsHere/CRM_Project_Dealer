@@ -324,10 +324,17 @@ customer_ios
 
 Allowed combinations:
 
-- `admin_web`, `customer_web`, `telegram_mini_app`: `cookie`
+- `admin_web`, `customer_web`: `cookie`
+- `telegram_mini_app`: a runtime-only `bearer` issued after verified Telegram
+  `initData`; the bearer remains in memory and is discarded when the Mini App
+  closes
 - Android/iOS platforms: `bearer`
 
-An invalid combination returns `400 invalid_session_transport`. In addition, any request carrying an `Origin` header or any `Sec-Fetch-*` browser metadata MUST use cookie transport and a web/Mini App platform; it can never receive an access token, even if its JSON claims Android/iOS. These browser-controlled headers are evaluated before the requested platform.
+An invalid combination returns `400 invalid_session_transport`. Except for the
+exact Telegram `initData` exchange, any request carrying an `Origin` header or
+any `Sec-Fetch-*` browser metadata MUST use cookie transport and a web platform;
+it can never receive an access token by claiming Android/iOS. These
+browser-controlled headers are evaluated before the requested platform.
 
 Bearer issuance would additionally require a platform-attestation wire protocol,
 replay state, and verified application identities. Those details are not fixed

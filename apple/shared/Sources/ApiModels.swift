@@ -383,13 +383,37 @@ public struct CustomerSessionStartResponse: Codable, Sendable {
     public let customer: CustomerProfile?
 }
 
-public struct CustomerSession: Codable, Sendable {
-    public let accessToken: String
-    public let expiresAt: String?
+public struct CustomerSessionStartRequest: Codable, Sendable {
+    public let deviceId: String
+    public let platform: String
+    public let appVersion: String
+    public let fullName: String
+    public let username: String
+    public let language: String
+
+    public init(
+        deviceId: String,
+        platform: String,
+        appVersion: String,
+        fullName: String,
+        username: String,
+        language: String
+    ) {
+        self.deviceId = deviceId
+        self.platform = platform
+        self.appVersion = appVersion
+        self.fullName = fullName
+        self.username = username
+        self.language = language
+    }
 
     enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case expiresAt = "expires_at"
+        case deviceId = "device_id"
+        case platform
+        case appVersion = "app_version"
+        case fullName = "full_name"
+        case username
+        case language
     }
 }
 

@@ -9,33 +9,33 @@ const WORKER_ROOT = path.resolve(path.dirname(SCRIPT_PATH), "..");
 const WRANGLER_CONFIG = path.join(WORKER_ROOT, "wrangler.toml");
 const WRANGLER_BIN = path.join(WORKER_ROOT, "node_modules", ".bin", "wrangler");
 
-export const REQUIRED_FALSE_FLAGS = Object.freeze([
-  "CRM_AUTH_SCHEMA_READY",
-  "CRM_AUTH_CANONICAL_RESOLVER",
-  "CRM_AUTH_CUSTOMER_BOUNDARY",
-  "CRM_AUTH_TELEGRAM_VERIFICATION",
-  "CRM_AUTH_STAFF_RECONCILED",
-  "CRM_AUTH_STAFF_BOOTSTRAP_ENROLLMENT",
-  "CRM_AUTH_STAFF_ENROLLMENT",
-  "CRM_AUTH_CUSTOMER_PASSKEYS",
-  "CRM_AUTH_STAFF_PASSKEYS",
-  "CRM_AUTH_EMAIL_DELIVERY",
-  "CRM_AUTH_EMAIL_ALLOW_ARBITRARY_RECIPIENTS",
-  "CRM_AUTH_STAFF_RECOVERY",
-  "CRM_AUTH_CUSTOMER_EMAIL",
-  "CRM_AUTH_CUSTOMER_MERGE",
-  "CRM_AUTH_LEGACY_LOGIN_DISABLED",
-  "CRM_AUTH_CUSTOMER_WEBAUTHN_READY",
-  "CRM_AUTH_STAFF_WEBAUTHN_READY",
-  "CRM_AUTH_CLIENT_READY_TELEGRAM_BOT",
-  "CRM_AUTH_CLIENT_READY_TELEGRAM_MINI_APP",
-  "CRM_AUTH_CLIENT_READY_ADMIN_WEB",
-  "CRM_AUTH_CLIENT_READY_ADMIN_ANDROID",
-  "CRM_AUTH_CLIENT_READY_ADMIN_IOS",
-  "CRM_AUTH_CLIENT_READY_CUSTOMER_WEB",
-  "CRM_AUTH_CLIENT_READY_CUSTOMER_ANDROID",
-  "CRM_AUTH_CLIENT_READY_CUSTOMER_IOS"
-]);
+export const REQUIRED_IDENTITY_FLAGS = Object.freeze({
+  CRM_AUTH_SCHEMA_READY: "true",
+  CRM_AUTH_CANONICAL_RESOLVER: "true",
+  CRM_AUTH_CUSTOMER_BOUNDARY: "true",
+  CRM_AUTH_TELEGRAM_VERIFICATION: "true",
+  CRM_AUTH_STAFF_RECONCILED: "false",
+  CRM_AUTH_STAFF_BOOTSTRAP_ENROLLMENT: "false",
+  CRM_AUTH_STAFF_ENROLLMENT: "false",
+  CRM_AUTH_CUSTOMER_PASSKEYS: "false",
+  CRM_AUTH_STAFF_PASSKEYS: "false",
+  CRM_AUTH_EMAIL_DELIVERY: "true",
+  CRM_AUTH_EMAIL_ALLOW_ARBITRARY_RECIPIENTS: "true",
+  CRM_AUTH_STAFF_RECOVERY: "true",
+  CRM_AUTH_CUSTOMER_EMAIL: "true",
+  CRM_AUTH_CUSTOMER_MERGE: "false",
+  CRM_AUTH_LEGACY_LOGIN_DISABLED: "false",
+  CRM_AUTH_CUSTOMER_WEBAUTHN_READY: "false",
+  CRM_AUTH_STAFF_WEBAUTHN_READY: "false",
+  CRM_AUTH_CLIENT_READY_TELEGRAM_BOT: "false",
+  CRM_AUTH_CLIENT_READY_TELEGRAM_MINI_APP: "true",
+  CRM_AUTH_CLIENT_READY_ADMIN_WEB: "false",
+  CRM_AUTH_CLIENT_READY_ADMIN_ANDROID: "false",
+  CRM_AUTH_CLIENT_READY_ADMIN_IOS: "false",
+  CRM_AUTH_CLIENT_READY_CUSTOMER_WEB: "true",
+  CRM_AUTH_CLIENT_READY_CUSTOMER_ANDROID: "true",
+  CRM_AUTH_CLIENT_READY_CUSTOMER_IOS: "false"
+});
 
 export const REQUIRED_IDENTITY_TABLES = Object.freeze([
   "auth_accounts",
@@ -107,7 +107,7 @@ const REQUIRED_FILES = Object.freeze([
 ]);
 
 const REQUIRED_STATIC_VARS = Object.freeze({
-  CRM_AUTH_ALLOWED_ORIGINS: "https://crm.ayartuerk.me",
+  CRM_AUTH_ALLOWED_ORIGINS: "https://crm.ayartuerk.me,https://crm-delivery-mini-app.pages.dev",
   CRM_AUTH_PUBLIC_ORIGIN: "https://crm.ayartuerk.me",
   CRM_AUTH_EMAIL_PROVIDER: "cloudflare",
   CRM_AUTH_EMAIL_FROM: "security@auth.ayartuerk.me",
@@ -281,17 +281,18 @@ export function validateLocalPredeploy({
     }
   }
 
-  for (const flagName of REQUIRED_FALSE_FLAGS) {
-    if (vars[flagName] !== "false") {
-      errors.push(`${flagName} must be explicitly set to the string \"false\"`);
+  for (const [flagName, expected] of Object.entries(REQUIRED_IDENTITY_FLAGS)) {
+    if (vars[flagName] !== expected) {
+      errors.push(`${flagName} must equal ${JSON.stringify(expected)}`);
     }
   }
   for (const [name, value] of Object.entries(vars)) {
     if (
       name.startsWith("CRM_AUTH_")
+      && !Object.hasOwn(REQUIRED_IDENTITY_FLAGS, name)
       && (value === true || (typeof value === "string" && value.toLowerCase() === "true"))
     ) {
-      errors.push(`staged identity configuration cannot contain an enabled flag: ${name}`);
+      errors.push(`identity configuration contains an unreviewed enabled flag: ${name}`);
     }
   }
   for (const [name, expected] of Object.entries(REQUIRED_STATIC_VARS)) {

@@ -43,6 +43,39 @@ Shop admin:
 - can toggle payment methods for each shop
 - can override payment rules for specific customers if needed
 
+## Canonical Tenant Authorization
+
+Identity and shop authorization are intentionally separate:
+
+- `auth_accounts` is the person shared by Web, Android, Apple, Telegram Mini
+  App, and Telegram Bot.
+- `admin_users` is a platform-staff profile and remains the source of
+  Superadmin authority.
+- `shop_memberships` grants `owner`, `manager`, or `staff` authority for one
+  shop.
+- `customer_shop_memberships` records a customer's commercial relationship
+  with a shop and never grants administrative authority.
+
+A customer account may become a shop owner without creating a second login.
+Existing `admin_shop_access` rows are compatibility data and are backfilled to
+canonical memberships while older clients are migrated.
+
+## Shop Onboarding
+
+The initial release remains invitation/approval controlled. The schema also
+supports a later self-service flow:
+
+1. an authenticated customer prepares one draft application;
+2. the customer submits it for review;
+3. a Superadmin approves or rejects it;
+4. approval creates a `member_owned` shop;
+5. the applicant receives the active `owner` membership;
+6. all clients immediately see the same shop and permissions through the
+   shared backend.
+
+Only one draft or pending application is allowed per account. Approval and
+membership changes are server-authoritative.
+
 ## Payment Model
 
 Payment methods are supported from the start.

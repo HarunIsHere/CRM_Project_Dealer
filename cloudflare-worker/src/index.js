@@ -16,9 +16,22 @@ import {
   ADMIN_RECOVERY_LANDING_ROUTE,
   handleAdminRecoveryLanding
 } from "./identity/staff/recovery-page.js";
+import {
+  CUSTOMER_EMAIL_ENROLLMENT_LANDING_ROUTE,
+  handleCustomerEmailEnrollmentLanding
+} from "./identity/customer/email-enrollment-page.js";
+import {
+  CUSTOMER_EMAIL_CONTINUE_ROUTE,
+  CUSTOMER_SHOP_ROUTE,
+  handleCustomerEmailAuthPage
+} from "./identity/customer/email-auth-page.js";
 import { getAdminSharedText } from "./i18n/admin-shared.generated.js";
 import { createOpaqueId } from "./identity/crypto.js";
 import { normalizeEmailAddress } from "./identity/email/normalization.js";
+import {
+  resolveCanonicalSession,
+  upsertCanonicalTelegramCustomer
+} from "./identity/repository.js";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
 const TELEGRAM_MINI_APP_URL = "https://crm-delivery-mini-app.pages.dev";
@@ -1212,33 +1225,16 @@ async function editMessageReplyMarkup(env, chatId, messageId, replyMarkup) {
   });
 }
 
-async function upsertCustomer(env, telegramUser, detectedLanguage = "unknown") {
-  const telegramUserId = String(telegramUser.id);
-  const username = telegramUser.username || null;
-  const fullName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(" ") || null;
-  const existing = await env.DB.prepare("SELECT * FROM customers WHERE telegram_user_id = ?").bind(telegramUserId).first();
-
-  if (existing) {
-    await env.DB.prepare(
-      "UPDATE customers SET username = ?, full_name = ?, last_seen_at = CURRENT_TIMESTAMP WHERE telegram_user_id = ?"
-    ).bind(username, fullName, telegramUserId).run();
-    return existing;
-  }
-
-  const preferred = detectedLanguage !== "unknown" ? detectedLanguage : "en";
-  const result = await env.DB.prepare(
-    "INSERT INTO customers (telegram_user_id, username, full_name, language, preferred_language) VALUES (?, ?, ?, ?, ?)"
-  ).bind(telegramUserId, username, fullName, detectedLanguage, preferred).run();
-
-  return {
-    id: result.meta.last_row_id,
-    telegram_user_id: telegramUserId,
-    username,
-    full_name: fullName,
-    language: detectedLanguage,
-    preferred_language: preferred,
-    conversation_state: null
-  };
+async function upsertCustomer(
+  env,
+  telegramUser,
+  detectedLanguage = "unknown"
+) {
+  return upsertCanonicalTelegramCustomer(
+    env,
+    telegramUser,
+    detectedLanguage
+  );
 }
 
 async function updateCustomerLanguage(env, customerId, language) {
@@ -9678,7 +9674,7 @@ async function handlePublicShopsApi(env) {
       })
   }));
 
-  return jsonResponse({ shops });
+  return apiOk({ shops });
 }
 
 async function handlePublicPaymentMethodsApi(env) {
@@ -9689,7 +9685,7 @@ async function handlePublicPaymentMethodsApi(env) {
     ORDER BY id ASC
   `).all();
 
-  return jsonResponse({
+  return apiOk({
     payment_methods: (result.results || []).map((method) => ({
       code: method.code || "",
       name: method.name || "",
@@ -13217,48 +13213,10 @@ function createCustomerRawToken() {
   return base64UrlEncode(bytes);
 }
 
-async function getExistingAppCustomerByDeviceId(env, deviceId) {
-  const cleanDeviceId = String(deviceId || "").trim();
-
-  if (!cleanDeviceId) return null;
-
-  return env.DB.prepare(`
-    SELECT c.*
-    FROM customer_app_sessions s
-    JOIN customers c ON c.id = s.customer_id
-    WHERE s.device_id = ?
-      AND c.telegram_user_id LIKE 'app:%'
-    ORDER BY s.last_seen_at DESC, s.created_at DESC
-    LIMIT 1
-  `).bind(cleanDeviceId).first();
-}
-
 async function createAppCustomer(env, body) {
   const preferredLanguage = normalizeCustomerAppLanguage(body.language || body.preferred_language || "en");
   const fullName = String(body.full_name || body.name || "").trim() || null;
   const username = String(body.username || "").trim() || null;
-  const deviceId = String(body.device_id || "").trim();
-  const existing = await getExistingAppCustomerByDeviceId(env, deviceId);
-
-  if (existing) {
-    await env.DB.prepare(
-      `UPDATE customers
-       SET username = ?,
-           full_name = ?,
-           language = ?,
-           preferred_language = ?,
-           last_seen_at = CURRENT_TIMESTAMP
-       WHERE id = ?`
-    ).bind(
-      username || existing.username || null,
-      fullName || existing.full_name || null,
-      preferredLanguage,
-      preferredLanguage,
-      existing.id
-    ).run();
-
-    return env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(existing.id).first();
-  }
 
   const mobileIdentity = makeMobileCustomerIdentity();
 
@@ -13304,6 +13262,47 @@ async function getApiCustomerSession(request, env) {
   const token = getCustomerBearerToken(request);
   if (!token) return null;
 
+  let canonicalSession = null;
+  try {
+    canonicalSession = await resolveCanonicalSession(
+      env,
+      token,
+      "customer"
+    );
+  } catch {
+    // Legacy customer sessions remain available during the staged migration.
+  }
+
+  if (canonicalSession) {
+    const customer = await env.DB.prepare(`
+      SELECT *
+      FROM customers
+      WHERE auth_account_id = ?
+      LIMIT 1
+    `).bind(canonicalSession.auth_account_id).first();
+    if (!customer) return null;
+
+    await env.DB.batch([
+      env.DB.prepare(`
+        UPDATE auth_sessions
+        SET last_seen_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(canonicalSession.id),
+      env.DB.prepare(`
+        UPDATE customers
+        SET last_seen_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(customer.id)
+    ]);
+
+    return {
+      session_id: canonicalSession.id,
+      expires_at: canonicalSession.expires_at,
+      scope: canonicalSession.scope,
+      customer
+    };
+  }
+
   const tokenHash = await hashCustomerSessionToken(env, token);
   const row = await env.DB.prepare(
     `SELECT
@@ -13312,9 +13311,16 @@ async function getApiCustomerSession(request, env) {
        s.is_active,
        c.*
      FROM customer_app_sessions s
-     JOIN customers c ON c.id = s.customer_id
+     JOIN customers c
+       ON c.id = s.customer_id
+      AND c.auth_account_id = s.auth_account_id
+     JOIN auth_accounts a
+       ON a.id = s.auth_account_id
+      AND a.realm = 'customer'
+      AND a.status = 'active'
      WHERE s.token_hash = ?
        AND s.is_active = 1
+       AND s.issued_auth_version = a.auth_version
        AND datetime(s.expires_at) > datetime('now')
      LIMIT 1`
   ).bind(tokenHash).first();
@@ -13373,9 +13379,32 @@ async function handleApiCustomerSessionLogout(request, env) {
     return apiError("unauthorized", "Valid customer bearer token is required.", 401);
   }
 
-  const tokenHash = await hashCustomerSessionToken(env, token);
+  let canonicalSession = null;
+  try {
+    canonicalSession = await resolveCanonicalSession(
+      env,
+      token,
+      "customer"
+    );
+  } catch {
+    // A legacy token is checked below.
+  }
 
-  const result = await env.DB.prepare(
+  let revokedCount = 0;
+  if (canonicalSession) {
+    const canonicalResult = await env.DB.prepare(`
+      UPDATE auth_sessions
+      SET revoked_at = CURRENT_TIMESTAMP,
+          revocation_reason = 'customer_logout',
+          last_seen_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+        AND revoked_at IS NULL
+    `).bind(canonicalSession.id).run();
+    revokedCount += Number(canonicalResult.meta?.changes || 0);
+  }
+
+  const tokenHash = await hashCustomerSessionToken(env, token);
+  const legacyResult = await env.DB.prepare(
     `UPDATE customer_app_sessions
      SET is_active = 0,
          revoked_at = CURRENT_TIMESTAMP,
@@ -13383,10 +13412,11 @@ async function handleApiCustomerSessionLogout(request, env) {
      WHERE token_hash = ?
        AND is_active = 1`
   ).bind(tokenHash).run();
+  revokedCount += Number(legacyResult.meta?.changes || 0);
 
   return apiOk({
     logged_out: true,
-    revoked_count: Number(result.meta?.changes || 0)
+    revoked_count: revokedCount
   });
 }
 
@@ -14998,6 +15028,8 @@ async function routeRequest(request, env, ctx) {
   const url = new URL(request.url);
 
   if (request.method === "OPTIONS" && url.pathname.startsWith("/api/v1/")) {
+    const identityResponse = await handleIdentityApi(request, env, ctx);
+    if (identityResponse) return identityResponse;
     return apiCorsPreflight();
   }
 
@@ -15035,6 +15067,20 @@ async function routeRequest(request, env, ctx) {
 
   if (url.pathname === ADMIN_RECOVERY_LANDING_ROUTE && getIdentityCapabilities(env).staff_recovery === true) {
     return handleAdminRecoveryLanding(request);
+  }
+
+  if (
+    url.pathname === CUSTOMER_EMAIL_ENROLLMENT_LANDING_ROUTE
+    && getIdentityCapabilities(env).customer_email === true
+  ) {
+    return handleCustomerEmailEnrollmentLanding(request);
+  }
+
+  if (
+    (url.pathname === CUSTOMER_SHOP_ROUTE || url.pathname === CUSTOMER_EMAIL_CONTINUE_ROUTE)
+    && getIdentityCapabilities(env).customer_email === true
+  ) {
+    return handleCustomerEmailAuthPage(request);
   }
 
   if (url.pathname === "/admin/login" && request.method === "GET") return handleLoginPage();

@@ -139,6 +139,28 @@ export type CustomerProfileResponse = {
   customer: CustomerProfile;
 };
 
+export type CustomerEmailEnrollment = {
+  present: boolean;
+  masked?: string | null;
+  verified: boolean;
+  verified_at?: string | null;
+};
+
+export type CustomerEmailEnrollmentResponse = {
+  ok: boolean;
+  email: CustomerEmailEnrollment;
+};
+
+export type CustomerEmailEnrollmentStartResponse = {
+  ok: boolean;
+  email?: CustomerEmailEnrollment;
+  challenge?: {
+    id: string;
+    email: string;
+    expires_at: string;
+  };
+};
+
 export type CustomerCartItem = {
   id?: number | null;
   product_id?: number | null;
@@ -267,24 +289,23 @@ export function getPublicMeetingPoints(): Promise<PublicMeetingPointsResponse> {
   return fetchJson<PublicMeetingPointsResponse>(`${API_BASE_URL}/public/meeting-points`);
 }
 
-export function startCustomerSession(input: {
-  deviceId: string;
-  fullName: string;
-  username: string;
-  language: string;
+export function authenticateTelegramMiniApp(input: {
+  initData: string;
+  idempotencyKey: string;
 }): Promise<CustomerSessionStartResponse> {
-  return fetchJson<CustomerSessionStartResponse>(`${API_BASE_URL}/customer/session/start`, {
+  return fetchJson<CustomerSessionStartResponse>(`${API_BASE_URL}/customer/auth/telegram`, {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
+      "idempotency-key": input.idempotencyKey
     },
     body: JSON.stringify({
-      device_id: input.deviceId,
-      platform: "telegram-mini-app",
-      app_version: "0.1.0",
-      full_name: input.fullName,
-      username: input.username,
-      language: input.language
+      init_data: input.initData,
+      session_transport: "bearer",
+      client: {
+        platform: "telegram_mini_app",
+        app_version: "0.1.0"
+      }
     })
   });
 }
@@ -307,6 +328,47 @@ export function getCustomerProfile(accessToken: string): Promise<CustomerProfile
   return fetchJson<CustomerProfileResponse>(`${API_BASE_URL}/customer/me`, {
     headers: authHeaders(accessToken)
   });
+}
+
+export function getCustomerEmailEnrollment(
+  accessToken: string
+): Promise<CustomerEmailEnrollmentResponse> {
+  return fetchJson<CustomerEmailEnrollmentResponse>(
+    `${API_BASE_URL}/customer/security/email`,
+    { headers: authHeaders(accessToken) }
+  );
+}
+
+export function startCustomerEmailEnrollment(
+  accessToken: string,
+  email: string
+): Promise<CustomerEmailEnrollmentStartResponse> {
+  return fetchJson<CustomerEmailEnrollmentStartResponse>(
+    `${API_BASE_URL}/customer/security/email/enrollment`,
+    {
+      method: "POST",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({ email })
+    }
+  );
+}
+
+export function verifyCustomerEmailEnrollment(
+  accessToken: string,
+  challengeId: string,
+  manualCode: string
+): Promise<CustomerEmailEnrollmentResponse> {
+  return fetchJson<CustomerEmailEnrollmentResponse>(
+    `${API_BASE_URL}/customer/security/email/enrollment/complete`,
+    {
+      method: "POST",
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        manual_code: manualCode
+      })
+    }
+  );
 }
 
 export function updateCustomerProfile(

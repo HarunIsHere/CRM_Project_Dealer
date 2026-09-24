@@ -143,19 +143,33 @@ Tasks:
 - iOS UI tests
 - release builds
 
+## Current Admin Android checkpoint
+
+The current Android implementation includes:
+
+- login, token restoration, logout, and recovery-email initiation
+- dashboard summary and latest-record rendering
+- complete general settings editing
+- active and closed order lists and details
+- delivery and pickup lifecycle actions
+- group approval and rejection
+- safe cancelled-order recreation with one active successor
+- open-request actions, including the confirmed all-done operation
+- customer filters, details, messaging, replies, and confirmed deletion
+- product, category, and meeting-point management
+- AI counters and learned-pattern actions
+- superadmin account management and audit-log listing
+- administrator password change
+- English, German, Turkish, Arabic, and Russian shared localization
+
 ## Immediate next implementation target
 
-Admin Android Phase 1:
+Admin Android parity closure and safety:
 
-1. Create semantic theme tokens.
-2. Create reusable Compose components.
-3. Replace the prototype bottom button rows.
-4. Add five-item bottom navigation:
-   - Dashboard
-   - Orders
-   - Requests
-   - Customers
-   - More
-5. Add role-aware More screen.
-6. Apply safe-area handling.
-7. Rebuild and test on the emulator.
+1. Manually verify dashboard response mapping, empty states, and errors.
+2. Complete the recovery-code verification and password-reset screens.
+3. Add confirmations for destructive catalogue, meeting-point, AI-pattern, and superadmin actions.
+4. Add audit-log detail and the 30-day retention explanation.
+5. Replace the drawer-only phone navigation with the planned five-item bottom navigation and role-aware More screen.
+6. Add the planned tablet navigation rail or side navigation.
+7. Run accessibility, dynamic-text, session-expiry, and Android UI-test coverage.

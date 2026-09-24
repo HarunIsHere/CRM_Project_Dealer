@@ -13,14 +13,17 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import java.util.UUID
 
 object CustomerApiClient {
     private const val customerApiBaseUrl = "https://crm.ayartuerk.me/api/v1"
 
     private val httpClient = HttpClient {
+        expectSuccess = true
         install(ContentNegotiation) {
             json(
                 Json {
+                    encodeDefaults = true
                     ignoreUnknownKeys = true
                     isLenient = true
                 }
@@ -29,6 +32,56 @@ object CustomerApiClient {
     }
 
     private fun bearer(accessToken: String): String = "Bearer $accessToken"
+
+    private fun idempotencyKey(): String = UUID.randomUUID().toString().replace("-", "")
+
+    suspend fun startCustomerEmailAuthentication(
+        email: String,
+        language: String,
+        initiationNonce: String
+    ): CustomerEmailAuthStartResponse =
+        httpClient.post("$customerApiBaseUrl/customer/auth/email/start") {
+            header("Idempotency-Key", idempotencyKey())
+            contentType(ContentType.Application.Json)
+            setBody(
+                CustomerEmailAuthStartRequest(
+                    email = email,
+                    locale = language,
+                    initiationNonce = initiationNonce
+                )
+            )
+        }.body()
+
+    suspend fun completeCustomerEmailAuthentication(
+        attemptId: String,
+        manualCode: String,
+        initiationNonce: String
+    ): CustomerEmailAuthCompleteResponse =
+        httpClient.post("$customerApiBaseUrl/customer/auth/email/complete") {
+            header("Idempotency-Key", idempotencyKey())
+            contentType(ContentType.Application.Json)
+            setBody(
+                CustomerEmailAuthCompleteRequest(
+                    attemptId = attemptId,
+                    manualCode = manualCode,
+                    initiationNonce = initiationNonce
+                )
+            )
+        }.body()
+
+    suspend fun getCustomerEmailAuthenticationSession(
+        accessToken: String
+    ): CustomerEmailAuthSessionResponse =
+        httpClient.get("$customerApiBaseUrl/customer/auth/session") {
+            header("Authorization", bearer(accessToken))
+        }.body()
+
+    suspend fun logoutCustomerEmailAuthentication(
+        accessToken: String
+    ): CustomerLogoutResponse =
+        httpClient.post("$customerApiBaseUrl/customer/auth/logout") {
+            header("Authorization", bearer(accessToken))
+        }.body()
 
     suspend fun getCustomerProducts(): List<CustomerProduct> =
         httpClient.get("$customerApiBaseUrl/public/catalog")

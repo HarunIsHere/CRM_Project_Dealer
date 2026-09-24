@@ -26,9 +26,20 @@ The current public Admin forgot-password flow stores one global plaintext five-d
 Customer identity is also transitional:
 
 - `customers.telegram_user_id` contains both real Telegram user IDs and synthetic `app:<uuid>` values.
-- `POST /api/v1/customer/session/start` can locate an existing customer from a caller-supplied `device_id` and issue a new 90-day bearer token.
+- `POST /api/v1/customer/session/start` creates a new guest account and session.
+  Caller-supplied `device_id` is retained only as non-authoritative device
+  metadata and can never locate or restore an account.
 - A device identifier is therefore acting as an identity credential even though it is not secret or verified.
-- The Telegram Mini App derives identity from client-visible Telegram data without sending the raw signed `initData` to the Worker for server-side verification.
+- The Telegram Mini App sends raw signed `initData` to the Worker, which verifies its signature, freshness, and one-time replay fingerprint before resolving the canonical Telegram identity. Its short-lived runtime bearer is kept in memory and is not persisted in browser storage.
+- Successful Telegram verification issues a canonical `customer_verified`
+  session. Legacy `customer_app_sessions` remain readable only for clients
+  created before the staged session migration.
+- A verified Telegram customer may now progressively enroll one email from the
+  Telegram Mini App. The challenge is bound to the initiating canonical
+  customer session, sends both a first-party link and an eight-digit code, and
+  attaches the address only when proof returns with that same session. A
+  verified address already owned by another customer account produces an
+  explicit linking conflict; it never creates or silently merges an account.
 
 The project needs:
 
@@ -57,6 +68,34 @@ The following rules are accepted:
 9. Recovery, identity linking, credential changes, and session revocation are backend security responsibilities. Clients must not implement competing local rules.
 10. Identity migration will be staged, but the final system will not retain permanent parallel legacy and canonical authentication models.
 11. Retirement of the existing Telegram recovery path is a separate owner-controlled decision. Building or activating verified-email recovery does not itself authorize disabling or removing Telegram recovery.
+
+The first customer-email rollout exposes the contract routes
+`GET /api/v1/customer/security/email`,
+`POST /api/v1/customer/security/email/enrollment`, and
+`POST /api/v1/customer/security/email/enrollment/complete`. The Mini App uses
+the manual code on its in-memory bearer session. Until customer Web sessions
+exist, the email landing page removes the fragment token and directs the user
+back to the initiating device instead of attaching an address without its
+bound session.
+
+The customer Web rollout adds passwordless sign-in for an existing verified
+customer email. `/shop` accepts an email link or eight-digit code and issues
+the canonical customer cookie/CSRF session. A link opened without the browser's
+one-time initiation cookie requires an explicit account confirmation before a
+session is issued; it never silently switches the customer in that browser.
+
+The same Web entry point also supports email-first customer registration. An
+unknown address creates only a pending authentication root and pending email
+record. The customer business profile and verified session are created after
+the link or eight-digit code proves control of the address. Existing verified
+addresses continue through sign-in, and registration never silently merges a
+new email identity into a Telegram customer account.
+
+Customer Android consumes the same email challenge contract through a
+readiness-gated native bearer transport. The app keeps its initiation nonce
+and resulting bearer token in device-protected storage, while browser clients
+continue to require first-party origin, cookie, and CSRF protections. Enabling
+the Android readiness flag is a separate deployment checkpoint.
 
 ## Canonical identity model
 

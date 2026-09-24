@@ -5,12 +5,15 @@ import { hashOpaqueToken } from "../../src/identity/crypto.js";
 import { IdentityProtocolError } from "../../src/identity/protocol.js";
 import {
   assertAllowedBrowserMutationOrigin,
+  readScopedBearerAuthentication,
   readScopedCookieAuthentication,
+  readScopedSessionAuthentication,
   requestHasBrowserMetadata,
   serializeScopedAuthCookieClears,
   serializeScopedAuthCookies,
   validateRequestedSessionTransport,
-  verifyScopedCookieCsrf
+  verifyScopedCookieCsrf,
+  verifyScopedSessionMutation
 } from "../../src/identity/transport.js";
 
 const SESSION_TOKEN = "session_token_1234567890_ABCDEFGHIJKLMN";
@@ -223,4 +226,141 @@ test("issued and cleared cookies use the contract attributes without Domain", ()
     "__Host-crm_staff_recovery=; Secure; HttpOnly; Path=/; SameSite=Lax; Max-Age=0",
     "__Host-crm_staff_recovery_csrf=; Secure; Path=/; SameSite=Strict; Max-Age=0"
   ]);
+});
+
+
+test("native recovery bearer authentication is accepted securely", async () => {
+  const token = "n".repeat(48);
+  const request = new Request(
+    "https://crm.ayartuerk.me/api/v1/admin/auth/recovery/password",
+    {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  const direct = readScopedBearerAuthentication(
+    request,
+    "staff_recovery"
+  );
+  assert.equal(direct.sessionToken, token);
+  assert.equal(direct.sessionTransport, "bearer");
+
+  const selected = readScopedSessionAuthentication(
+    request,
+    "staff_recovery"
+  );
+  assert.equal(selected.sessionToken, token);
+  assert.equal(selected.sessionTransport, "bearer");
+
+  const verified = await verifyScopedSessionMutation(
+    request,
+    {},
+    {
+      realm: "staff",
+      scope: "staff_recovery_email",
+      session_transport: "bearer",
+      client_platform: "admin_android"
+    },
+    "staff_recovery",
+    selected
+  );
+
+  assert.equal(verified.sessionToken, token);
+});
+
+test("recovery bearer rejects browser requests and incompatible sessions", async () => {
+  const token = "b".repeat(48);
+  const browserBearerRequest = new Request(
+    "https://crm.ayartuerk.me/api/v1/admin/auth/recovery/password",
+    {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${token}`,
+        origin: "https://crm.ayartuerk.me",
+        "sec-fetch-site": "same-origin"
+      }
+    }
+  );
+
+  assert.throws(
+    () => readScopedBearerAuthentication(
+      browserBearerRequest,
+      "staff_recovery"
+    ),
+    (error) => error instanceof IdentityProtocolError
+      && error.code === "invalid_session_transport"
+      && error.status === 400
+  );
+
+  const nativeRequest = new Request(
+    "https://crm.ayartuerk.me/api/v1/admin/auth/recovery/password",
+    {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    }
+  );
+  const authentication = readScopedSessionAuthentication(
+    nativeRequest,
+    "staff_recovery"
+  );
+
+  await assert.rejects(
+    verifyScopedSessionMutation(
+      nativeRequest,
+      {},
+      {
+        realm: "staff",
+        scope: "staff_recovery_email",
+        session_transport: "cookie",
+        client_platform: "admin_android"
+      },
+      "staff_recovery",
+      authentication
+    ),
+    (error) => error instanceof IdentityProtocolError
+      && error.code === "unauthorized"
+      && error.status === 401
+  );
+
+  await assert.rejects(
+    verifyScopedSessionMutation(
+      nativeRequest,
+      {},
+      {
+        realm: "staff",
+        scope: "staff_recovery_email",
+        session_transport: "bearer",
+        client_platform: "admin_web"
+      },
+      "staff_recovery",
+      authentication
+    ),
+    (error) => error instanceof IdentityProtocolError
+      && error.code === "unauthorized"
+      && error.status === 401
+  );
+});
+
+test("scoped session authentication preserves the cookie CSRF path", () => {
+  const request = browserRequest({
+    cookie: [
+      `__Host-crm_staff_recovery=${SESSION_TOKEN}`,
+      `__Host-crm_staff_recovery_csrf=${CSRF_TOKEN}`
+    ].join("; ")
+  });
+
+  const authentication = readScopedSessionAuthentication(
+    request,
+    "staff_recovery"
+  );
+
+  assert.equal(authentication.sessionToken, SESSION_TOKEN);
+  assert.equal(authentication.csrfCookieToken, CSRF_TOKEN);
+  assert.equal(authentication.csrfHeaderToken, CSRF_TOKEN);
+  assert.equal(authentication.sessionTransport, "cookie");
 });

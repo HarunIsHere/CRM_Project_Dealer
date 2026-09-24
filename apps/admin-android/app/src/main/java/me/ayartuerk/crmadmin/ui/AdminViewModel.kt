@@ -47,6 +47,11 @@ enum class AdminScreen {
     MORE
 }
 
+enum class AdminRecoveryStage {
+    VERIFY_CODE,
+    SET_PASSWORD
+}
+
 data class AdminUiMessage(
     val key: String,
     val arguments: Map<String, String> = emptyMap(),
@@ -103,6 +108,8 @@ data class AdminUiState(
     val lastProductAction: AdminUiMessage? = null,
     val settings: Map<String, String> = emptyMap(),
     val lastSettingsAction: AdminUiMessage? = null,
+    val recoveryStage: AdminRecoveryStage? = null,
+    val recoveryUsername: String = "",
     val recoveryNotice: AdminUiMessage? = null,
     val error: AdminUiMessage? = null
 )
@@ -110,6 +117,9 @@ data class AdminUiState(
 class AdminViewModel(application: Application) : AndroidViewModel(application) {
     private val tokenStore = TokenStore(application)
     private val repository = AdminRepository(ApiClient.adminApi)
+
+    // Recovery credentials are intentionally memory-only.
+    private var recoveryBearerToken: String? = null
 
     private val _state = MutableStateFlow(AdminUiState())
     val state: StateFlow<AdminUiState> = _state
@@ -162,25 +172,142 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     fun sendIdentityRecovery(username: String) {
         val cleaned = username.trim()
         if (cleaned.isBlank()) {
-            _state.value = _state.value.copy(recoveryNotice = null, error = adminItemMessage("required_template", "username", "field"))
+            _state.value = _state.value.copy(
+                recoveryNotice = null,
+                error = adminItemMessage(
+                    "required_template",
+                    "username",
+                    "field"
+                )
+            )
             return
         }
 
+        recoveryBearerToken = null
+
         viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null, recoveryNotice = null)
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null,
+                recoveryNotice = null
+            )
 
             runCatching {
                 repository.startIdentityRecovery(cleaned)
             }.onSuccess {
                 _state.value = _state.value.copy(
                     loading = false,
+                    recoveryStage = AdminRecoveryStage.VERIFY_CODE,
+                    recoveryUsername = cleaned,
                     recoveryNotice = AdminUiMessage("recovery_email_sent")
                 )
             }.onFailure {
                 _state.value = _state.value.copy(
                     loading = false,
-                    error = AdminUiMessage("operation_failed")
+                    error = AdminUiMessage("auth_recovery_error")
                 )
+            }
+        }
+    }
+
+    fun verifyIdentityRecovery(manualCode: String) {
+        val username = _state.value.recoveryUsername.trim()
+        val cleanedCode = manualCode.trim()
+
+        if (
+            username.isBlank() ||
+            !cleanedCode.matches(Regex("^\\d{8}$"))
+        ) {
+            _state.value = _state.value.copy(
+                error = AdminUiMessage("auth_recovery_invalid")
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.verifyIdentityRecovery(username, cleanedCode)
+            }.onSuccess { token ->
+                recoveryBearerToken = token
+                _state.value = _state.value.copy(
+                    loading = false,
+                    recoveryStage = AdminRecoveryStage.SET_PASSWORD,
+                    recoveryNotice = null
+                )
+            }.onFailure {
+                recoveryBearerToken = null
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = AdminUiMessage("auth_recovery_invalid")
+                )
+            }
+        }
+    }
+
+    fun completeIdentityRecovery(
+        newPassword: String,
+        confirmPassword: String
+    ) {
+        val token = recoveryBearerToken
+
+        if (
+            token.isNullOrBlank() ||
+            newPassword.length < 12 ||
+            newPassword != confirmPassword
+        ) {
+            _state.value = _state.value.copy(
+                error = AdminUiMessage("auth_recovery_new_password_error")
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loading = true,
+                error = null
+            )
+
+            runCatching {
+                repository.completeIdentityRecovery(
+                    token,
+                    newPassword,
+                    confirmPassword
+                )
+            }.onSuccess {
+                recoveryBearerToken = null
+                _state.value = AdminUiState(
+                    loading = false,
+                    loggedIn = false,
+                    recoveryNotice =
+                        AdminUiMessage("auth_recovery_success_body")
+                )
+            }.onFailure {
+                _state.value = _state.value.copy(
+                    loading = false,
+                    error = AdminUiMessage("auth_recovery_error")
+                )
+            }
+        }
+    }
+
+    fun cancelIdentityRecovery() {
+        val token = recoveryBearerToken
+        recoveryBearerToken = null
+        _state.value = AdminUiState(
+            loading = false,
+            loggedIn = false
+        )
+
+        if (!token.isNullOrBlank()) {
+            viewModelScope.launch {
+                runCatching {
+                    repository.logoutIdentityRecovery(token)
+                }
             }
         }
     }

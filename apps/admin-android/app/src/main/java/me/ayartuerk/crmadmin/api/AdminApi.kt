@@ -26,13 +26,13 @@ interface AdminApi {
 
     @PUT("admin/auth/recovery/password")
     suspend fun completeIdentityRecovery(
-        @Header("X-CSRF-Token") csrfToken: String,
+        @Header("Authorization") authorization: String,
         @Body body: AdminIdentityRecoveryPasswordRequest
     ): AdminIdentityRecoveryPasswordResponse
 
     @POST("admin/auth/recovery/logout")
     suspend fun logoutIdentityRecovery(
-        @Header("X-CSRF-Token") csrfToken: String
+        @Header("Authorization") authorization: String
     ): BasicResponse
 
     @POST("admin/login")
@@ -378,6 +378,10 @@ data class AdminIdentityRecoveryVerifyResponse(
     val ok: Boolean = false,
     @SerialName("request_id")
     val requestId: String? = null,
+    @SerialName("access_token")
+    val accessToken: String? = null,
+    @SerialName("token_type")
+    val tokenType: String? = null,
     val recovery: AdminIdentityRecoveryState? = null,
     val session: AdminIdentityRecoverySession? = null,
     val error: ApiErrorEnvelope? = null

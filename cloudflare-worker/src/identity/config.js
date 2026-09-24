@@ -88,13 +88,13 @@ export function getIdentityCapabilities(env) {
     && flag(env, FLAG_NAMES.staffBootstrapEnrollment)
   );
 
-  // Contract version 1 deliberately has no native attestation/bearer protocol.
-  // Ordinary staff identity features must remain unavailable until that
-  // separately approved amendment changes both this gate and the API contract.
+  // Customer Android uses the canonical bearer protocol only after its
+  // client-readiness gate is deliberately enabled. Staff native clients stay
+  // disabled until their separate strong-auth contract is implemented.
   const nativeBearer = {
     admin_android: false,
     admin_ios: false,
-    customer_android: false,
+    customer_android: customerEmail && readiness.customer_android,
     customer_ios: false
   };
   const staffEnrollment = true;

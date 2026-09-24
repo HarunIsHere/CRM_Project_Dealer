@@ -543,14 +543,33 @@ fun AdminApp(viewModel: AdminViewModel = viewModel()) {
                     onLogout = viewModel::logout,
                     ui = ui
                 )
-                else -> LoginScreen(
-                    loading = state.loading,
-                    error = state.error,
-                    recoveryNotice = state.recoveryNotice,
-                    onLogin = viewModel::login,
-                    onForgotPassword = viewModel::sendIdentityRecovery,
-                    ui = ui
-                )
+                else -> {
+                    val recoveryStage = state.recoveryStage
+                    if (recoveryStage != null) {
+                        IdentityRecoveryScreen(
+                            stage = recoveryStage,
+                            username = state.recoveryUsername,
+                            loading = state.loading,
+                            notice = state.recoveryNotice,
+                            error = state.error,
+                            onVerify = viewModel::verifyIdentityRecovery,
+                            onComplete =
+                                viewModel::completeIdentityRecovery,
+                            onBack = viewModel::cancelIdentityRecovery,
+                            ui = ui
+                        )
+                    } else {
+                        LoginScreen(
+                            loading = state.loading,
+                            error = state.error,
+                            recoveryNotice = state.recoveryNotice,
+                            onLogin = viewModel::login,
+                            onForgotPassword =
+                                viewModel::sendIdentityRecovery,
+                            ui = ui
+                        )
+                    }
+                }
             }
         }
     }
@@ -660,6 +679,237 @@ private fun LoginScreen(
 
         if (error != null) {
             Spacer(modifier = Modifier.height(16.dpCompat))
+            Text(
+                localizedAdminMessage(error, ui).orEmpty(),
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun IdentityRecoveryScreen(
+    stage: AdminRecoveryStage,
+    username: String,
+    loading: Boolean,
+    notice: AdminUiMessage?,
+    error: AdminUiMessage?,
+    onVerify: (String) -> Unit,
+    onComplete: (String, String) -> Unit,
+    onBack: () -> Unit,
+    ui: AdminLocalizedText
+) {
+    var manualCode by remember(stage, username) {
+        mutableStateOf("")
+    }
+    var newPassword by remember(stage, username) {
+        mutableStateOf("")
+    }
+    var confirmPassword by remember(stage, username) {
+        mutableStateOf("")
+    }
+    var newPasswordVisible by remember(stage) {
+        mutableStateOf(false)
+    }
+    var confirmPasswordVisible by remember(stage) {
+        mutableStateOf(false)
+    }
+
+    val recoveryText: (String) -> String = { key ->
+        localizedAdminMessage(AdminUiMessage(key), ui).orEmpty()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(AdminSpacing.L),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            recoveryText("auth_recovery_page_title"),
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+        Text(
+            recoveryText("auth_recovery_heading"),
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        Spacer(modifier = Modifier.height(AdminSpacing.S))
+        Text(recoveryText("auth_recovery_intro"))
+
+        Spacer(modifier = Modifier.height(AdminSpacing.M))
+        Text(
+            "${recoveryText("auth_recovery_username")}: $username"
+        )
+
+        if (notice != null) {
+            Spacer(modifier = Modifier.height(AdminSpacing.S))
+            Text(
+                localizedAdminMessage(notice, ui).orEmpty(),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(AdminSpacing.M))
+
+        when (stage) {
+            AdminRecoveryStage.VERIFY_CODE -> {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = manualCode,
+                    onValueChange = {
+                        manualCode = it
+                            .filter(Char::isDigit)
+                            .take(8)
+                    },
+                    label = {
+                        Text(
+                            recoveryText(
+                                "auth_recovery_code_label"
+                            )
+                        )
+                    },
+                    placeholder = {
+                        Text(
+                            recoveryText(
+                                "auth_recovery_code_placeholder"
+                            )
+                        )
+                    },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(AdminSpacing.M))
+
+                AdminPrimaryButton(
+                    text = if (loading) {
+                        recoveryText("auth_recovery_processing")
+                    } else {
+                        recoveryText(
+                            "auth_recovery_verify_button"
+                        )
+                    },
+                    enabled = !loading,
+                    onClick = { onVerify(manualCode) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            AdminRecoveryStage.SET_PASSWORD -> {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    label = {
+                        Text(
+                            recoveryText(
+                                "auth_recovery_new_password"
+                            )
+                        )
+                    },
+                    singleLine = true,
+                    visualTransformation =
+                        if (newPasswordVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                newPasswordVisible =
+                                    !newPasswordVisible
+                            }
+                        ) {
+                            Icon(
+                                imageVector =
+                                    if (newPasswordVisible) {
+                                        Icons.Filled.VisibilityOff
+                                    } else {
+                                        Icons.Filled.Visibility
+                                    },
+                                contentDescription = null
+                            )
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(AdminSpacing.S))
+
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = {
+                        Text(
+                            recoveryText(
+                                "auth_recovery_confirm_password"
+                            )
+                        )
+                    },
+                    singleLine = true,
+                    visualTransformation =
+                        if (confirmPasswordVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                confirmPasswordVisible =
+                                    !confirmPasswordVisible
+                            }
+                        ) {
+                            Icon(
+                                imageVector =
+                                    if (confirmPasswordVisible) {
+                                        Icons.Filled.VisibilityOff
+                                    } else {
+                                        Icons.Filled.Visibility
+                                    },
+                                contentDescription = null
+                            )
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(AdminSpacing.M))
+
+                AdminPrimaryButton(
+                    text = if (loading) {
+                        recoveryText("auth_recovery_processing")
+                    } else {
+                        recoveryText(
+                            "auth_recovery_set_password_button"
+                        )
+                    },
+                    enabled = !loading,
+                    onClick = {
+                        onComplete(
+                            newPassword,
+                            confirmPassword
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        TextButton(
+            onClick = onBack,
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(recoveryText("auth_recovery_back_to_login"))
+        }
+
+        if (error != null) {
+            Spacer(modifier = Modifier.height(AdminSpacing.S))
             Text(
                 localizedAdminMessage(error, ui).orEmpty(),
                 color = MaterialTheme.colorScheme.error

@@ -9,20 +9,23 @@ import {
   getCustomerOrderDetail,
   getCustomerOrders,
   getCustomerProfile,
+  getCustomerEmailEnrollment,
   getPublicCatalog,
   getPublicMeetingPoints,
   getPublicPaymentMethods,
   getPublicShops,
   logoutCustomerSession,
   removeCustomerCartItem,
-  startCustomerSession,
+  authenticateTelegramMiniApp,
+  startCustomerEmailEnrollment,
   updateCustomerCartItem,
-  updateCustomerProfile,
   verifyCustomerSession,
+  verifyCustomerEmailEnrollment,
   type CustomerCart,
   type CustomerLocation,
   type CustomerOrderSummary,
   type CustomerProfile,
+  type CustomerEmailEnrollment,
   type MeetingPoint,
   type PaymentMethod,
   type Product,
@@ -35,15 +38,7 @@ declare global {
       WebApp?: {
         ready: () => void;
         expand: () => void;
-        initDataUnsafe?: {
-          user?: {
-            id?: number;
-            first_name?: string;
-            last_name?: string;
-            username?: string;
-            language_code?: string;
-          };
-        };
+        initData?: string;
       };
     };
   }
@@ -53,12 +48,26 @@ const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
 
-const telegramUser = tg?.initDataUnsafe?.user;
-const deviceId = `telegram_${telegramUser?.id ?? "browser_demo"}`;
-const tokenStorageKey = `crm_customer_access_token_${deviceId}`;
+const telegramInitData = tg?.initData || "";
+const telegramAuthenticationStorageKey =
+  "crm_telegram_authentication_idempotency_key";
+const storedTelegramAuthenticationKey = sessionStorage.getItem(
+  telegramAuthenticationStorageKey
+);
+const telegramAuthenticationIdempotencyKey =
+  storedTelegramAuthenticationKey || crypto.randomUUID();
+if (!storedTelegramAuthenticationKey) {
+  sessionStorage.setItem(
+    telegramAuthenticationStorageKey,
+    telegramAuthenticationIdempotencyKey
+  );
+}
 
-let accessToken = localStorage.getItem(tokenStorageKey) || "";
+let accessToken = "";
+let loggedOut = false;
 let profile: CustomerProfile | null = null;
+let customerEmail: CustomerEmailEnrollment | null = null;
+let emailChallengeId = "";
 let products: Product[] = [];
 let shops: Shop[] = [];
 let paymentMethods: PaymentMethod[] = [];
@@ -100,18 +109,6 @@ function displayOrderStatus(order: CustomerOrderSummary): string {
   return order.order_status_label || order.order_status || order.status || "new";
 }
 
-function defaultFullName(): string {
-  return [telegramUser?.first_name, telegramUser?.last_name].filter(Boolean).join(" ") || "Telegram Mini App Customer";
-}
-
-function defaultUsername(): string {
-  return telegramUser?.username || "";
-}
-
-function defaultLanguage(): string {
-  return (telegramUser?.language_code || "en").slice(0, 2);
-}
-
 function firstActiveMeetingPoint(): MeetingPoint | null {
   return meetingPoints.find((point) => point.is_active && point.is_default) || meetingPoints.find((point) => point.is_active) || null;
 }
@@ -151,14 +148,40 @@ function renderProfile(): string {
   return `
     <section class="card">
       <h2>Profile</h2>
-      <p>Name: <strong>${escapeHtml(profile?.full_name || defaultFullName())}</strong></p>
-      <p class="muted">Username: ${escapeHtml(profile?.username || defaultUsername() || "-")}</p>
-      <p class="muted">Language: ${escapeHtml(profile?.preferred_language || profile?.language || defaultLanguage())}</p>
+      <p>Name: <strong>${escapeHtml(profile?.full_name || "Telegram customer")}</strong></p>
+      <p class="muted">Username: ${escapeHtml(profile?.username || "-")}</p>
+      <p class="muted">Language: ${escapeHtml(profile?.preferred_language || profile?.language || "en")}</p>
       <div class="actions">
         <button id="refresh-profile-button">Refresh profile</button>
-        <button id="update-profile-button">Sync Telegram profile</button>
         <button id="logout-button">Logout</button>
       </div>
+    </section>
+  `;
+}
+
+function renderEmailEnrollment(): string {
+  if (customerEmail?.verified) {
+    return `
+      <section class="card">
+        <h2>Email access</h2>
+        <p><strong>${escapeHtml(customerEmail.masked || "Verified")}</strong></p>
+        <p class="muted">Verified email is linked to this same customer account.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="card">
+      <h2>Add email access</h2>
+      <p class="muted">Enter the eight-digit code from the verification email on this device.</p>
+      <input id="email-enrollment-input" type="email" autocomplete="email" placeholder="Email address">
+      <button id="email-enrollment-start-button">Send verification email</button>
+      ${emailChallengeId ? `
+        <div class="checkout-box">
+          <input id="email-enrollment-code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="8-digit code">
+          <button id="email-enrollment-verify-button">Verify email</button>
+        </div>
+      ` : ""}
     </section>
   `;
 }
@@ -381,12 +404,16 @@ function bindEvents() {
     await loadProfile();
   });
 
-  app.querySelector<HTMLButtonElement>("#update-profile-button")?.addEventListener("click", async () => {
-    await syncProfile();
-  });
-
   app.querySelector<HTMLButtonElement>("#logout-button")?.addEventListener("click", async () => {
     await logout();
+  });
+
+  app.querySelector<HTMLButtonElement>("#email-enrollment-start-button")?.addEventListener("click", async () => {
+    await startEmailEnrollment();
+  });
+
+  app.querySelector<HTMLButtonElement>("#email-enrollment-verify-button")?.addEventListener("click", async () => {
+    await verifyEmailEnrollment();
   });
 }
 
@@ -399,10 +426,11 @@ function render() {
         <p class="eyebrow">CRM Delivery</p>
         <h1>Customer Shop</h1>
         <p>${escapeHtml(message)}</p>
-        <p class="muted">Device: ${escapeHtml(deviceId)}</p>
+        <p class="muted">Identity verified by Telegram</p>
       </section>
 
       ${renderProfile()}
+      ${renderEmailEnrollment()}
       ${renderCart()}
       ${renderOrders()}
       ${renderPublicInfo()}
@@ -414,6 +442,9 @@ function render() {
 }
 
 async function ensureSession() {
+  if (loggedOut) {
+    throw new Error("Close and reopen the Mini App to sign in again.");
+  }
   if (accessToken) {
     try {
       const verifyResponse = await verifyCustomerSession(accessToken);
@@ -422,21 +453,21 @@ async function ensureSession() {
         return accessToken;
       }
     } catch {
-      localStorage.removeItem(tokenStorageKey);
       accessToken = "";
     }
   }
 
-  const response = await startCustomerSession({
-    deviceId,
-    fullName: defaultFullName(),
-    username: defaultUsername(),
-    language: defaultLanguage()
+  if (!telegramInitData) {
+    throw new Error("Open this Mini App from Telegram to authenticate.");
+  }
+
+  const response = await authenticateTelegramMiniApp({
+    initData: telegramInitData,
+    idempotencyKey: telegramAuthenticationIdempotencyKey
   });
 
   accessToken = response.session.access_token;
   profile = response.customer ?? profile;
-  localStorage.setItem(tokenStorageKey, accessToken);
 
   return accessToken;
 }
@@ -454,20 +485,36 @@ async function loadProfile() {
   render();
 }
 
-async function syncProfile() {
+async function startEmailEnrollment() {
   try {
     const token = await ensureSession();
-    const profileResponse = await updateCustomerProfile(token, {
-      fullName: defaultFullName(),
-      username: defaultUsername(),
-      preferredLanguage: defaultLanguage()
-    });
-    profile = profileResponse.customer;
-    message = "Profile synced";
+    const email = app?.querySelector<HTMLInputElement>("#email-enrollment-input")?.value.trim() || "";
+    const response = await startCustomerEmailEnrollment(token, email);
+    if (response.email?.verified) {
+      customerEmail = response.email;
+      emailChallengeId = "";
+      message = "Email is already verified";
+    } else if (response.challenge) {
+      emailChallengeId = response.challenge.id;
+      message = `Verification sent to ${response.challenge.email}`;
+    }
   } catch (error) {
-    message = `Profile sync failed: ${error instanceof Error ? error.message : String(error)}`;
+    message = `Email setup failed: ${error instanceof Error ? error.message : String(error)}`;
   }
+  render();
+}
 
+async function verifyEmailEnrollment() {
+  try {
+    const token = await ensureSession();
+    const code = app?.querySelector<HTMLInputElement>("#email-enrollment-code-input")?.value.trim() || "";
+    const response = await verifyCustomerEmailEnrollment(token, emailChallengeId, code);
+    customerEmail = response.email;
+    emailChallengeId = "";
+    message = "Email verified and linked to this customer account";
+  } catch (error) {
+    message = `Email verification failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
   render();
 }
 
@@ -547,12 +594,13 @@ async function load() {
   try {
     const token = await ensureSession();
 
-    const [catalogResponse, shopsResponse, paymentMethodsResponse, meetingPointsResponse, profileResponse, cartResponse, ordersResponse, locationsResponse] = await Promise.all([
+    const [catalogResponse, shopsResponse, paymentMethodsResponse, meetingPointsResponse, profileResponse, emailResponse, cartResponse, ordersResponse, locationsResponse] = await Promise.all([
       getPublicCatalog(),
       getPublicShops(),
       getPublicPaymentMethods(),
       getPublicMeetingPoints(),
       getCustomerProfile(token),
+      getCustomerEmailEnrollment(token),
       getCustomerCart(token),
       getCustomerOrders(token),
       getCustomerLocations(token)
@@ -563,14 +611,13 @@ async function load() {
     paymentMethods = paymentMethodsResponse.payment_methods;
     meetingPoints = meetingPointsResponse.meeting_points;
     profile = profileResponse.customer;
+    customerEmail = emailResponse.email;
     cart = cartResponse.cart;
     orders = ordersResponse.orders;
     customerLocations = locationsResponse.locations;
 
     message = "Mini App loaded";
   } catch (error) {
-    localStorage.removeItem(tokenStorageKey);
-    accessToken = "";
     message = `Loading failed: ${error instanceof Error ? error.message : String(error)}`;
   }
 
@@ -679,15 +726,17 @@ async function logout() {
     // Local logout still proceeds.
   }
 
-  localStorage.removeItem(tokenStorageKey);
   accessToken = "";
+  loggedOut = true;
   profile = null;
+  customerEmail = null;
+  emailChallengeId = "";
   cart = null;
   orders = [];
   selectedOrder = null;
   customerLocations = [];
   selectedDeliveryLocationId = "";
-  message = "Logged out locally";
+  message = "Logged out. Close and reopen the Mini App to sign in again.";
 
   render();
 }
